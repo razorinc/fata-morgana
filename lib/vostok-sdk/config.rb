@@ -1,9 +1,9 @@
+require 'vostok-sdk/controller/application_manager'
+
 module Vostok
   module SDK
     class Config
-      def self.instance
-        $config = $config || Config.new
-      end
+      include Singleton
 
       @@conf_name = 'vostok.conf'
       def initialize()
@@ -25,5 +25,8 @@ module Vostok
         val
       end
     end
+    
+    #instantiate observers
+    ApplicationManager.instance
   end
 end

@@ -2,36 +2,28 @@ require 'rubygems'
 require 'active_model'
 require 'json'
 require 'vostok-sdk/config'
+require 'vostok-sdk/model/model'
+require 'vostok-sdk/model/descriptor'
 
 module Vostok
   module SDK
-    class Cartridge
-      include ActiveModel::Validations
-      include ActiveModel::Serializers::JSON
-      include ActiveModel::Serializers::Xml
-      validates_presence_of :name, :native_name, :package_root, :package_path, :summary, :version, :license, :provides_feature, :requires_feature, :requires
-      
-      attr_accessor :name, :native_name, :package_root, :package_path, :summary, :version, :license, :provides_feature, :requires_feature, :requires
+    class Cartridge < Model
+      validates_presence_of :name, :native_name, :package_root, :package_path, :summary, :version, :provides_feature
+      ds_attr_accessor :name, :native_name, :package_root, :package_path, :summary, :version, :license, :provides_feature, :requires_feature, :requires
 
-      def initialize(cart_name, package_root=nil, package_path=nil,provides_feature=[],requires_feature=[],requires=[])
+      def initialize(cart_name="", package_root=nil, package_path=nil,provides_feature=[],requires_feature=[],requires=[])
         @name = cart_name
         @package_root = package_root || Config.instance.get('package_root')
-        @package_path = package_path || (@package_root + "/" + @name)
+        if @name
+          @package_path = package_path || (@package_root + "/" + @name)
+        end
         @provides_feature = provides_feature
         @requires_feature = requires_feature
         @requires = requires
       end
       
-      def attributes
-        @attributes ||= {"name" => nil, "native_name" => nil, "package_root" => nil, "package_path" => nil, 
-          "summary" => nil, "version" => nil, "license" => nil, "provides_feature" => nil, "requires_feature" => nil, 
-          "requires" => nil}
-      end
-      
-      def attributes=(attr)
-        attr.each do |name,value|
-          send("#{name}=",value)
-        end
+      def descriptor
+        Descriptor.load_descriptor(self)
       end
 
       def self.list_installed
@@ -102,34 +94,38 @@ module Vostok
         }
         cartridge
       end
-
-      def self.from_vpm(package_path)
-        package_root = File.dirname(package_path)
-        cartridge = Cartridge.new("dummy_name",package_root,package_path)
-        control_spec = File.open(package_path + "/vostok/control.spec")
+      
+      def from_vpm_spec(control_spec)
         control_spec.each{|line|
           val = line.split(/:/)[1]
           if not val.nil?
             val.strip!
             case line
               when /^Summary:/
-                cartridge.summary = val
+                self.summary = val
               when /^Name:/
-                cartridge.name = val
+                self.name = val
               when /^Version:/
-                cartridge.version = val
+                self.version = val
               when /^License:/
-                cartridge.license = val
+                self.license = val
               when /^Provides:/
-                cartridge.provides_feature = val.split(/,[ ]*/)
+                self.provides_feature = val.split(/,[ ]*/)
               when /^Requires:/
-                cartridge.requires_feature = val.split(/,[ ]*/)
+                self.requires_feature = val.split(/,[ ]*/)
               when /^Native-Requires:/
-                cartridge.requires.push(val)
+                self.requires.push(val)
             end
           end
         }
-        cartridge
+        self
+      end
+
+      def self.from_vpm(package_path)
+        package_root = File.dirname(package_path)
+        cartridge = Cartridge.new(nil,package_root,package_path)
+        control_spec = File.open(package_path + "/vostok/control.spec")        
+        cartridge.from_vpm_spec(control_spec)
       end
 
       def to_s

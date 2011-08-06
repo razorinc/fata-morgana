@@ -1,15 +1,12 @@
 require 'rubygems'
 require 'active_model'
+require 'vostok-sdk/model/model'
 
 module Vostok
   module SDK
-    class Connector
-      include ActiveModel::Validations
-      include ActiveModel::Serializers::JSON
-      include ActiveModel::Serializers::Xml
+    class Connector < Model
       validates_presence_of :type, :pubsub, :name, :required
-      
-      attr_accessor :type, :pubsub, :name, :required
+      ds_attr_accessor :type, :pubsub, :name, :required
       
       def self.load_descriptor(id,json_data, pubsub)
         c = Connector.new

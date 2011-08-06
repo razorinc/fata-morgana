@@ -1,17 +1,15 @@
 require 'rubygems'
 require 'active_model'
+require 'vostok-sdk/model/model'
 require 'vostok-sdk/model/descriptor'
 require 'vostok-sdk/model/cartridge'
 require 'vostok-sdk/model/component_instance'
 
 module Vostok
   module SDK
-    class ComponentInstance
-      include ActiveModel::Validations
-      include ActiveModel::Serializers::JSON
-      include ActiveModel::Serializers::Xml
+    class ComponentInstance < Model
       validates_presence_of :name, :feature, :cartridge, :component, :profile_name, :dependency_instances
-      attr_accessor :name, :feature, :cartridge, :component, :profile_name, :dependency_instances
+      ds_attr_accessor :name, :feature, :cartridge, :component, :profile_name, :dependency_instances
       
       def initialize
         @dependency_instances = {}

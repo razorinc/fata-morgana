@@ -1,17 +1,13 @@
 require 'rubygems'
 require 'active_model'
+require 'vostok-sdk/model/model'
 
 module Vostok
   module SDK
-    class Connection
-      extend ActiveModel::Naming
-      include ActiveModel::Validations
-      include ActiveModel::Serializers::JSON
-      include ActiveModel::Serializers::Xml
-      validates_presence_of :name, :pub, :sub      
-      attr_accessor :name, :pub, :sub      
+    class Connection < Model
+      validates_presence_of :name, :pub, :sub
+      ds_attr_accessor :name, :pub, :sub, :attributes
 
-      
       def initialize(name,pub,sub)
         @name, @pub, @sub = name, pub, sub
       end

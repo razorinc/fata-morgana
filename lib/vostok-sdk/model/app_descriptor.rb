@@ -5,23 +5,14 @@ require 'vostok-sdk/model/cartridge'
 require 'vostok-sdk/model/group'
 require 'vostok-sdk/model/connection'
 require 'vostok-sdk/model/connection_endpoint'
+require 'vostok-sdk/model/model'
 
 module Vostok
   module SDK
-    class AppDescriptor
-      include ActiveModel::Validations
-      include ActiveModel::Serializers::JSON
-      include ActiveModel::Serializers::Xml
+    class AppDescriptor < Model
+      ds_attr_accessor :groups, :connections, :app
       validates_presence_of :groups, :connections, :app
-      
-      attr_accessor :groups, :connections, :app
-      
-      def attributes
-        @attributes ||= {'groups' => 'nil'}
-        @attributes ||= {'connections' => 'nil'}
-        @attributes ||= {'app' => 'nil'}          
-      end
-        
+     
       def self.load_descriptor(app)
         d = AppDescriptor.new
         d.app = app

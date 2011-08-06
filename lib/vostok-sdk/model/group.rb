@@ -2,26 +2,14 @@ require 'rubygems'
 require 'json'
 require 'active_model'
 require 'vostok-sdk/config'
+require 'vostok-sdk/model/model'
 require 'vostok-sdk/model/component_instance'
 
 module Vostok
   module SDK
-    class Group
-      include ActiveModel::Validations
-      include ActiveModel::Serializers::JSON
-      include ActiveModel::Serializers::Xml
+    class Group < Model
       validates_presence_of :name, :components
-      attr_accessor :name, :components
-      
-      def attributes
-        @attributes ||= {'name' => nil, 'components' => nil}
-      end
-      
-      def attributes=(attr)
-        attr.each do |name,value|
-          send("#{name}=",value)
-        end
-      end
+      ds_attr_accessor :name, :components
 
       def self.load_descriptor(name,json_data,app_descriptor)
         g = Group.new
@@ -40,6 +28,16 @@ module Vostok
           }
         end
         g
+      end
+    end
+    
+    def attributes
+      @attributes ||= {'name' => nil, 'components' => nil}
+    end
+    
+    def attributes=(attr)
+      attr.each do |name,value|
+        send("#{name}=",value)
       end
     end
   end

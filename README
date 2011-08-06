@@ -7,7 +7,18 @@ Local Env
 
 To run from a local checkout run:
 
-eval $( rake local_env | tail -n +2 )
+eval $( rake local_env | tail -n +1 )
+
+Build Test Packages
+===================
+mkdir /var/tmp/vostok-repo
+rake create_local_repo
+
+echo "[vostok]
+name=Vostok Repo
+baseurl=file:///var/tmp/vostok-repo
+enabled=1
+gpgcheck=0" > /etc/yum.repos.d/vostok.repo
 
 Running Tests
 =============

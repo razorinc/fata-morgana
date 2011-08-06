@@ -2,27 +2,15 @@ require 'rubygems'
 require 'json'
 require 'active_model'
 require 'vostok-sdk/config'
+require 'vostok-sdk/model/model'
 require 'vostok-sdk/model/cartridge'
 require 'vostok-sdk/model/profile'
 
 module Vostok
   module SDK
-    class Descriptor
-      include ActiveModel::Validations
-      include ActiveModel::Serializers::JSON
-      include ActiveModel::Serializers::Xml
+    class Descriptor < Model
       validates_presence_of :profiles, :cartridge
-      attr_accessor :profiles, :cartridge
-      
-      def attributes
-        @attributes ||= {'profiles' => nil, 'cartridge' => nil}
-      end
-      
-      def attributes=(attr)
-        attr.each do |name,value|
-          send("#{name}=",value)
-        end
-      end
+      ds_attr_accessor :profiles, :cartridge
 
       def self.load_descriptor(cartridge)
         d = Descriptor.new
@@ -40,6 +28,16 @@ module Vostok
         end
         
         d
+      end
+      
+      def attributes
+        @attributes ||= {'profiles' => nil, 'cartridge' => nil}
+      end
+      
+      def attributes=(attr)
+        attr.each do |name,value|
+          send("#{name}=",value)
+        end
       end
     end
   end

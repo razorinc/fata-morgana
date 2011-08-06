@@ -1,15 +1,13 @@
 require 'rubygems'
 require 'active_model'
+require 'vostok-sdk/model/model'
 require 'vostok-sdk/model/connector'
 
 module Vostok
   module SDK
-    class Component
-      include ActiveModel::Validations
-      include ActiveModel::Serializers::JSON
-      include ActiveModel::Serializers::Xml
+    class Component < Model
       validates_presence_of :feature, :publishes, :subscribes
-      attr_accessor :feature, :publishes, :subscribes
+      ds_attr_accessor :feature, :publishes, :subscribes
       
       def attributes
         @attributes ||= {"feature" => nil, "publishes" => nil, "subscribes" => nil}
@@ -20,6 +18,7 @@ module Vostok
           send("#{name}=",value)
         end
       end
+      
 
       def self.load_descriptor(feature,json_data)
         publishes = json_data["connectors"]["publishes"]

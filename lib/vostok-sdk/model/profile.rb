@@ -1,17 +1,15 @@
 require 'rubygems'
 require 'json'
 require 'active_model'
+require 'vostok-sdk/model/model'
 require 'vostok-sdk/model/component'
 
 module Vostok
   module SDK
-    class Profile
-      include ActiveModel::Validations
-      include ActiveModel::Serializers::JSON
-      include ActiveModel::Serializers::Xml
+    class Profile < Model
       validates_presence_of :name, :components, :connections
-      attr_accessor :name, :components, :connections
-
+      ds_attr_accessor :name, :components, :connections
+      
       def attributes
         @attributes ||= {'name' => nil, 'components' => nil, 'connections' => nil}
       end
