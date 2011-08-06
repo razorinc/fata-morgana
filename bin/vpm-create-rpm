@@ -64,5 +64,5 @@ if args['--help'] || vpm_dir.nil? || (not File.exist?(vpm_dir + "/vostok/control
   exit -101
 end
 
-vpm_file = Vostok::SDK::Rpm.create_rpm(vpm_dir)
+vpm_file = Vostok::SDK::Utils::Rpm.create_rpm(vpm_dir)
 system("cp #{vpm_file} .")

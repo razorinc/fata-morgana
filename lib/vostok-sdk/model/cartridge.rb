@@ -1,13 +1,17 @@
 require 'rubygems'
-require 'vostok-sdk/config'
-require 'vostok-sdk/json'
+require 'active_model'
 require 'json'
+require 'vostok-sdk/config'
 
 module Vostok
   module SDK
     class Cartridge
+      include ActiveModel::Validations
+      include ActiveModel::Serializers::JSON
+      include ActiveModel::Serializers::Xml
+      validates_presence_of :name, :native_name, :package_root, :package_path, :summary, :version, :license, :provides_feature, :requires_feature, :requires
+      
       attr_accessor :name, :native_name, :package_root, :package_path, :summary, :version, :license, :provides_feature, :requires_feature, :requires
-      include Vostok::SDK::JSONEncodable
 
       def initialize(cart_name, package_root=nil, package_path=nil,provides_feature=[],requires_feature=[],requires=[])
         @name = cart_name
@@ -16,6 +20,18 @@ module Vostok
         @provides_feature = provides_feature
         @requires_feature = requires_feature
         @requires = requires
+      end
+      
+      def attributes
+        @attributes ||= {"name" => nil, "native_name" => nil, "package_root" => nil, "package_path" => nil, 
+          "summary" => nil, "version" => nil, "license" => nil, "provides_feature" => nil, "requires_feature" => nil, 
+          "requires" => nil}
+      end
+      
+      def attributes=(attr)
+        attr.each do |name,value|
+          send("#{name}=",value)
+        end
       end
 
       def self.list_installed

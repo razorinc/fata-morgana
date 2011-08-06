@@ -64,4 +64,4 @@ if args['--help'] || rpm_file.nil? || (not File.exist?(rpm_file))
   exit -101
 end
 
-Vostok::SDK::Rpm.add_to_repo(rpm_file)
+Vostok::SDK::Utils::Rpm.add_to_repo(rpm_file)

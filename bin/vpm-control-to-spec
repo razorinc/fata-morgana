@@ -64,5 +64,5 @@ if args['--help'] || vpm_dir.nil? || (not File.exist?(vpm_dir + "/vostok/control
   exit -101
 end
 
-spec_file = Vostok::SDK::Rpm.control_to_spec(vpm_dir)
+spec_file = Vostok::SDK::Utils::Rpm.control_to_spec(vpm_dir)
 print "#{spec_file} created.\n"
