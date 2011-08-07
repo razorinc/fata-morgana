@@ -1,3 +1,25 @@
+# Copyright 2010 Red Hat, Inc.
+#
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation files
+# (the "Software"), to deal in the Software without restriction,
+# including without limitation the rights to use, copy, modify, merge,
+# publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so,
+# subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT.  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+# BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+# ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+# CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 require 'rubygems'
 require 'vostok-sdk/config'
 require 'sqlite3'
@@ -21,16 +43,35 @@ module Vostok
 SQL
       end
       
+      def find_all(type)
+        return @db.execute("select value from data where type=?", [type, id.to_s]) 
+      end
+      
+      def find_all_ids(type)
+        return @db.execute("select ids from data where type=?", [type, id.to_s])
+      end
+      
       def find(type, id)
-        @db.execute("select value from data where type=? and id=?", [type, id]) do |row|
-          return row[0]
+        rows = @db.execute("select value from data where type=? and id=?", [type, id.to_s]) 
+        if rows.length > 0
+          return rows[0][0]
+        else
+          return nil
         end
-        return nil
       end
       
       def save(type,id,value)
-        @db.execute "REPLACE INTO data (type,id,value) VALUES (?,?,?)", [type,id,value]
+        @db.transaction do 
+          @db.execute "DELETE FROM data where type=? and id=?", [type, id.to_s]
+          @db.execute "INSERT INTO data (type,id,value) VALUES (?,?,?)", [type,id.to_s,value]
+        end          
         find(type,id)
+      end
+      
+      def delete(type,id)
+        @db.transaction do 
+          @db.execute "DELETE FROM data where type=? and id=?", [type, id.to_s]
+        end          
       end
     end
   end

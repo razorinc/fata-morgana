@@ -21,31 +21,37 @@
 # SOFTWARE.
 
 require 'rubygems'
-require 'singleton'
+require 'logger'
+require 'vostok-sdk/config'
 
 module Vostok
   module SDK
-    class Config
-      include Object::Singleton
-
-      @@conf_name = 'vostok.conf'
-      def initialize()
-        _linux_cfg = '/etc/vostok/' + @@conf_name
-        _gem_cfg = File.join(File.expand_path(File.dirname(__FILE__) + "/../../conf"), @@conf_name)
-        @config_path = File.exists?(_linux_cfg) ? _linux_cfg : _gem_cfg
-
-        begin
-          @@global_config = ParseConfig.new(@config_path)
-        rescue Errno::EACCES => e
-          puts "Could not open config file: #{e.message}"
-          exit 253
-        end
+    #create logger
+    unless @log
+      config = Vostok::SDK::Config.instance
+      log_location=config.get("log_location")
+      log_aging=config.get("log_aging") || "daily"
+      log_level=config.get("log_level") || "DEBUG"        
+      case log_location
+      when "STDERR"
+        @log = Object::Logger.new(STDERR)
+      when "STDOUT"
+        @log = Object::Logger.new(STDOUT)
+      else
+        @log = Object::Logger.new(log_location,log_aging)
       end
-
-      def get(name)
-        val = @@global_config.get_value(name)
-        val.gsub!(/\\:/,":") if not val.nil?
-        val
+      @log.level=Logger::SEV_LABEL.index(log_level)
+    end
+    
+    def self.log
+      @log
+    end
+    
+    module Utils
+      module Logger
+        def log
+          Vostok::SDK::log
+        end
       end
     end
   end

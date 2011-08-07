@@ -1,4 +1,27 @@
+# Copyright 2010 Red Hat, Inc.
+#
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation files
+# (the "Software"), to deal in the Software without restriction,
+# including without limitation the rights to use, copy, modify, merge,
+# publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so,
+# subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT.  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+# BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+# ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+# CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 require 'rubygems'
+require 'uuid'
 require 'vostok-sdk/config'
 
 module Vostok
@@ -52,6 +75,39 @@ module Vostok
         ret
       end
       
+      def self.find_all()
+        type = self.name
+        config = Vostok::SDK::Config.instance
+        ds_type = config.get("datasource_type")
+        require "vostok-sdk/utils/#{ds_type}_ds"
+        ds = eval("#{ds_type.capitalize}.instance")
+        values = ds.find_all(type)
+
+        ret_vals = []
+        values.each do |value|
+          ret = new.from_json(value)
+          ret.changed_attributes.clear
+          ret_vals.push(ret)
+        end
+        ret_vals
+      end
+      
+      def self.find_all_guids()
+        type = self.name
+        config = Vostok::SDK::Config.instance
+        ds_type = config.get("datasource_type")
+        require "vostok-sdk/utils/#{ds_type}_ds"
+        ds = eval("#{ds_type.capitalize}.instance")
+        return ds.find_all_ids(type)
+      end
+      
+      def gen_uuid
+        config = Vostok::SDK::Config.instance
+        uuid_state_file = config.get("uuid_state_file")
+        Object::UUID.state_file=uuid_state_file
+        self.guid = Object::UUID.generate(:compact)
+      end
+      
       def attributes
         return @attributes if @attributes
         @attributes = {}
@@ -70,12 +126,13 @@ module Vostok
         end
       end
       
-      def save()
+      def save!
         return nil unless self.changed?
         unless self.valid?
           print "Not saving: object validation failed\n"
           return nil
         end
+        print "saving\n"
         type = self.class.name
         id = self.guid
         value = self.to_json
@@ -89,6 +146,20 @@ module Vostok
         @changed_attributes.clear
         
         self
+      end
+      
+      def delete!
+        return nil unless self.changed?
+        print "deleting\n"
+        type = self.class.name
+        id = self.guid
+        
+        config = Vostok::SDK::Config.instance
+        ds_type = config.get("datasource_type")
+        require "vostok-sdk/utils/#{ds_type}_ds"
+        ds = eval("#{ds_type.capitalize}.instance")
+        ds.delete(type,id)
+        @changed_attributes.clear
       end
       
       ds_attr_accessor :guid
