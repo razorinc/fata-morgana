@@ -2,11 +2,11 @@ require 'rubygems'
 require 'rake'
 require 'rake/clean'
 
-desc "Print environment to run from checkout"
+desc "Print environment to run from checkout - eval $( rake local_env | tail -n +2 )"
 task :local_env do
     pwd = Dir.pwd
-    puts "export RUBYDIR='#{pwd}/lib/'"
-    puts "export PATH='#{pwd}/bin/:#{ENV['PATH']}'"
+    puts "RUBYLIB='#{pwd}/lib/'; export RUBYLIB"
+    puts "PATH='#{pwd}/bin/:#{ENV['PATH']}'; export PATH"
 end
 
 desc "Generate repo from all vpm templates in tests/data/"

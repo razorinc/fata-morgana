@@ -1,0 +1,17 @@
+FATA-MORGANA - QUICKSTART
+=========================
+
+
+Local Env
+=========
+
+To run from a local checkout run:
+
+eval $( rake local_env | tail -n +2 )
+
+Running Tests
+=============
+
+To create a repo and run all tests:
+
+rake run_all_tests
