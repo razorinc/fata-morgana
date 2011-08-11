@@ -1,0 +1,1 @@
+./set_vhost <connection id> <vhost file> (eg:file:///srv/webapps/132423423433423432/app/vostok/setup/vhost.conf)

@@ -1,0 +1,19 @@
+{
+	"connectors": {
+		"subscribes" : {
+			"vhost" :{
+				"required" : false,
+				"required-type" : "FILESYSTEM:VHOST"
+			},
+			"doc_root" :{
+				"required" : true,
+				"required-type" : "FILESYSTEM:DOC_ROOT"
+			}
+		},
+		"publishes" : {
+			"ext_url" :{
+				"type": "NET_TCP:HTTP"
+			}
+		}
+	}
+}

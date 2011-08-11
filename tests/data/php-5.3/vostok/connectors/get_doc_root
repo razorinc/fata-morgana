@@ -1,0 +1,1 @@
+./get_doc_root <connection_id> => string (eg:file:///srv/webapps/132423423433423432/app)

@@ -1,0 +1,1 @@
+./set_mysql_conn_info <connection_id> <json> (eg: {host,port,user,pass})

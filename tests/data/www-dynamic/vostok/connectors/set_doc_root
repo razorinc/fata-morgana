@@ -1,0 +1,1 @@
+./set_doc_root <connection id> <doc root> (eg:file:///srv/webapps/132423423433423432/app)

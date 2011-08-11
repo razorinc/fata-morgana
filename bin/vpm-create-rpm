@@ -1,0 +1,68 @@
+#!/usr/bin/env ruby
+# Copyright 2010 Red Hat, Inc.
+#
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation files
+# (the "Software"), to deal in the Software without restriction,
+# including without limitation the rights to use, copy, modify, merge,
+# publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so,
+# subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT.  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+# BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+# ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+# CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+def usage
+    puts <<USAGE
+== Synopsis
+
+vpm create-rpm: Creates a RPM from a VPM package and spec file
+
+== Usage
+
+vpm create-rpm VPM_DIR
+
+Options:
+-h|--help:
+   Prints this message
+
+VPM_DIR Directory where VPM distribution is located
+USAGE
+end
+
+require 'vostok-sdk'
+
+opts = GetoptLong.new(
+    ["--porcelin",               GetoptLong::NO_ARGUMENT],
+    ["--debug",                  GetoptLong::NO_ARGUMENT],
+    ["--help",             "-h", GetoptLong::NO_ARGUMENT]
+)
+
+args = {}
+begin
+    opts.each{ |k,v| args[k]=v }
+rescue GetoptLong::Error => e
+    usage
+    exit -100
+end
+
+$vpm_debug = true if args['--debug']
+$porcelin = args['--porcelin'] ? true : false
+vpm_dir = ARGV.shift
+
+if args['--help'] || vpm_dir.nil? || (not File.exist?(vpm_dir + "/vostok/control.spec"))
+  usage
+  exit -101
+end
+
+vpm_file = Vostok::SDK::Rpm.create_rpm(vpm_dir)
+system("cp #{vpm_file} .")
