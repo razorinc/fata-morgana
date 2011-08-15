@@ -37,7 +37,7 @@ module Vostok
         
         def self.control_to_spec(vpm_dir)
           config = Vostok::SDK::Config.instance
-          cart = Vostok::SDK::Cartridge.from_vpm(vpm_dir)
+          cart = Vostok::SDK::Model::Cartridge.from_vpm(vpm_dir)
           
           provides_feature = cart.provides_feature.map{|f| "provides: openshift-feature-#{f}"}.join("\n")
           requires_feature = cart.requires_feature.map{|f| "requires: openshift-feature-#{f}"}.join("\n")
@@ -93,7 +93,7 @@ EOF
         
         def self.create_rpm(vpm_dir)
           config = Vostok::SDK::Config.instance
-          cart = Vostok::SDK::Cartridge.from_vpm(vpm_dir)
+          cart = Vostok::SDK::Model::Cartridge.from_vpm(vpm_dir)
           spec_file = "#{vpm_dir}/vostok/#{cart.name}.spec"
           if not File.exists?(spec_file)
             system("vpm-control-to-spec #{vpm_dir}")

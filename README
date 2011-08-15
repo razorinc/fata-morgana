@@ -4,9 +4,21 @@ FATA-MORGANA - QUICKSTART
 Setup
 =====
 
-To run from a local checkout run (as root):
+# especially for a new rhel 6.1 env (yum install ruby-devel may not work)
+# make sure to add EPEL repositories
+# a nice how-to for that is - http://johnpoelstra.com/2010/12/23/rhel-6-epel
+# then add some more packages
 
-yum install -y ruby ruby-devel sqlite-devel rubygem
+To run from a local checkout run (as root):
+yum install -y ruby ruby-devel sqlite-devel rubygem make rpm-build git
+
+# if ruby-devel is not located by yum repos, then install the rpm manually
+# get the rpm ruby-devel-1.8.7.299-7.el6.i686.rpm  or the x86_64 version (google it)
+rpm --nodeps -ivh ruby-devel*.rpm    # no-deps required if ruby-libs are incompatible
+
+# for the rest of the tasks below, ignore the errors on RDocs
+# in the 'gem install' command by issuing --no-rdoc in command line, or get ruby-rdocs
+
 gem install bundler
 bundle
 

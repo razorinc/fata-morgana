@@ -21,33 +21,50 @@
 # SOFTWARE.
 
 require 'rubygems'
-require 'json'
-require 'active_model'
-require 'vostok-sdk/model/model'
-require 'vostok-sdk/model/component'
+require 'singleton'
+require 'vostok-sdk/config'
+require 'vostok-sdk/utils/logger'
+require 'vostok-sdk/model/node'
+require 'vostok-sdk/model/application'
+require 'vostok-sdk/model/node_application'
 
 module Vostok
   module SDK
-    module Model
-      class Profile < VostokModel
-        validates_presence_of :name, :components, :connections
-        ds_attr_accessor :name, :components, :connections
-  
-        def self.load_descriptor(name,json_data,cartridge)
-          p = Profile.new
-          p.name=name
-          
-          p.components = {}
-          if json_data.has_key?("components")
-            json_data["components"].each{|k,v|
-              p.components[k] = Component.load_descriptor(k,v)
-            }
-          else
-            feature_name = cartridge.provides_feature[0]
-            p.components[feature_name] = Component.load_descriptor(feature_name,json_data)
-          end
-          
-          p
+    module Controller
+      class NodeApplicationDelegate
+        include Object::Singleton
+        attr_reader :node
+
+        def initialize
+          @node = Model::Node.find("1") || Model::Node.new("1")
+          @node.save!
+        end
+        
+        def create(application)
+          napp = Model::NodeApplication.new application.guid
+          napp.gen_uuid
+          napp.save!
+          node.application_map[application.guid] = napp.guid
+          node.save!
+          napp.create!
+        end
+        
+        def install(application)
+        end
+        
+        def start(application)
+        end
+        
+        def stop(application)
+        end
+        
+        def uninstall(application)
+        end
+        
+        def destroy(application)
+          napp_guid = node.application_map[application.guid]
+          napp = Model::NodeApplication.find(napp_guid)
+          napp.destroy!
         end
       end
     end

@@ -24,6 +24,7 @@ require 'rubygems'
 require 'open3'
 require 'vostok-sdk/config'
 require 'vostok-sdk/utils/logger'
+require 'vostok-sdk/utils/shell_exec'
 
 module Vostok
   module SDK
@@ -39,6 +40,7 @@ module Vostok
       class VersionControl
         attr_accessor :work_tree,:git_dir, :is_bare
         include Vostok::SDK::Utils::Logger
+        include Vostok::SDK::Utils::ShellExec
         
         def initialize(work_tree,git_dir=nil)
           self.work_tree = work_tree
@@ -120,39 +122,6 @@ module Vostok
         
         def commit(message="no message provided")
           shellCmd "git --work-tree=#{self.work_tree} --git-dir=#{self.git_dir} commit -m \"#{message}\"", self.work_tree
-        end
-        
-        def shellCmd(cmd, pwd=".", ignore_err=false, expected_rc=0)
-          out = err = rc = nil          
-          begin
-            log.debug cmd
-            rc_file = "/var/tmp/#{Process.pid}.#{rand}"
-            log.debug m_cmd = "cd #{pwd}; #{cmd}; echo $? > #{rc_file}"
-            stdin, stdout, stderr = Open3.popen3(m_cmd){ |stdin,stdout,stderr,thr|
-              stdin.close
-              log.debug "--out--"
-              log.debug out = stdout.read
-              log.debug "--err--"
-              log.debug err = stderr.read          
-              stdout.close
-              stderr.close  
-            }
-            f_rc_file = File.open(rc_file,"r")
-            rc = f_rc_file.read.to_i
-            f_rc_file.close
-            log.debug `rm -f #{rc_file}`
-            log.debug "rc = #{rc}"
-          rescue Exception => e
-            log.error e.class
-            log.error e.message
-            raise ShellExecutionException.new(e.message) unless ignore_err
-          end
-          
-          if !ignore_err and rc != expected_rc 
-            raise ShellExecutionException.new("Shell command '#{cmd}' returned an error. rc=#{rc}", rc)
-          end
-           
-          return [out, err, rc]
         end
       end
     end

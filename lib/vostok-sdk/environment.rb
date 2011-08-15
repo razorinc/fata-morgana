@@ -20,14 +20,19 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-require 'vostok-sdk/controller/application_manager'
-require 'vostok-sdk/controller/node_application_manager'
+require 'vostok-sdk/model/application'
+require 'vostok-sdk/model/node_application'
+
+require 'vostok-sdk/controller/application_observer'
+require 'vostok-sdk/controller/node_application_observer'
+require 'vostok-sdk/controller/audit_observer'
 
 module Vostok
   module SDK
     #instantiate observers
-    ApplicationManager.instance
-    NodeApplicationManager.instance
+    Vostok::SDK::Controller::StateMachineObserver.instance
+    Vostok::SDK::Controller::ApplicationObserver.instance
+    Vostok::SDK::Controller::NodeApplicationObserver.instance
   end
 end
     
