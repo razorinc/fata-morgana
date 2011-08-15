@@ -37,8 +37,8 @@ module Vostok
         def initialize
           self.nodes = []
         end
-  
-        def self.load_descriptor(name,json_data,app_descriptor)
+        
+        def self.load_descriptor(name,json_data,app_descriptor,app)
           g = Group.new
           g.name=name
           
@@ -48,12 +48,14 @@ module Vostok
               g.components[k] = ComponentInstance.load_descriptor(k,v)
             }
           else
-            app = app_descriptor.app
             app.requires_feature.each{ |feature|
               f_inst, f_dep_cmap = ComponentInstance.from_app_dependency(feature)
               g.components.merge!(f_dep_cmap)
             }
           end
+          g.gen_uuid
+          g.save!
+                    
           g
         end
       end

@@ -60,9 +60,13 @@ module Vostok
         end
         
         def initialize(app_name=nil,package_root=nil,package_path=nil)
+          super()          
           self.name,self.package_root,self.package_path = app_name,package_root,package_path
           self.deleted = "false"
-          super()          
+        end
+        
+        def attributes
+          {"state"=> @state, "deploy_state"=> @deploy_state, "deleted"=>@deleted, "descriptor" => self.descriptor}
         end
         
         def self.from_vpm(package_path)
@@ -76,7 +80,10 @@ module Vostok
         end
         
         def descriptor
-          self.descriptor ||= AppDescriptor.load_descriptor(self)
+          descriptor_changed = @descriptor.nil?
+          @descriptor ||= AppDescriptor.load_descriptor(self)
+          descriptor_will_change! if descriptor_changed
+          @descriptor
         end
         
         def delete!

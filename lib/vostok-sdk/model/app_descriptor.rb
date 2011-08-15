@@ -35,6 +35,20 @@ module Vostok
       class AppDescriptor < VostokModel
         ds_attr_accessor :groups, :connections
         validates_presence_of :groups, :connections
+
+        #custom getter since groups are stored as GUIDs 
+        #and need to be fetched
+        def groups
+          g = {}
+          @groups.each {|k,v| g[k] = Group.find(v) }
+          g
+        end
+                
+        #for XML, JSON serialization. 
+        #YAML looks at member variables directly and so picks up the GUIDs
+        def attributes
+          {"groups"=> self.groups, "connections"=> @connections}
+        end
        
         def self.load_descriptor(app)
           d = AppDescriptor.new
@@ -42,22 +56,23 @@ module Vostok
           json_data = JSON.parse(f.read)
   
           #load groups
-          d.groups = {}
+          groups = {}
           if json_data.has_key?("groups")
             json_data["groups"].each{ |k,v|
-              d.groups[k] = Group.load_descriptor(k,v)
+              groups[k] = Group.load_descriptor(k,v).guid
             }
           else
-            d.groups["default"] = Group.load_descriptor("default",json_data,d)
+            groups["default"] = Group.load_descriptor("default",json_data,d,app).guid
           end
+          d.groups = groups
           
           #load connections
           d.connections = {}
           
           type_publisher = {}
           d.groups.each{ |gn,g|
-            g.components.each{ |k,v|
-              v.component.publishes.each{ |cname,cinfo|
+            g.components.each{ |k,cinst|
+              cinst.component.publishes.each{ |cname,cinfo|
                 type = cinfo.type
                 type_publisher[type] = [] unless type_publisher[type]
                 type_publisher[type].push({"group"=> g.name, "comp_name"=> k, "conn_name"=> cname})
@@ -70,8 +85,8 @@ module Vostok
           
           conn_id = 0
           d.groups.each{ |gn,g|
-            g.components.each{ |k,v|
-              v.component.subscribes.each{ |cname,cinfo|
+            g.components.each{ |k,cinst|
+              cinst.component.subscribes.each{ |cname,cinfo|
                 req_type = cinfo.type
                 publishers = type_publisher[req_type]
                 unless publishers
@@ -84,11 +99,12 @@ module Vostok
                 end
                 
                 publishers.each{ |data|
-                  pub_group = data['group']
+                  pub_group_name = data['group']
+                  pub_group = d.groups[pub_group_name]
                   pub_comp_name = data['comp_name']
                   pub_conn_name = data['conn_name']
-                  pub_comp = d.groups[pub_group].components[pub_comp_name]
-                  sub_comp = v
+                  pub_comp = pub_group.components[pub_comp_name]
+                  sub_comp = cinst
   
                   is_direct_dependency = sub_comp.dependency_instances.values.flatten.include?(pub_comp_name) or pub_comp.dependency_instances.values.flatten.include?(k)
                   is_app_specified = false
@@ -98,7 +114,7 @@ module Vostok
                   }
                   
                   if is_direct_dependency or is_app_specified
-                    pub = ConnectionEndpoint.new(pub_group, pub_comp_name, pub_conn_name)
+                    pub = ConnectionEndpoint.new(pub_group_name, pub_comp_name, pub_conn_name)
                     sub = ConnectionEndpoint.new(gn,k,cname)
                     conn_name = "conn_#{conn_id}"
                   

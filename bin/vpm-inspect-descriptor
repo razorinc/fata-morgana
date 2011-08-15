@@ -64,7 +64,5 @@ if args['--help'] || app_path.nil?
   exit -101
 end
 
-a = Vostok::SDK::Cartridge.from_vpm(app_path)
-d = Vostok::SDK::AppDescriptor.load_descriptor(a)
-print JSON.pretty_generate(d)
-
+a = Vostok::SDK::Model::Application.from_vpm(app_path)
+print a.to_json

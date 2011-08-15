@@ -40,11 +40,13 @@ module Vostok
           p.components = {}
           if json_data.has_key?("components")
             json_data["components"].each{|k,v|
-              p.components[k] = Component.load_descriptor(k,v)
+              comp = Component.load_descriptor(k,v)
+              p.components[k] = comp.guid
             }
           else
             feature_name = cartridge.provides_feature[0]
-            p.components[feature_name] = Component.load_descriptor(feature_name,json_data)
+            comp = Component.load_descriptor(feature_name,json_data)
+            p.components[feature_name] = comp.guid 
           end
           
           p

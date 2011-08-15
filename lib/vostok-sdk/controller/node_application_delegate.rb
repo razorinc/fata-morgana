@@ -33,20 +33,39 @@ module Vostok
     module Controller
       class NodeApplicationDelegate
         include Object::Singleton
-        attr_reader :node
+        attr_reader :nodes
 
         def initialize
-          @node = Model::Node.find("1") || Model::Node.new("1")
-          @node.save!
+          node = Model::Node.find("1") || Model::Node.new("1")
+          node.save!
+          @nodes = [node]          
+        end
+        
+        def elect_node
+          @nodes[0]
         end
         
         def create(application)
-          napp = Model::NodeApplication.new application.guid
-          napp.gen_uuid
-          napp.save!
-          node[application.guid] = napp.guid
-          node.save!
-          napp.create!
+          #create the application on all nodes
+          @nodes.each do |node|
+            #use REST or dbus or mcollective here
+            napp = Model::NodeApplication.new application.guid
+            napp.gen_uuid
+            napp.save!
+            
+            node[application.guid] = napp.guid
+            node.save!
+            napp.create!
+            
+            #connect all node local repositories to each other
+            #napp.connect_repository_remotes Model::Node.find_all
+          end
+          
+          #import the application code on an elected node
+          #node = elect_node
+           
+          
+          #replicate application code to all nodes
         end
         
         def install(application)

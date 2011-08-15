@@ -32,7 +32,7 @@ module Vostok
         extend ActiveModel::Naming        
         include ActiveModel::Validations      
         include ActiveModel::Serializers::JSON
-        #include ActiveModel::Serializers::Xml
+        include ActiveModel::Serializers::Xml
         include ActiveModel::Dirty
         include ActiveModel::Observing
         include ActiveModel::AttributeMethods
@@ -133,7 +133,7 @@ module Vostok
         def to_yaml_properties
           props = []
           self.instance_variables.each do |name|
-            next if name.slice(1..-1) == 'changed_attributes' or name =='attributes' or name == 'validation_context' or name == 'errors'
+            next if name == '@changed_attributes' or name == '@attributes' or name == '@validation_context' or name == '@errors'
             props.push(name)
           end
           props.push('@guid')
@@ -148,11 +148,11 @@ module Vostok
         
         def save!
           unless self.changed?
-            log.debug "not saving #{self.class.type}. no change\n"
+            log.debug "not saving #{self.class.name}. no change\n"
             return self
           end 
           unless self.valid?
-            log.error "Not saving: object validation failed\n"
+            log.error "Not saving: object of type #{self.class.name} validation failed #{self.errors.to_s}\n"
             return nil
           end
 
@@ -162,7 +162,6 @@ module Vostok
           log.debug "--save--"
           log.debug type
           log.debug id
-          log.debug value
           log.debug "--x--"
           config = Vostok::SDK::Config.instance
           ds_type = config.get("datasource_type")

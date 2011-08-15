@@ -31,21 +31,56 @@ module Vostok
   module SDK
     module Model
       class ComponentInstance < VostokModel
-        validates_presence_of :name, :feature, :cartridge, :component, :profile_name, :dependency_instances
+        validates_presence_of :name, :feature, :cartridge, :component, :profile_name
         ds_attr_accessor :name, :feature, :cartridge, :component, :profile_name, :dependency_instances
         
         def initialize
           @dependency_instances = {}
         end
         
+        def cartridge
+          Cartridge.find(@cartridge)
+        end
+        
+        def cartridge=(c)
+          cartridge_will_change! if c.guid != @cartridge
+          @cartridge = c.guid
+        end
+        
+        def component
+          Component.find(@component)
+        end
+        
+        def component=(c)
+          component_will_change! if c.guid != @component
+          @component = c.guid
+        end
+        
+        def component_guid
+          @component
+        end
+        
+        def component_guid=(c)
+          component_will_change! if @component != c
+          @component = c
+        end
+        
+        #for XML, JSON serialization
+        def attributes
+          {"name"=> @name, "feature"=> @feature, "cartridge"=>self.cartridge, "component" => self.component,
+            "profile_name" => profile_name}
+        end
+        
         def self.from_app_dependency(feature)
           cartridge = Cartridge.what_provides(feature)[0]
-          cart_descriptor = Descriptor.load_descriptor(cartridge)
+          cart_descriptor = cartridge.descriptor
           profile_name = cart_descriptor.profiles.keys[0]
           
           cmap = {}
           direct_deps = []
           cart_descriptor.profiles[profile_name].components.each{ |k,v|
+            v = Component.find(v)
+            
             c = ComponentInstance.new
             c.feature = c.name = v.feature
             c.cartridge = cartridge
@@ -69,14 +104,17 @@ module Vostok
           c.name = name
           c.feature = json_data["feature"]
           cartridge_name = json_data["cartridge_name"]
+          cartridge = nil
           if cartridge_name
-            c.cartridge = Cartridge.from_rpm(cartridge_name)
+            cartridge = Cartridge.from_rpm(cartridge_name)
           else
-            c.cartridge = Cartridge.what_provides(c.feature)[0]  
+            cartridge = Cartridge.what_provides(c.feature)[0]  
           end
-          cart_descriptor = Descriptor.load_descriptor(c.cartridge)
+          cart_descriptor = cartridge.descriptor
           c.profile_name = json_data["profile_name"] || cart_descriptor.profiles.keys[0]
-          c.component = cart_descriptor.profiles[c.profile_name].components[c.feature]
+          component_guid = cart_descriptor.profiles[c.profile_name].components[c.feature]
+          c.component_guid = component_guid
+          c.cartridge = cartridge
   
           c
         end      

@@ -29,7 +29,7 @@ module Vostok
     module Model
       class Connection < VostokModel
         validates_presence_of :name, :pub, :sub
-        ds_attr_accessor :name, :pub, :sub, :attributes
+        ds_attr_accessor :name, :pub, :sub
   
         def initialize(name,pub,sub)
           @name, @pub, @sub = name, pub, sub

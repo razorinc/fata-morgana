@@ -54,6 +54,9 @@ module Vostok
           begin
             napp_delegate = Controller::NodeApplicationDelegate.instance
             napp_delegate.create application
+            
+            application.package_root = config.get("app_user_home")
+            application.package_root = "#{application.package_root}/a#{napp.app_guid[0..7]}"
           rescue Exception => e
             raise e
             log.error(e.message)

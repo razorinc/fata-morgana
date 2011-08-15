@@ -32,8 +32,7 @@ module Vostok
     module Model
       class Cartridge < VostokModel
         validates_presence_of :name, :native_name, :package_root, :package_path, :summary, :version, :provides_feature
-        ds_attr_accessor :name, :native_name, :package_root, :package_path, :summary, :version, :license, :provides_feature, :requires_feature, :requires, :descriptor
-        attr_writer :is_installed
+        ds_attr_accessor :name, :native_name, :package_root, :package_path, :summary, :version, :license, :provides_feature, :requires_feature, :requires, :descriptor, :is_installed 
   
         def initialize(cart_name="", package_root=nil, package_path=nil,provides_feature=[],requires_feature=[],requires=[])
           @name = cart_name
@@ -52,7 +51,11 @@ module Vostok
         end
         
         def descriptor
-          self.descriptor ||= Descriptor.load_descriptor(self)
+          return nil unless @is_installed
+          descriptor_changed = @descriptor.nil?
+          @descriptor ||= Descriptor.load_descriptor(self)
+          descriptor_will_change! if descriptor_changed
+          @descriptor
         end
   
         def self.list_installed
@@ -90,7 +93,21 @@ module Vostok
             package_path = nil
             is_installed = false
           end 
-          Cartridge.from_rpm_info(rpm_name, package_info, package_deps, package_provides, package_path, is_installed)
+          cart = Cartridge.from_rpm_info(rpm_name, package_info, package_deps, package_provides, package_path, is_installed)
+          
+          #lookup from dds or create new entry
+          dds_cart = self.find("#{cart.name}-#{cart.version}")
+          unless dds_cart
+            cart.guid="#{cart.name}-#{cart.version}"
+            if is_installed
+              cart.descriptor
+            end
+            cart.save!
+            dds_cart = cart
+          end
+          dds_cart.is_installed = is_installed
+            
+          dds_cart
         end
   
         def self.from_rpm_info(rpm_name, package_info, package_deps, package_provides, package_path, is_installed)

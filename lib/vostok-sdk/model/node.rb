@@ -21,35 +21,35 @@
 # SOFTWARE.
 
 require 'rubygems'
-require 'json'
 require 'active_model'
-require 'vostok-sdk/config'
-require 'vostok-sdk/model/model'
-require 'vostok-sdk/model/component_instance'
+require 'json'
+require 'state_machine'
 
 module Vostok
   module SDK
     module Model
       class Node < VostokModel
-        ds_attr_reader :application_map
-        
-        def initialize(guid=nil)
-          self.guid = guid
-          @application_map = {}
+        ds_attr_accessor :group_guid, :state, :is_responding, :last_updated, :cluster, :node_application_map
+        ds_attr_accessor :provate_ip, :public_ip
+         
+        state_machine :state, :initial => :not_created, :action => :save! do
+          transition :standalone => :joining, :on => :join
+          transition :joining => :joined,     :on => :join_complete
+          transition :joining => :standalone, :on => :join_error
+          
+          transition :joined => :syncing, :on => :sync
+          transition :syncing => :synced, :on => :sync_complete
+          transition :syncing => :joined, :on => :sync_error
+          
+          transition :joined => :unjoining,     :on => :unjoin
+          transition :unjoining => :standalone, :on => :unjoin_complete
+          transition :unjoining => :joined,     :on => :unjoin_error
         end
         
-        def []=(k,v)
-          application_map_will_change! unless @application_map[k] == v
-          @application_map[k]=v
-        end
-        
-        def [](k)
-          @application_map[k]
-        end
-        
-        def delete(k)
-          application_map_will_change! if @application_map[k]
-          @application_map.delete(k)
+        state_machine :run_state, :initial => :running, :action => :save! do
+          transition :running   => :rebooting, :on => :reboot
+          transition :rebooting => :running,   :on => :reboot_complete
+          transition :running   => :shutdown,  :on => :shutdown
         end
       end
     end

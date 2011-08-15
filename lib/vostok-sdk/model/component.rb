@@ -29,7 +29,7 @@ module Vostok
   module SDK
     module Model
       class Component < VostokModel
-        validates_presence_of :feature, :publishes, :subscribes
+        validates_presence_of :feature
         ds_attr_accessor :feature, :publishes, :subscribes
        
         def self.load_descriptor(feature,json_data)
@@ -52,6 +52,8 @@ module Vostok
               c.subscribes[k] = Connector.load_descriptor(k,v,:subscriber)
             }
           end
+          c.gen_uuid
+          c.save!
           
           c
         end
