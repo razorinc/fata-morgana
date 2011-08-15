@@ -52,19 +52,7 @@ module Vostok
       def after_create(application, transition)
         log.info "Creating application #{application.guid}"
         begin
-          config = Vostok::SDK::Config.instance
-          user = User.new("a#{application.guid[0..7]}", "#{config.get("app_user_home")}")
-          cmd = "useradd --base-dir #{user.basedir} --gid 100 -m -K UID_MIN=100 -K UID_MAX=499 #{user.name}"
-          log.debug cmd
-          ret = IO.popen(cmd, "r+") do |f|
-            f.close_write
-            log.debug f.read
-          end
-          application.user = user if ret
-          application.save!
-          raise UserCreationException.new("Unable to create user #{error_data.join("\n")}") unless ret
-          
-          
+
         rescue Exception => e
           raise e
           log.error(e.message)
@@ -104,17 +92,6 @@ module Vostok
       
       def after_destroy(application, transition)
         log.info "Destroying application #{application.guid}"
-        
-        if application.user
-          cmd = "userdel -f -r #{application.user.name}"
-          log.debug cmd
-          ret = IO.popen(cmd, "r+") do |f|
-            f.close_write
-            log.debug f.read
-          end
-          application.user = nil if ret
-          application.save!
-        end
         
         application.destroy_complete!
       end

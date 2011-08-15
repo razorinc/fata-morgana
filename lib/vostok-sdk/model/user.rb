@@ -28,7 +28,7 @@ module Vostok
   module SDK
     class User < Model
       validates_presence_of :name, :basedir
-      ds_attr_accessor :name, :basedir
+      ds_attr_accessor :name, :basedir, :uid, :homedir
 
       def initialize(name,basedir)
         @name, @basedir = name,basedir

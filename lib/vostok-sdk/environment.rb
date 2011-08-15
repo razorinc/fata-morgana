@@ -21,11 +21,13 @@
 # SOFTWARE.
 
 require 'vostok-sdk/controller/application_manager'
+require 'vostok-sdk/controller/node_application_manager'
 
 module Vostok
   module SDK
     #instantiate observers
     ApplicationManager.instance
+    NodeApplicationManager.instance
   end
 end
     

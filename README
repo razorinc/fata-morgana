@@ -1,6 +1,14 @@
 FATA-MORGANA - QUICKSTART
 =========================
 
+Setup
+=====
+
+To run from a local checkout run (as root):
+
+yum install -y ruby ruby-devel sqlite-devel rubygem
+gem install bundler
+bundle
 
 Local Env
 =========

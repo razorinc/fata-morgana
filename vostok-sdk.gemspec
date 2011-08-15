@@ -24,4 +24,5 @@ Gem::Specification.new do |s|
   s.add_dependency("parseconfig", "~> 0.5.2")
   s.add_dependency("sqlite3", "~> 1.3.4")
   s.add_dependency("uuid", "~> 2.3.3")
+  s.add_dependency("systemu", "~> 2.2.0")
 end
