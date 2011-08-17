@@ -39,6 +39,7 @@ module Vostok
           transition :creating => :created, :on => :create_complete
           transition :creating => :destroying, :on => :create_error
           transition :created => :installing, :on => :install
+          transition :installing => :created, :on => :install_error
           transition :installing => :stopped, :on => :install_complete
           transition :stopped => :starting, :on => :start
           transition :starting => :started, :on => :start_complete

@@ -44,27 +44,41 @@ module Vostok
           napp = Model::NodeApplication.new application.guid
           napp.gen_uuid
           napp.save!
-          node.application_map[application.guid] = napp.guid
+          node[application.guid] = napp.guid
           node.save!
           napp.create!
         end
         
         def install(application)
+          napp_guid = node[application.guid]
+          napp = Model::NodeApplication.find(napp_guid)
+          napp.install!
         end
         
         def start(application)
+          napp_guid = node[application.guid]
+          napp = Model::NodeApplication.find(napp_guid)
+          napp.start!
         end
         
         def stop(application)
+          napp_guid = node[application.guid]
+          napp = Model::NodeApplication.find(napp_guid)
+          napp.stop!
         end
         
         def uninstall(application)
+          napp_guid = node[application.guid]
+          napp = Model::NodeApplication.find(napp_guid)
+          napp.uninstall!
         end
         
         def destroy(application)
-          napp_guid = node.application_map[application.guid]
+          napp_guid = node[application.guid]
           napp = Model::NodeApplication.find(napp_guid)
           napp.destroy!
+          node.delete(application.guid)
+          node.save!
         end
       end
     end

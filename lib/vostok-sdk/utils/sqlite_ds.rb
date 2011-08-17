@@ -62,7 +62,6 @@ SQL
         end
         
         def save(type,id,value)
-          p value
           @db.transaction do 
             @db.execute "DELETE FROM data where type=? and id=?", [type, id.to_s]
             @db.execute "INSERT INTO data (type,id,value) VALUES (?,?,?)", [type,id.to_s,value]

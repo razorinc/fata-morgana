@@ -32,7 +32,7 @@ module Vostok
         extend ActiveModel::Naming        
         include ActiveModel::Validations      
         include ActiveModel::Serializers::JSON
-        include ActiveModel::Serializers::Xml
+        #include ActiveModel::Serializers::Xml
         include ActiveModel::Dirty
         include ActiveModel::Observing
         include ActiveModel::AttributeMethods
@@ -74,7 +74,6 @@ module Vostok
           require "vostok-sdk/utils/#{ds_type}_ds"
           ds = eval("Utils::#{ds_type.capitalize}.instance")
           value = ds.find(type,id)
-  
           return nil unless value
           ret = YAML.load(value)
           ret.loaded_from_db!
@@ -148,16 +147,23 @@ module Vostok
         end
         
         def save!
-          return nil unless self.changed?
+          unless self.changed?
+            log.debug "not saving #{self.class.type}. no change\n"
+            return self
+          end 
           unless self.valid?
-            print "Not saving: object validation failed\n"
+            log.error "Not saving: object validation failed\n"
             return nil
           end
-          print "saving\n"
+
           type = self.class.name
           id = self.guid
           value = self.to_yaml
-          
+          log.debug "--save--"
+          log.debug type
+          log.debug id
+          log.debug value
+          log.debug "--x--"
           config = Vostok::SDK::Config.instance
           ds_type = config.get("datasource_type")
           require "vostok-sdk/utils/#{ds_type}_ds"
@@ -170,7 +176,7 @@ module Vostok
         
         def delete!
           return nil unless self.changed?
-          print "deleting\n"
+          log.debug "deleting\n"
           type = self.class.name
           id = self.guid
           

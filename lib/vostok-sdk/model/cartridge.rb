@@ -33,6 +33,7 @@ module Vostok
       class Cartridge < VostokModel
         validates_presence_of :name, :native_name, :package_root, :package_path, :summary, :version, :provides_feature
         ds_attr_accessor :name, :native_name, :package_root, :package_path, :summary, :version, :license, :provides_feature, :requires_feature, :requires, :descriptor
+        attr_writer :is_installed
   
         def initialize(cart_name="", package_root=nil, package_path=nil,provides_feature=[],requires_feature=[],requires=[])
           @name = cart_name
@@ -44,6 +45,10 @@ module Vostok
           @provides_feature = provides_feature
           @requires_feature = requires_feature
           @requires = requires
+        end
+        
+        def installed?
+          @is_installed
         end
         
         def descriptor
@@ -80,16 +85,21 @@ module Vostok
           package_provides = `repoquery --provides #{rpm_name}`.split("\n")
   
           package_path = `rpm -q --queryformat='%{FILENAMES}' #{rpm_name}`
-          package_path = nil if /is not installed/.match(package_path)
-          Cartridge.from_rpm_info(rpm_name, package_info, package_deps, package_provides, package_path)
+          is_installed = true
+          if /is not installed/.match(package_path)
+            package_path = nil
+            is_installed = false
+          end 
+          Cartridge.from_rpm_info(rpm_name, package_info, package_deps, package_provides, package_path, is_installed)
         end
   
-        def self.from_rpm_info(rpm_name, package_info, package_deps, package_provides, package_path)
+        def self.from_rpm_info(rpm_name, package_info, package_deps, package_provides, package_path, is_installed)
           package_root = File.dirname(package_path) if not package_path.nil?
           cartridge = Cartridge.new("dummy_name",package_root,package_path)
           cartridge.package_path = package_path
           cartridge.package_root = package_root
           cartridge.native_name = rpm_name.strip
+          cartridge.is_installed = is_installed
   
           package_info.each{|line|
             val = line.split(/:/)[1]

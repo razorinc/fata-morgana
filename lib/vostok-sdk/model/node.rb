@@ -31,11 +31,25 @@ module Vostok
   module SDK
     module Model
       class Node < VostokModel
-        ds_attr_accessor :application_map
+        ds_attr_reader :application_map
         
         def initialize(guid=nil)
           self.guid = guid
-          self.application_map = {}
+          @application_map = {}
+        end
+        
+        def []=(k,v)
+          application_map_will_change! unless @application_map[k] == v
+          @application_map[k]=v
+        end
+        
+        def [](k)
+          @application_map[k]
+        end
+        
+        def delete(k)
+          application_map_will_change! if @application_map[k]
+          @application_map.delete(k)
         end
       end
     end

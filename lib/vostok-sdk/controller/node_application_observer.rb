@@ -43,6 +43,9 @@ module Vostok
       class AppCreationException < Exception
       end
       
+      class AppInstallationException < Exception
+      end
+      
       class NodeApplicationObserver < ActiveModel::Observer
         include Vostok::SDK::Utils::Logger      
         include Vostok::SDK::Utils::ShellExec  
@@ -86,9 +89,9 @@ module Vostok
             napp.save!
             raise AppCreationException.new("Unable to create repository directory at #{napp.repodir} on node") if $?.to_i != 0
           rescue Exception => e
-            raise e
             log.error(e.message)
             napp.create_error!
+            raise e            
           end
           napp.create_complete!
         end
@@ -104,6 +107,39 @@ module Vostok
         
         def after_install(napp, transition)
           log.info "Installing application #{napp.app_guid} on node"
+          #Step 1: install missing dependencies
+          begin
+            app = Model::Application.find napp.app_guid
+            missing_features = []
+            app.requires_feature.each do |feature|
+              carts = Model::Cartridge.what_provides feature
+              feature_installed = false
+              carts.each do |cart|
+                feature_installed = cart.installed?
+                break if feature_installed
+              end
+              
+              missing_features.push("openshift-feature-#{feature}") unless feature_installed
+            end
+            
+            if missing_features.length > 0
+              #check instalpolicy here
+              cmd = "yum install -y -q #{missing_features.join(" ")}"
+              out,err,ret = shellCmd(cmd)
+              raise AppInstallationException.new("Unable to install cartridge for feature #{feature}") unless ret == 0
+            end
+            
+            #Step 2: call configure hook on direct dependencies
+            
+            #Step 3: connect components
+          rescue AppInstallationException => e
+            napp.install_error!
+            raise e
+          rescue Exception => e
+            napp.install_error!
+            raise AppInstallationException.new(e.message)
+          end
+          
           napp.install_complete!
         end
         
