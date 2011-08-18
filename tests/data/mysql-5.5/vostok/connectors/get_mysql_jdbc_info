@@ -1,1 +1,0 @@
-./get_mysql_jdbc_info <connection_id> => <json> (eg: {"connection_string","username","password","driver_path"})

@@ -58,10 +58,8 @@ EOF
     system("yum remove -q -y openshift-cartridge-php")
     c = Vostok::SDK::Model::Cartridge.from_rpm("openshift-cartridge-php")
     assert_equal("openshift-cartridge-php",c.name)
-    assert_equal("/opt/vostok/cartridges/openshift-cartridge-php-1.0.0",c.package_path)
     assert_equal(false,c.is_installed)
     assert_equal(["php >= 5.3.2", "php < 5.4.0", "php-pdo", "php-gd", "php-xml", "php-mysql", "php-pgsql", "php-pear"].sort,c.requires.sort)
-    assert_equal("/opt/vostok/cartridges",c.package_root)
     assert_equal(["php", "php(version) = 5.3.2"].sort,c.provides_feature.sort)
     
     system("yum install -q -y openshift-cartridge-php")
