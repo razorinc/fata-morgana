@@ -15,6 +15,11 @@ task :clean_old_repo do
     sh "yum clean all"
 end
 
+desc "install openshift-cartridge-*"
+task :install_openshift_cartridges do
+    sh "yum -y install openshift-cartridge-\*"
+end
+
 desc "remove openshift-cartridge-*"
 task :remove_openshift_cartridges do
     sh "yum -y remove openshift-cartridge-\*"

@@ -4,7 +4,21 @@ module Vostok::SDK::Model
   class RPMTest < Test::Unit::TestCase
     def test_from_system_not_installed
       RPM.expects(:is_installed?).returns(false)
-      assert_nil RPM.from_system("httpd")
+      RPM.any_instance.expects(:query_info).returns("Summary:  summary\nVersion:   1.2.3\nArchitecture:   x86_64")
+      RPM.any_instance.expects(:query_dependencies).returns("Finding blah\n  dependency: 1\n dependency: 2\n  provider: blah")
+      RPM.any_instance.expects(:query_provides).returns("config(something)\n webserver")
+      RPM.any_instance.expects(:query_file_data).returns(nil)
+
+      rpm = RPM.from_system("httpd")
+      assert_not_nil rpm
+      assert_equal 'httpd', rpm.name
+      assert_equal 'summary', rpm.summary
+      assert_equal '1.2.3', rpm.version
+      assert_equal ['1', '2'], rpm.dependencies
+      assert_equal ['config(something)', 'webserver'], rpm.provides
+      assert_equal nil, rpm.control
+      assert_equal nil, rpm.descriptor
+      assert_equal [], rpm.hooks
     end
 
     def test_from_system

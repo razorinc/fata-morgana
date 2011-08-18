@@ -22,28 +22,38 @@
 
 module Vostok::SDK::Model
   class RPM
-    attr_accessor :name, :summary, :version, :dependencies, :provides, :descriptor, :control, :hooks
+    attr_accessor :name, :summary, :version, :dependencies, :provides, :descriptor, :control, :hooks, :is_installed
 
     def initialize
       @dependencies = []
       @provides = []
       @hooks = []
+      @is_installed = false
     end
 
     def self.from_system(name)
+      rpm = RPM.new
+      rpm.name = name
+      rpm.parse_info
+      rpm.parse_dependencies
+      rpm.parse_provides
+      
       if is_installed?(name)
-        rpm = RPM.new
-        rpm.name = name
-        rpm.parse_info
-        rpm.parse_dependencies
-        rpm.parse_provides
         rpm.parse_file_data
-        rpm
+        rpm.is_installed = true
       end
+      rpm      
     end
 
     def self.is_installed?(name)
       ! `rpm -q #{name}`.end_with?("not installed\n")
+    end
+    
+    def self.what_provides(feature)
+      rpms = `repoquery --envra --whatprovides #{feature}`.split("\n")
+      rpms.map! do |rpm|
+        from_system(rpm.split(/:/)[1])
+      end
     end
 
     def parse_info

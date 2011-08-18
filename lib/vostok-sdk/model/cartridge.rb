@@ -25,6 +25,7 @@ require 'active_model'
 require 'json'
 require 'vostok-sdk/config'
 require 'vostok-sdk/model/model'
+require 'vostok-sdk/model/rpm'
 require 'vostok-sdk/model/descriptor'
 
 module Vostok
@@ -32,9 +33,9 @@ module Vostok
     module Model
       class Cartridge < VostokModel
         validates_presence_of :name, :native_name, :package_root, :package_path, :summary, :version, :provides_feature
-        ds_attr_accessor :name, :native_name, :package_root, :package_path, :summary, :version, :license, :provides_feature, :requires_feature, :requires, :descriptor, :is_installed 
+        ds_attr_accessor :name, :native_name, :package_root, :package_path, :summary, :version, :license, :provides_feature, :requires_feature, :requires, :descriptor, :is_installed, :hooks 
   
-        def initialize(cart_name="", package_root=nil, package_path=nil,provides_feature=[],requires_feature=[],requires=[])
+        def initialize(cart_name="", package_root=nil, package_path=nil,provides_feature=[],requires_feature=[],requires=[],is_installed=false,hooks=[])
           @name = cart_name
           @package_root = package_root || Config.instance.get('package_root')
           @package_path = package_path
@@ -44,6 +45,8 @@ module Vostok
           @provides_feature = provides_feature
           @requires_feature = requires_feature
           @requires = requires
+          @is_installed = is_installed
+          @hooks = hooks
         end
         
         def installed?
@@ -59,7 +62,7 @@ module Vostok
         end
   
         def self.list_installed
-          Cartridge.what_provides("openshift-feature-*").delete_if{ |c| c.package_path.nil? }
+          Cartridge.what_provides("openshift-feature-*").delete_if{ |c| !c.installed? }
         end
   
         def self.list_available
@@ -67,85 +70,42 @@ module Vostok
         end
   
         def self.what_provides(feature)
-          if not /^openshift-feature-/.match(feature)
-            feature = "openshift-feature-#{feature}"
+          feature = "openshift-feature-#{feature}" unless /^openshift-feature-/.match(feature)
+          rpms = Model::RPM.what_provides(feature)
+          rpms.map! do |rpm|
+            from_rpm(rpm)
           end
-          rpms = `repoquery --envra --whatprovides #{feature}`
-          
-          cartridges = []
-          rpms.each{|rpm|
-            rpm = rpm.split(/:/)
-            cartridges.push(Cartridge.from_rpm(rpm[1]))
-          }
-  
-          cartridges
         end
   
-        def self.from_rpm(rpm_name)
-          package_info = `repoquery --info #{rpm_name}`
-  
-          package_deps = `yum deplist #{rpm_name}`.split("\n").delete_if{ |i| not /dependency:/.match(i) }
-          package_provides = `repoquery --provides #{rpm_name}`.split("\n")
-  
-          package_path = `rpm -q --queryformat='%{FILENAMES}' #{rpm_name}`
-          is_installed = true
-          if /is not installed/.match(package_path)
-            package_path = nil
-            is_installed = false
+        def self.from_rpm(rpm)
+          if rpm.control
+            package_path = File.dirname(File.dirname(rpm.control)) 
+            package_root = File.dirname package_path
+          else
+            package_root = package_path = nil
           end 
-          cart = Cartridge.from_rpm_info(rpm_name, package_info, package_deps, package_provides, package_path, is_installed)
-          
+          provides_feature = rpm.provides.delete_if{ |f| !f.match(/openshift-feature-*/) }
+          requires = rpm.dependencies.clone.delete_if{ |f| f.match(/openshift-feature-*/) }
+          requires_feature = rpm.dependencies - requires
+          cart = Cartridge.new(rpm.name,package_root,package_path,provides_feature,requires_feature,requires,rpm.is_installed,rpm.hooks)
+          cart.version = rpm.version
+          cart.summary = rpm.summary
+          cart.native_name = rpm.name
+          cart.guid="#{cart.name}-#{cart.version}"
+                      
           #lookup from dds or create new entry
-          dds_cart = self.find("#{cart.name}-#{cart.version}")
-          unless dds_cart
-            cart.guid="#{cart.name}-#{cart.version}"
-            if is_installed
+          dds_cart = self.find("#{rpm.name}-#{rpm.version}")
+          if !dds_cart || (!dds_cart.installed? && cart.installed?)
+            if cart.installed?
               cart.descriptor
             end
             cart.save!
             dds_cart = cart
           end
-          dds_cart.is_installed = is_installed
             
           dds_cart
         end
   
-        def self.from_rpm_info(rpm_name, package_info, package_deps, package_provides, package_path, is_installed)
-          package_root = File.dirname(package_path) if not package_path.nil?
-          cartridge = Cartridge.new("dummy_name",package_root,package_path)
-          cartridge.package_path = package_path
-          cartridge.package_root = package_root
-          cartridge.native_name = rpm_name.strip
-          cartridge.is_installed = is_installed
-  
-          package_info.each{|line|
-            val = line.split(/:/)[1]
-            if not val.nil?
-              val.strip!
-              case line
-                when /^Summary/
-                  cartridge.summary = val
-                when /^Name/
-                  cartridge.name = val
-                when /^Version/
-                  cartridge.version = val
-              end
-            end
-          }
-          package_deps.each{|dep|
-              dep.gsub!(/[ ]*dependency:[ ]*/, "")
-              if /^openshift-feature-/.match(dep)
-                cartridge.requires_feature.push(dep.sub(/^openshift-feature-/,""))
-              else
-                cartridge.requires.push(dep)
-              end
-          }
-          package_provides.each{|req|
-            cartridge.provides_feature.push(req.sub(/^openshift-feature-/,"")) if req.match(/^openshift-feature-/)
-          }
-          cartridge
-        end
-        
         def from_vpm_spec(control_spec)
           control_spec.each{|line|
             val = line.split(/:/)[1]

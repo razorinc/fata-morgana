@@ -25,50 +25,26 @@ require 'json'
 require 'active_model'
 require 'vostok-sdk/config'
 require 'vostok-sdk/model/model'
-require 'vostok-sdk/model/group_signature'
 require 'vostok-sdk/model/component_instance'
 require 'vostok-sdk/utils/logger'
 
 module Vostok
   module SDK
     module Model
-      class Group < VostokModel
-        validates_presence_of :name, :components
-        ds_attr_accessor :name, :components, :nodes
+      class GroupSignature < VostokModel
+        ds_attr_accessor :group_guid
         
-        def initialize
-          self.nodes = []
+        def self.gen_signature(group)
+          sig = []
+          group.components.each do |name, cinst|
+            sig.push "#{cinst.component_guid}-#{cinst.profile_name}-#{cinst.cartridge.guid}"
+          end
+          sig.sort!.hash
         end
         
-        def self.load_descriptor(name,json_data,app_descriptor,app)
-          g = Group.new
-          g.name=name
-          
-          g.components = {}
-          if json_data["components"]
-            json_data["components"].each{|k,v|
-              g.components[k] = ComponentInstance.load_descriptor(k,v)
-            }
-          else
-            app.requires_feature.each{ |feature|
-              f_inst, f_dep_cmap = ComponentInstance.from_app_dependency(feature)
-              g.components.merge!(f_dep_cmap)
-            }
-          end
-          
-          #generate group sigature to see if we can share group between applications
-          sig = Model::GroupSignature.gen_signature(g)
-          gsig = Model::GroupSignature.find(sig)
-          unless gsig
-            g.gen_uuid
-            g.save!
-            gsig = Model::GroupSignature.new(sig,g)
-            gsig.save!
-          else
-            g = Group.find(gsig.group_guid)
-          end
-          
-          g
+        def initialize(signature=nil, group = nil)
+          self.guid = signature
+          self.group_guid = group.guid
         end
       end
     end

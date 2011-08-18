@@ -25,4 +25,5 @@ Gem::Specification.new do |s|
   s.add_dependency("sqlite3", "~> 1.3.4")
   s.add_dependency("uuid", "~> 2.3.3")
   s.add_dependency("systemu", "~> 2.2.0")
+  s.add_development_dependency('mocha', "~> 0.9.12")
 end

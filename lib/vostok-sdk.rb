@@ -30,6 +30,7 @@ require 'parseconfig'
 require "vostok-sdk/version"
 require "vostok-sdk/config"
 require "vostok-sdk/utils/rpm"
+require "vostok-sdk/utils/table_format"
 require "vostok-sdk/utils/version_control"
 require "vostok-sdk/model/cartridge"
 require "vostok-sdk/model/descriptor"

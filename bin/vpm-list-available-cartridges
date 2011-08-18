@@ -60,3 +60,25 @@ if args['--help']
   usage
   exit -101
 end
+
+carts = Vostok::SDK::Model::Cartridge.list_available
+cart_rows = []
+carts.each do |cart|
+  cart_map = {}
+  cart_map["name"] = cart.name
+  cart_map["version"] = cart.version
+  cart_map["features"] = cart.provides_feature.join(",")
+  cart_map["summary"] = cart.summary
+  cart_rows.push(cart_map)
+end
+
+if $porcelin
+	print JSON.generate(cart_map)
+else
+  Vostok::SDK::Utils::TableFormat.table(
+    ["Name", "Version", "Features", "Summary"],
+    ["name", "version", "features", "summary"],
+    [  35  ,    10    ,     35    ,     50   ],
+    cart_rows
+  )
+end
