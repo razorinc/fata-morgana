@@ -4,6 +4,8 @@ FATA-MORGANA - QUICKSTART
 Setup
 =====
 
+Copy ./li.repo to /etc/yum.repos.d/
+
 # especially for a new rhel 6.1 env (yum install ruby-devel may not work)
 # make sure to add EPEL repositories
 # a nice how-to for that is - http://johnpoelstra.com/2010/12/23/rhel-6-epel
