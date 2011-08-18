@@ -13,7 +13,6 @@ Native-Requires:  php-gd
 Native-Requires:  php-xml
 Native-Requires:  php-mysql
 Native-Requires:  php-pgsql
-Native-Requires:  php-mbstring
 Native-Requires:  php-pear
 
 BuildArch: noarch
