@@ -1,0 +1,17 @@
+Calls to cartridge hooks
+========================
+
+Tentative:
+
+Calls to all cartridge hooks will take the following form:
+
+$cartridge/$hook $APP_GUID $COMPONENT_GUID $APP_NAME
+
+cartridge = Cartridge we're working with (php, apache, mysql, etc)
+hook = Call to the hook we want (start, stop, deconfigure)
+app_guid = The unique identifier for the app (UUID)
+component_guid = The instance identifier for app (unique to each app in a
+    cluster.  if an app has 2 nodes in the cluster, each app on that node
+    would get a different component_guid - like instance_1 instance_2)
+app_name = String name used for messaging (in express $NAME-$DOMAIN)
+
