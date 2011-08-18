@@ -29,11 +29,12 @@ vpm create: Creates a new application container. This command must be run as roo
 
 == Usage
 
-vpm create NAME [VERSION] [OPTIONS]
+vpm create [NAME [VERSION]] [VPM_DIR] [OPTIONS]
 
 Options:
 -h|--help:
    Prints this message
+   
 
 NAME: The name of the application to create
 VERSION: The starting version of the application. (Default: 0.1)
@@ -58,10 +59,28 @@ end
 
 $vpm_debug = true if args['--debug']
 $porcelin = args['--porcelin'] ? true : false
-name = ARGV.shift
-version = ARGV.shift || "1.0"
 
-if args['--help'] || name.nil?
+arg1 = ARGV.shift
+if File.directory? arg1
+  vpm_dir = arg1
+else
+  name = arg1
+  version = ARGV.shift || "1.0"
+end
+
+if args['--help'] || (vpm_dir.nil? && name.nil?)
   usage
   exit -101
 end
+
+app = nil
+if vpm_dir
+  app = Vostok::SDK::Model::Application.from_vpm(vpm_dir)
+else
+  app = Vostok::SDK::Model::Application.new(name)
+  app.version = version
+end
+
+app.gen_uuid
+app.create!
+print "Application with GUID: #{app.guid} created\n"

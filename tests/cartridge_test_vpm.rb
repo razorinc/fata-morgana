@@ -25,7 +25,7 @@ require 'vostok-sdk'
 
 class CartridgeTest < Test::Unit::TestCase  
   def test_from_vpm
-    c = Vostok::SDK::Cartridge.from_vpm("data/php-5.3")
+    c = Vostok::SDK::Model::Cartridge.from_vpm("data/php-5.3")
     assert_equal("php",c.name)
     assert_equal("data/php-5.3",c.package_path)
     assert_equal(["php >= 5.3.2", "php < 5.4.0", "php-pdo", "php-gd", "php-xml", "php-mysql", "php-pgsql", "php-pear"].sort,c.requires.sort)

@@ -26,52 +26,54 @@ require 'sqlite3'
 
 module Vostok
   module SDK
-    class Sqlite
-      include Singleton
-      attr_reader :db
-      
-      def initialize
-        config = Vostok::SDK::Config.instance
-        datasource_location = config.get('datasource_location')
-        @db = SQLite3::Database.new datasource_location
-        rows = @db.execute <<-SQL
-          create table if not exists data (
-            type varchar(30),
-            id varchar(30),
-            value varchar(30)
-          );
+    module Utils
+      class Sqlite
+        include Singleton
+        attr_reader :db
+        
+        def initialize
+          config = Vostok::SDK::Config.instance
+          datasource_location = config.get('datasource_location')
+          @db = SQLite3::Database.new datasource_location
+          rows = @db.execute <<-SQL
+            create table if not exists data (
+              type varchar(30),
+              id varchar(30),
+              value varchar(30)
+            );
 SQL
-      end
-      
-      def find_all(type)
-        return @db.execute("select value from data where type=?", [type, id.to_s]) 
-      end
-      
-      def find_all_ids(type)
-        return @db.execute("select ids from data where type=?", [type, id.to_s])
-      end
-      
-      def find(type, id)
-        rows = @db.execute("select value from data where type=? and id=?", [type, id.to_s]) 
-        if rows.length > 0
-          return rows[0][0]
-        else
-          return nil
         end
-      end
-      
-      def save(type,id,value)
-        @db.transaction do 
-          @db.execute "DELETE FROM data where type=? and id=?", [type, id.to_s]
-          @db.execute "INSERT INTO data (type,id,value) VALUES (?,?,?)", [type,id.to_s,value]
-        end          
-        find(type,id)
-      end
-      
-      def delete(type,id)
-        @db.transaction do 
-          @db.execute "DELETE FROM data where type=? and id=?", [type, id.to_s]
-        end          
+        
+        def find_all(type)
+          return @db.execute("select value from data where type=?", [type]) 
+        end
+        
+        def find_all_ids(type)
+          return @db.execute("select ids from data where type=?", [type])
+        end
+        
+        def find(type, id)
+          rows = @db.execute("select value from data where type=? and id=?", [type, id.to_s]) 
+          if rows.length > 0
+            return rows[0][0]
+          else
+            return nil
+          end
+        end
+        
+        def save(type,id,value)
+          @db.transaction do 
+            @db.execute "DELETE FROM data where type=? and id=?", [type, id.to_s]
+            @db.execute "INSERT INTO data (type,id,value) VALUES (?,?,?)", [type,id.to_s,value]
+          end          
+          find(type,id)
+        end
+        
+        def delete(type,id)
+          @db.transaction do 
+            @db.execute "DELETE FROM data where type=? and id=?", [type, id.to_s]
+          end          
+        end
       end
     end
   end

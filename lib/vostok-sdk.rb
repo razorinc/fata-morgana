@@ -36,4 +36,7 @@ require "vostok-sdk/model/descriptor"
 require "vostok-sdk/model/app_descriptor"
 require "vostok-sdk/model/application"
 require "vostok-sdk/model/node_application"
+require "vostok-sdk/model/node"
+require "vostok-sdk/controller/node_application_delegate"
+
 require "vostok-sdk/environment"

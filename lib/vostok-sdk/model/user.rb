@@ -26,12 +26,14 @@ require 'vostok-sdk/model/model'
 
 module Vostok
   module SDK
-    class User < Model
-      validates_presence_of :name, :basedir
-      ds_attr_accessor :name, :basedir, :uid, :homedir
-
-      def initialize(name,basedir)
-        @name, @basedir = name,basedir
+    module Model
+      class User < VostokModel
+        validates_presence_of :name, :basedir
+        ds_attr_accessor :name, :basedir, :uid, :homedir
+  
+        def initialize(name=nil,basedir=nil)
+          @name, @basedir = name,basedir
+        end
       end
     end
   end

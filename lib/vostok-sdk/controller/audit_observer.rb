@@ -21,42 +21,24 @@
 # SOFTWARE.
 
 require 'rubygems'
-require 'json'
 require 'active_model'
+require 'state_machine'
 require 'vostok-sdk/config'
-require 'vostok-sdk/model/model'
-require 'vostok-sdk/model/component_instance'
+require 'vostok-sdk/utils/logger'
+require 'vostok-sdk/controller/node_application_delegate'
+require 'vostok-sdk/model/application'
+require 'vostok-sdk/model/node_application'
+require 'vostok-sdk/model/user'
 
 module Vostok
   module SDK
-    module Model
-      class Group < VostokModel
-        validates_presence_of :name, :components
-        ds_attr_accessor :name, :components, :nodes
-        
-        def initialize
-          self.nodes = []
-        end
-        
-        def self.load_descriptor(name,json_data,app_descriptor,app)
-          g = Group.new
-          g.name=name
-          
-          g.components = {}
-          if json_data["components"]
-            json_data["components"].each{|k,v|
-              g.components[k] = ComponentInstance.load_descriptor(k,v)
-            }
-          else
-            app.requires_feature.each{ |feature|
-              f_inst, f_dep_cmap = ComponentInstance.from_app_dependency(feature)
-              g.components.merge!(f_dep_cmap)
-            }
-          end
-          g.gen_uuid
-          g.save!
-                    
-          g
+    module Controller
+      class StateMachineObserver < ActiveModel::Observer
+        include Vostok::SDK::Utils::Logger        
+        observe Model::Application, Model::NodeApplication
+    
+        def after_transition(object, transition)
+          log.debug "executing transition #{transition} on object type #{object.class.name}, guid: #{object.guid}"
         end
       end
     end

@@ -21,42 +21,35 @@
 # SOFTWARE.
 
 require 'rubygems'
-require 'json'
 require 'active_model'
-require 'vostok-sdk/config'
-require 'vostok-sdk/model/model'
-require 'vostok-sdk/model/component_instance'
+require 'json'
+require 'state_machine'
 
 module Vostok
   module SDK
     module Model
-      class Group < VostokModel
-        validates_presence_of :name, :components
-        ds_attr_accessor :name, :components, :nodes
-        
-        def initialize
-          self.nodes = []
+      class Node < VostokModel
+        ds_attr_accessor :group_guid, :state, :is_responding, :last_updated, :cluster, :node_application_map
+        ds_attr_accessor :provate_ip, :public_ip
+         
+        state_machine :state, :initial => :not_created, :action => :save! do
+          transition :standalone => :joining, :on => :join
+          transition :joining => :joined,     :on => :join_complete
+          transition :joining => :standalone, :on => :join_error
+          
+          transition :joined => :syncing, :on => :sync
+          transition :syncing => :synced, :on => :sync_complete
+          transition :syncing => :joined, :on => :sync_error
+          
+          transition :joined => :unjoining,     :on => :unjoin
+          transition :unjoining => :standalone, :on => :unjoin_complete
+          transition :unjoining => :joined,     :on => :unjoin_error
         end
         
-        def self.load_descriptor(name,json_data,app_descriptor,app)
-          g = Group.new
-          g.name=name
-          
-          g.components = {}
-          if json_data["components"]
-            json_data["components"].each{|k,v|
-              g.components[k] = ComponentInstance.load_descriptor(k,v)
-            }
-          else
-            app.requires_feature.each{ |feature|
-              f_inst, f_dep_cmap = ComponentInstance.from_app_dependency(feature)
-              g.components.merge!(f_dep_cmap)
-            }
-          end
-          g.gen_uuid
-          g.save!
-                    
-          g
+        state_machine :run_state, :initial => :running, :action => :save! do
+          transition :running   => :rebooting, :on => :reboot
+          transition :rebooting => :running,   :on => :reboot_complete
+          transition :running   => :shutdown,  :on => :shutdown
         end
       end
     end

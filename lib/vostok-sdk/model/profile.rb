@@ -28,25 +28,29 @@ require 'vostok-sdk/model/component'
 
 module Vostok
   module SDK
-    class Profile < Model
-      validates_presence_of :name, :components, :connections
-      ds_attr_accessor :name, :components, :connections
-
-      def self.load_descriptor(name,json_data,cartridge)
-        p = Profile.new
-        p.name=name
-        
-        p.components = {}
-        if json_data.has_key?("components")
-          json_data["components"].each{|k,v|
-            p.components[k] = Component.load_descriptor(k,v)
-          }
-        else
-          feature_name = cartridge.provides_feature[0]
-          p.components[feature_name] = Component.load_descriptor(feature_name,json_data)
+    module Model
+      class Profile < VostokModel
+        validates_presence_of :name, :components, :connections
+        ds_attr_accessor :name, :components, :connections
+  
+        def self.load_descriptor(name,json_data,cartridge)
+          p = Profile.new
+          p.name=name
+          
+          p.components = {}
+          if json_data.has_key?("components")
+            json_data["components"].each{|k,v|
+              comp = Component.load_descriptor(k,v)
+              p.components[k] = comp.guid
+            }
+          else
+            feature_name = cartridge.provides_feature[0]
+            comp = Component.load_descriptor(feature_name,json_data)
+            p.components[feature_name] = comp.guid 
+          end
+          
+          p
         end
-        
-        p
       end
     end
   end

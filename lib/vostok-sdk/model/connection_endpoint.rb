@@ -26,12 +26,14 @@ require 'vostok-sdk/model/model'
 
 module Vostok
   module SDK
-    class ConnectionEndpoint < Model
-      validates_presence_of :group_name, :component_name, :connector_name
-      ds_attr_accessor :group_name, :component_name, :connector_name
-      
-      def initialize(group_name, component_name, connector_name)
-        @group_name, @component_name, @connector_name= group_name, component_name, connector_name
+    module Model
+      class ConnectionEndpoint < VostokModel
+        validates_presence_of :group_name, :component_name, :connector_name
+        ds_attr_accessor :group_name, :component_name, :connector_name
+        
+        def initialize(group_name, component_name, connector_name)
+          @group_name, @component_name, @connector_name= group_name, component_name, connector_name
+        end
       end
     end
   end
