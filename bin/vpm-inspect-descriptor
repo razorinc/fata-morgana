@@ -25,7 +25,7 @@ def usage
     puts <<USAGE
 == Synopsis
 
-vpm inspect: Prints information about application startus and deployment history
+vpm inspect: Prints information about application status and deployment history
 
 == Usage
 
