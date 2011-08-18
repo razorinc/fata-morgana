@@ -22,6 +22,7 @@
 
 require 'rubygems'
 require 'singleton'
+require 'parseconfig'
 
 module Vostok
   module SDK

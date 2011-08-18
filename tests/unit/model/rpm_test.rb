@@ -1,18 +1,10 @@
-require 'rubygems'
-require 'test/unit'
-require 'mocha'
-require File.expand_path('../../../lib/vostok-sdk', __FILE__)
+require 'test_helper'
 
 module Vostok::SDK::Model
   class RPMTest < Test::Unit::TestCase
     def test_from_system_not_installed
       RPM.expects(:is_installed?).returns(false)
       assert_nil RPM.from_system("httpd")
-    end
-
-    def test_from_system_installed
-      RPM.expects(:is_installed?).returns(true)
-      assert_not_nil RPM.from_system("httpd")
     end
 
     def test_from_system

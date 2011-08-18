@@ -1,6 +1,7 @@
 require 'rubygems'
 require 'rake'
 require 'rake/clean'
+require 'rake/testtask'
 
 desc "Print environment to run from checkout - eval $( rake local_env | tail -n +2 )"
 task :local_env do
@@ -32,6 +33,14 @@ task :create_local_repo do
         sh "vpm add-to-repo #{rpm}"
     end
     cd repo_dir
+end
+
+desc "Unit tests"
+Rake::TestTask.new("test") do |t|
+  t.libs << File.expand_path('../lib', __FILE__)
+  t.libs << File.expand_path('../tests', __FILE__)
+  t.libs << File.expand_path('../tests/unit', __FILE__)
+  t.pattern = 'tests/unit/**/*_test.rb'
 end
 
 desc "Run all tests"
