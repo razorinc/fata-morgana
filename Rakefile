@@ -9,6 +9,16 @@ task :local_env do
     puts "PATH='#{pwd}/bin/:#{ENV['PATH']}'; export PATH"
 end
 
+desc "clean out old repo"
+task :clean_old_repo do
+    sh "yum clean all"
+end
+
+desc "remove openshift-cartridge-*"
+task :remove_openshift_cartridges do
+    sh "yum -y remove openshift-cartridge-\*"
+end
+
 desc "Generate repo from all vpm templates in tests/data/"
 task :create_local_repo do
     repo_dir = Dir.pwd
@@ -25,7 +35,8 @@ task :create_local_repo do
 end
 
 desc "Run all tests"
-task :run_all_tests => [:create_local_repo] do
+task :run_all_tests => [:remove_openshift_cartridges, :clean_old_repo, :create_local_repo] do
+    sh "rm -rf /var/tmp/vostok.db"
     cd "tests"
     sh "ruby all_tests.rb"
 end
