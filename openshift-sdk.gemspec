@@ -1,6 +1,7 @@
-# -*- encoding: utf-8 -*-
-$:.push File.expand_path("../lib", __FILE__)
-require "openshift-sdk/version"
+# OS independent path locations
+BIN_DIR  = File.join("bin", "*")
+CONF_DIR = File.join("conf", "*")
+LIB_DIR  = File.join(File.join("lib", "**"), "*.rb")
 
 Gem::Specification.new do |s|
   s.name        = "openshift-sdk"
@@ -12,10 +13,9 @@ Gem::Specification.new do |s|
   s.description = %q{Cartridge SDK API for Openshift project}
 
   s.rubyforge_project = "openshift-sdk"
-
-  s.files         = `git ls-files`.split("\n")
-  s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
-  s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
+  s.files       = Dir[LIB_DIR] + Dir[BIN_DIR] + Dir[CONF_DIR]
+  s.files       += %w(README Rakefile Gemfile)
+  s.executables = Dir[BIN_DIR].map {|binary| File.basename(binary)}
   s.require_paths = ["lib"]
   s.add_dependency("json_pure", ">=1.4.4", "< 1.5.1")
   s.add_dependency("highline", "~> 1.6.2")
