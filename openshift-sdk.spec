@@ -14,16 +14,16 @@ Source0:        rubygem-%{gemname}-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Requires:       ruby(abi) = 1.8
 Requires:       rubygems
-Requires:       rubygems(activemodel)
-Requires:       rubygems(highline)
-Requires:       rubygems(json_pure)
-Requires:       rubygems(mocha)
-Requires:       rubygems(parseconfig)
-Requires:       rubygems(sqlite3)
+Requires:       rubygem(activemodel)
+Requires:       rubygem(highline)
+Requires:       rubygem(json_pure)
+Requires:       rubygem(mocha)
+Requires:       rubygem(parseconfig)
+Requires:       rubygem(sqlite3)
 BuildRequires:  ruby
 BuildRequires:  rubygems
 BuildArch:      noarch
-Provides:       ruby(%{gemname}) = %version
+Provides:       rubygem(%{gemname}) = %version
 
 %description
 This contains the OpenShift Software Development Kit packaged as a rubygem.
