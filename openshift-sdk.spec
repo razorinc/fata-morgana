@@ -5,7 +5,7 @@
 
 Summary:        OpenShift SDK
 Name:           rubygem-%{gemname}
-Version:        0.1.3
+Version:        0.1.4
 Release:        1%{?dist}
 Group:          Development/Languages
 License:        AGPLv3
@@ -75,6 +75,9 @@ rm -rf %{buildroot}
 %{gemdir}/specifications/%{gemname}-%{version}.gemspec
 
 %changelog
+* Fri Aug 19 2011 Matt Hicks <mhicks@redhat.com> 0.1.4-1
+- Including tests in the gem (mhicks@redhat.com)
+
 * Fri Aug 19 2011 Matt Hicks <mhicks@redhat.com> 0.1.3-1
 - Fixing build requires (mhicks@redhat.com)
 
