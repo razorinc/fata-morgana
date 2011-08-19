@@ -14,7 +14,7 @@ Gem::Specification.new do |s|
 
   s.rubyforge_project = "openshift-sdk"
   s.files       = Dir[LIB_DIR] + Dir[BIN_DIR] + Dir[CONF_DIR]
-  s.files       += %w(README Rakefile Gemfile)
+  s.files       += %w(README.md Rakefile Gemfile)
   s.executables = Dir[BIN_DIR].map {|binary| File.basename(binary)}
   s.require_paths = ["lib"]
   s.add_dependency("json_pure", ">=1.4.4", "< 1.5.1")
