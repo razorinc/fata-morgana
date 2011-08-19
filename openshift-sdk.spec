@@ -1,6 +1,6 @@
 %global ruby_sitelib %(ruby -rrbconfig -e "puts Config::CONFIG['sitelibdir']")
 %global gemdir %(ruby -rubygems -e 'puts Gem::dir' 2>/dev/null)
-%global gemname openshift
+%global gemname openshift-sdk
 %global geminstdir %{gemdir}/gems/%{gemname}-%{version}
 
 Summary:        OpenShift SDK
@@ -31,6 +31,7 @@ This contains the OpenShift Software Development Kit packaged as a rubygem.
 %setup -q
 
 %build
+gem build %{gemname}.gemspec
 
 %install
 rm -rf %{buildroot}
