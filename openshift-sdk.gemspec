@@ -2,6 +2,7 @@
 BIN_DIR  = File.join("bin", "*")
 CONF_DIR = File.join("conf", "*")
 LIB_DIR  = File.join(File.join("lib", "**"), "*.rb")
+TEST_DIR  = File.join(File.join("test", "**"), "*")
 
 Gem::Specification.new do |s|
   s.name        = "openshift-sdk"
@@ -13,8 +14,8 @@ Gem::Specification.new do |s|
   s.description = %q{Cartridge SDK API for Openshift project}
 
   s.rubyforge_project = "openshift-sdk"
-  s.files       = Dir[LIB_DIR] + Dir[BIN_DIR] + Dir[CONF_DIR]
-  s.files       += %w(README.md Rakefile Gemfile)
+  s.files       = Dir[LIB_DIR] + Dir[BIN_DIR] + Dir[CONF_DIR] + Dir[TEST_DIR]
+  s.files       += %w(ARCHITECTURE README.md Rakefile Gemfile openshift-sdk.spec)
   s.executables = Dir[BIN_DIR].map {|binary| File.basename(binary)}
   s.require_paths = ["lib"]
   s.add_dependency("json_pure", ">=1.4.4", "< 1.5.1")
