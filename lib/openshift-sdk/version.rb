@@ -20,5 +20,8 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-require 'cartridge_test_opm'
-require 'cartridge_test_rpm'
+module Openshift
+  module SDK
+    VERSION = "0.0.1"
+  end
+end

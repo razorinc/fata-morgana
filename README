@@ -33,14 +33,14 @@ eval $( rake local_env | tail -n +1 )
 
 Build Test Packages
 ===================
-mkdir /var/tmp/vostok-repo
+mkdir /var/tmp/openshift-repo
 rake create_local_repo
 
-echo "[vostok]
-name=Vostok Repo
-baseurl=file:///var/tmp/vostok-repo
+echo "[openshift]
+name=Openshift Repo
+baseurl=file:///var/tmp/openshift-repo
 enabled=1
-gpgcheck=0" > /etc/yum.repos.d/vostok.repo
+gpgcheck=0" > /etc/yum.repos.d/openshift.repo
 
 Running Tests
 =============

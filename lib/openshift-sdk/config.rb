@@ -20,5 +20,34 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-require 'cartridge_test_opm'
-require 'cartridge_test_rpm'
+require 'rubygems'
+require 'singleton'
+require 'parseconfig'
+
+module Openshift
+  module SDK
+    class Config
+      include Object::Singleton
+
+      @@conf_name = 'openshift.conf'
+      def initialize()
+        _linux_cfg = '/etc/openshift/' + @@conf_name
+        _gem_cfg = File.join(File.expand_path(File.dirname(__FILE__) + "/../../conf"), @@conf_name)
+        @config_path = File.exists?(_linux_cfg) ? _linux_cfg : _gem_cfg
+
+        begin
+          @@global_config = ParseConfig.new(@config_path)
+        rescue Errno::EACCES => e
+          puts "Could not open config file: #{e.message}"
+          exit 253
+        end
+      end
+
+      def get(name)
+        val = @@global_config.get_value(name)
+        val.gsub!(/\\:/,":") if not val.nil?
+        val
+      end
+    end
+  end
+end

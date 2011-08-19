@@ -20,5 +20,32 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-require 'cartridge_test_opm'
-require 'cartridge_test_rpm'
+require 'rubygems'
+require 'active_model'
+require 'openshift-sdk/model/model'
+
+module Openshift
+  module SDK
+    module Model
+      class Connector < OpenshiftModel
+        validates_presence_of :type, :pubsub, :name, :required
+        ds_attr_accessor :type, :pubsub, :name, :required
+        
+        def self.load_descriptor(id,json_data, pubsub)
+          c = Connector.new
+          c.type = json_data['type'] if pubsub == :publisher
+          c.type = json_data['required-type'] if pubsub == :subscriber
+          c.pubsub = pubsub
+          c.name = id
+          c.required = json_data['required'] || false
+          c
+        end
+  
+        def required?
+          return @required
+        end
+      end
+    end
+  end
+end  
+    

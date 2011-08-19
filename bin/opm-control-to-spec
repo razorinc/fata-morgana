@@ -1,3 +1,4 @@
+#!/usr/bin/env ruby
 # Copyright 2010 Red Hat, Inc.
 #
 # Permission is hereby granted, free of charge, to any person
@@ -20,5 +21,48 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-require 'cartridge_test_opm'
-require 'cartridge_test_rpm'
+def usage
+    puts <<USAGE
+== Synopsis
+
+opm control-to-spec: Creates a RPM compatible spec file from a OPM control file
+
+== Usage
+
+opm control-to-spec OPM_DIR
+
+Options:
+-h|--help:
+   Prints this message
+
+OPM_DIR Directory where OPM distribution is located
+USAGE
+end
+
+require 'openshift-sdk'
+
+opts = GetoptLong.new(
+    ["--porcelin",               GetoptLong::NO_ARGUMENT],
+    ["--debug",                  GetoptLong::NO_ARGUMENT],
+    ["--help",             "-h", GetoptLong::NO_ARGUMENT]
+)
+
+args = {}
+begin
+    opts.each{ |k,v| args[k]=v }
+rescue GetoptLong::Error => e
+    usage
+    exit -100
+end
+
+$opm_debug = true if args['--debug']
+$porcelin = args['--porcelin'] ? true : false
+opm_dir = ARGV.shift
+
+if args['--help'] || opm_dir.nil? || (not File.exist?(opm_dir + "/openshift/control.spec"))
+  usage
+  exit -101
+end
+
+spec_file = Openshift::SDK::Utils::Rpm.control_to_spec(opm_dir)
+print "#{spec_file} created.\n"

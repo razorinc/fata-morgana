@@ -20,5 +20,39 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-require 'cartridge_test_opm'
-require 'cartridge_test_rpm'
+require 'rubygems'
+require 'logger'
+require 'openshift-sdk/config'
+
+module Openshift
+  module SDK
+    #create logger
+    unless @log
+      config = Openshift::SDK::Config.instance
+      log_location=config.get("log_location")
+      log_aging=config.get("log_aging") || "daily"
+      log_level=config.get("log_level") || "DEBUG"        
+      case log_location
+      when "STDERR"
+        @log = Object::Logger.new(STDERR)
+      when "STDOUT"
+        @log = Object::Logger.new(STDOUT)
+      else
+        @log = Object::Logger.new(log_location,log_aging)
+      end
+      @log.level=Logger::SEV_LABEL.index(log_level)
+    end
+    
+    def self.log
+      @log
+    end
+    
+    module Utils
+      module Logger
+        def log
+          Openshift::SDK::log
+        end
+      end
+    end
+  end
+end

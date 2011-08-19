@@ -1,7 +1,7 @@
 require 'test_helper'
 require 'parseconfig'
 
-module Vostok::SDK
+module Openshift::SDK
   class ConfigTest < Test::Unit::TestCase
     def test_instance
       assert_not_nil Config.instance
@@ -12,7 +12,7 @@ module Vostok::SDK
     end
 
     def test_linux_config_exists
-      linux_conf = '/etc/vostok/vostok.conf'
+      linux_conf = '/etc/openshift/openshift.conf'
       File.expects(:exists?).with(linux_conf).returns(true)
       ParseConfig.expects(:new).with(linux_conf)
       Config.instance 

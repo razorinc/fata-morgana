@@ -20,5 +20,21 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-require 'cartridge_test_opm'
-require 'cartridge_test_rpm'
+require 'rubygems'
+require 'active_model'
+require 'openshift-sdk/model/model'
+
+module Openshift
+  module SDK
+    module Model
+      class ConnectionEndpoint < OpenshiftModel
+        validates_presence_of :group_name, :component_name, :connector_name
+        ds_attr_accessor :group_name, :component_name, :connector_name
+        
+        def initialize(group_name, component_name, connector_name)
+          @group_name, @component_name, @connector_name= group_name, component_name, connector_name
+        end
+      end
+    end
+  end
+end

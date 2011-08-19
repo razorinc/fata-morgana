@@ -1,3 +1,4 @@
+#!/usr/bin/env ruby
 # Copyright 2010 Red Hat, Inc.
 #
 # Permission is hereby granted, free of charge, to any person
@@ -20,5 +21,48 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-require 'cartridge_test_opm'
-require 'cartridge_test_rpm'
+def usage
+    puts <<USAGE
+== Synopsis
+
+opm inspect: Prints information about application status and deployment history
+
+== Usage
+
+opm inspect-descriptor PATH_TO_APP
+
+Options:
+-h|--help:
+   Prints this message
+
+PATH_TO_APP: Path to the base of where application files and metadata are located
+USAGE
+end
+
+require 'openshift-sdk'
+
+opts = GetoptLong.new(
+    ["--porcelin",               GetoptLong::NO_ARGUMENT],
+    ["--debug",                  GetoptLong::NO_ARGUMENT],
+    ["--help",             "-h", GetoptLong::NO_ARGUMENT]
+)
+
+args = {}
+begin
+    opts.each{ |k,v| args[k]=v }
+rescue GetoptLong::Error => e
+    usage
+    exit -100
+end
+
+$opm_debug = true if args['--debug']
+$porcelin = args['--porcelin'] ? true : false
+app_path = ARGV.shift
+
+if args['--help'] || app_path.nil?
+  usage
+  exit -101
+end
+
+a = Openshift::SDK::Model::Application.from_opm(app_path)
+print a.to_json

@@ -20,5 +20,19 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-require 'cartridge_test_opm'
-require 'cartridge_test_rpm'
+require 'openshift-sdk/model/application'
+require 'openshift-sdk/model/node_application'
+
+require 'openshift-sdk/controller/application_observer'
+require 'openshift-sdk/controller/node_application_observer'
+require 'openshift-sdk/controller/audit_observer'
+
+module Openshift
+  module SDK
+    #instantiate observers
+    Openshift::SDK::Controller::StateMachineObserver.instance
+    Openshift::SDK::Controller::ApplicationObserver.instance
+    Openshift::SDK::Controller::NodeApplicationObserver.instance
+  end
+end
+    

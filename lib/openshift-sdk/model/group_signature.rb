@@ -20,5 +20,33 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-require 'cartridge_test_opm'
-require 'cartridge_test_rpm'
+require 'rubygems'
+require 'json'
+require 'active_model'
+require 'openshift-sdk/config'
+require 'openshift-sdk/model/model'
+require 'openshift-sdk/model/component_instance'
+require 'openshift-sdk/utils/logger'
+
+module Openshift
+  module SDK
+    module Model
+      class GroupSignature < OpenshiftModel
+        ds_attr_accessor :group_guid
+        
+        def self.gen_signature(group)
+          sig = []
+          group.components.each do |name, cinst|
+            sig.push "#{cinst.component_guid}-#{cinst.profile_name}-#{cinst.cartridge.guid}"
+          end
+          sig.sort!.hash
+        end
+        
+        def initialize(signature=nil, group = nil)
+          self.guid = signature
+          self.group_guid = group.guid
+        end
+      end
+    end
+  end
+end

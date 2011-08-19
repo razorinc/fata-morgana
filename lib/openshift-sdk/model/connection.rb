@@ -20,5 +20,21 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-require 'cartridge_test_opm'
-require 'cartridge_test_rpm'
+require 'rubygems'
+require 'active_model'
+require 'openshift-sdk/model/model'
+
+module Openshift
+  module SDK
+    module Model
+      class Connection < OpenshiftModel
+        validates_presence_of :name, :pub, :sub
+        ds_attr_accessor :name, :pub, :sub
+  
+        def initialize(name,pub,sub)
+          @name, @pub, @sub = name, pub, sub
+        end
+      end
+    end
+  end
+end

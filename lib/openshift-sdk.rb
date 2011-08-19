@@ -20,5 +20,25 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-require 'cartridge_test_opm'
-require 'cartridge_test_rpm'
+require 'rubygems'
+
+require 'fileutils'
+require 'getoptlong'
+require 'json'
+require 'parseconfig'
+
+require "openshift-sdk/version"
+require "openshift-sdk/config"
+require "openshift-sdk/utils/rpm"
+require "openshift-sdk/utils/table_format"
+require "openshift-sdk/utils/version_control"
+require "openshift-sdk/model/cartridge"
+require "openshift-sdk/model/descriptor"
+require "openshift-sdk/model/app_descriptor"
+require "openshift-sdk/model/application"
+require "openshift-sdk/model/node_application"
+require "openshift-sdk/model/node"
+require "openshift-sdk/model/rpm"
+require "openshift-sdk/controller/node_application_delegate"
+
+require "openshift-sdk/environment"

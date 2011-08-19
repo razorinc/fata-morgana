@@ -1,4 +1,4 @@
 source "http://rubygems.org"
 
-# Specify your gem's dependencies in vostok-sdk.gemspec
+# Specify your gem's dependencies in openshift-sdk.gemspec
 gemspec

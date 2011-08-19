@@ -20,5 +20,38 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-require 'cartridge_test_opm'
-require 'cartridge_test_rpm'
+require 'rubygems'
+require 'json'
+require 'active_model'
+require 'openshift-sdk/model/model'
+require 'openshift-sdk/model/component'
+
+module Openshift
+  module SDK
+    module Model
+      class Profile < OpenshiftModel
+        validates_presence_of :name, :components, :connections
+        ds_attr_accessor :name, :components, :connections
+  
+        def self.load_descriptor(name,json_data,cartridge)
+          p = Profile.new
+          p.name=name
+          
+          p.components = {}
+          if json_data.has_key?("components")
+            json_data["components"].each{|k,v|
+              comp = Component.load_descriptor(k,v)
+              p.components[k] = comp.guid
+            }
+          else
+            feature_name = cartridge.provides_feature[0]
+            comp = Component.load_descriptor(feature_name,json_data)
+            p.components[feature_name] = comp.guid 
+          end
+          
+          p
+        end
+      end
+    end
+  end
+end

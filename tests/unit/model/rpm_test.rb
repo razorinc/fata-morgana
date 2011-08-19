@@ -1,6 +1,6 @@
 require 'test_helper'
 
-module Vostok::SDK::Model
+module Openshift::SDK::Model
   class RPMTest < Test::Unit::TestCase
     def test_from_system_not_installed
       RPM.expects(:is_installed?).returns(false)

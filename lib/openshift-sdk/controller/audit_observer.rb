@@ -20,5 +20,27 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-require 'cartridge_test_opm'
-require 'cartridge_test_rpm'
+require 'rubygems'
+require 'active_model'
+require 'state_machine'
+require 'openshift-sdk/config'
+require 'openshift-sdk/utils/logger'
+require 'openshift-sdk/controller/node_application_delegate'
+require 'openshift-sdk/model/application'
+require 'openshift-sdk/model/node_application'
+require 'openshift-sdk/model/user'
+
+module Openshift
+  module SDK
+    module Controller
+      class StateMachineObserver < ActiveModel::Observer
+        include Openshift::SDK::Utils::Logger        
+        observe Model::Application, Model::NodeApplication
+    
+        def after_transition(object, transition)
+          log.debug "executing transition #{transition} on object type #{object.class.name}, guid: #{object.guid}"
+        end
+      end
+    end
+  end
+end

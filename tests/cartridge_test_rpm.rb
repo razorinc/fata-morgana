@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 require 'test/unit'
-require 'vostok-sdk'
+require 'openshift-sdk'
 
 class CartridgeTest < Test::Unit::TestCase
   def setup
@@ -30,23 +30,23 @@ class CartridgeTest < Test::Unit::TestCase
     system("yum -C clean all")
     system("rm -rf /var/tmp/yum-*")
     system("rm -rf /tmp/openshift-feature-*")
-    system("rm -f data/php-5.3/vostok/php.spec")
+    system("rm -f data/php-5.3/openshift/php.spec")
     
     #build and register rpm
-    system("../bin/vpm-control-to-spec #{Dir.getwd}/data/php-5.3")
-    system("../bin/vpm-create-rpm #{Dir.getwd}/data/php-5.3 2>&1 > /dev/null")
+    system("../bin/opm-control-to-spec #{Dir.getwd}/data/php-5.3")
+    system("../bin/opm-create-rpm #{Dir.getwd}/data/php-5.3 2>&1 > /dev/null")
     system("../bin/add-to-repo #{Dir.getwd}/data/php-5.3")
-    config = Vostok::SDK::Config.instance
+    config = Openshift::SDK::Config.instance
     rpm_repo = config.get('rpm_repo')
-    vostok_repo =<<-EOF
-[vostok]
-name=Vostok Repo
+    openshift_repo =<<-EOF
+[openshift]
+name=Openshift Repo
 baseurl=file://#{rpm_repo}
 enabled=1
 gpgcheck=0
 EOF
-    f = File.open("/etc/yum.repos.d/vostok.repo","w")
-    f.write(vostok_repo)
+    f = File.open("/etc/yum.repos.d/openshift.repo","w")
+    f.write(openshift_repo)
     f.close
   end
   
@@ -56,21 +56,21 @@ EOF
   
   def test_from_rpm
     system("yum remove -q -y openshift-cartridge-php")
-    rpm = Vostok::SDK::Model::RPM.from_system("openshift-cartridge-php")
-    c = Vostok::SDK::Model::Cartridge.from_rpm(rpm)
+    rpm = Openshift::SDK::Model::RPM.from_system("openshift-cartridge-php")
+    c = Openshift::SDK::Model::Cartridge.from_rpm(rpm)
     assert_equal("openshift-cartridge-php",c.name)
     assert_equal(false,c.is_installed)
     assert_equal(["php >= 5.3.2", "php < 5.4.0", "php-pdo", "php-gd", "php-xml", "php-mysql", "php-pgsql", "php-pear"].sort,c.requires.sort)
     assert_equal(["php", "php(version) = 5.3.2"].sort,c.provides_feature.sort)
     
     system("yum install -q -y openshift-cartridge-php")
-    rpm = Vostok::SDK::Model::RPM.from_system("openshift-cartridge-php")
-    c = Vostok::SDK::Model::Cartridge.from_rpm(rpm)
+    rpm = Openshift::SDK::Model::RPM.from_system("openshift-cartridge-php")
+    c = Openshift::SDK::Model::Cartridge.from_rpm(rpm)
     assert_equal("openshift-cartridge-php",c.name)
-    assert_equal("/opt/vostok/cartridges/openshift-cartridge-php-1.0.0",c.package_path)
+    assert_equal("/opt/openshift/cartridges/openshift-cartridge-php-1.0.0",c.package_path)
     assert_equal(true,c.is_installed)
     assert_equal(["php >= 5.3.2", "php < 5.4.0", "php-pdo", "php-gd", "php-xml", "php-mysql", "php-pgsql", "php-pear"].sort,c.requires.sort)
-    assert_equal("/opt/vostok/cartridges",c.package_root)
+    assert_equal("/opt/openshift/cartridges",c.package_root)
     assert_equal(["php", "php(version) = 5.3.2"].sort,c.provides_feature.sort)
   end
   

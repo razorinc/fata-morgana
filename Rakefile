@@ -25,17 +25,17 @@ task :remove_openshift_cartridges do
     sh "yum -y remove openshift-cartridge-\*"
 end
 
-desc "Generate repo from all vpm templates in tests/data/"
+desc "Generate repo from all opm templates in tests/data/"
 task :create_local_repo do
     repo_dir = Dir.pwd
-    for vpm_dir in Dir.glob("#{repo_dir}/tests/data/*") do
+    for opm_dir in Dir.glob("#{repo_dir}/tests/data/*") do
         mkdir_p "/var/tmp/rpms"
         cd "/var/tmp/rpms"
-        sh "vpm control-to-spec #{vpm_dir}"
-        sh "vpm create-rpm #{vpm_dir}"
+        sh "opm control-to-spec #{opm_dir}"
+        sh "opm create-rpm #{opm_dir}"
     end
     for rpm in Dir.glob("*.rpm") do
-        sh "vpm add-to-repo #{rpm}"
+        sh "opm add-to-repo #{rpm}"
     end
     cd repo_dir
 end
@@ -50,7 +50,7 @@ end
 
 desc "Run all tests"
 task :run_all_tests => [:remove_openshift_cartridges, :clean_old_repo, :create_local_repo] do
-    sh "rm -rf /var/tmp/vostok.db"
+    sh "rm -rf /var/tmp/openshift.db"
     cd "tests"
     sh "ruby all_tests.rb"
 end
