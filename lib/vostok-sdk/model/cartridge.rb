@@ -87,7 +87,12 @@ module Vostok
           provides_feature = rpm.provides.delete_if{ |f| !f.match(/openshift-feature-*/) }
           requires = rpm.dependencies.clone.delete_if{ |f| f.match(/openshift-feature-*/) }
           requires_feature = rpm.dependencies - requires
-          cart = Cartridge.new(rpm.name,package_root,package_path,provides_feature,requires_feature,requires,rpm.is_installed,rpm.hooks)
+          
+          provides_feature.map!{ |f| f[18..-1] }
+          requires_feature.map!{ |f| f[18..-1] }
+          
+          cart_name = rpm.name.gsub(/-#{rpm.version}[0-9a-z\-\.]*/,"")
+          cart = Cartridge.new(cart_name,package_root,package_path,provides_feature,requires_feature,requires,rpm.is_installed,rpm.hooks)
           cart.version = rpm.version
           cart.summary = rpm.summary
           cart.native_name = rpm.name
