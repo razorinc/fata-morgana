@@ -4,7 +4,7 @@ require "openshift-sdk/version"
 
 Gem::Specification.new do |s|
   s.name        = "openshift-sdk"
-  s.version     = Openshift::SDK::VERSION
+  s.version     = /(Version: )(.*)/.match(File.read("openshift-sdk.spec"))[2]
   s.authors     = ["Krishna Raman"]
   s.email       = ["kraman@gmail.com"]
   s.homepage    = "http://www.openshift.com"

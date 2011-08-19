@@ -22,6 +22,6 @@
 
 module Openshift
   module SDK
-    VERSION = "0.0.1"
+    VERSION = /(Version: )(.*)/.match(File.read(File.expand_path("../../../openshift-sdk.spec", __FILE__)))[2]
   end
 end
