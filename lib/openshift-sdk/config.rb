@@ -1,3 +1,4 @@
+#--
 # Copyright 2010 Red Hat, Inc.
 #
 # Permission is hereby granted, free of charge, to any person
@@ -19,35 +20,41 @@
 # ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+#++
 
 require 'rubygems'
 require 'singleton'
 require 'parseconfig'
 
-module Openshift
-  module SDK
-    class Config
-      include Object::Singleton
+module Openshift::SDK
+  # == Openshift Config
+  #
+  # Allows access to openshift config file.
+  #
+  # Reads config entried for the sdk from /etc/openshift/openshift.conf and if
+  # that is not available then it will read it from conf/openshift.conf within
+  # the ruby gem.
+  class Config
+    include Object::Singleton
 
-      @@conf_name = 'openshift.conf'
-      def initialize()
-        _linux_cfg = '/etc/openshift/' + @@conf_name
-        _gem_cfg = File.join(File.expand_path(File.dirname(__FILE__) + "/../../conf"), @@conf_name)
-        @config_path = File.exists?(_linux_cfg) ? _linux_cfg : _gem_cfg
+    @@conf_name = 'openshift.conf'
+    def initialize()
+      _linux_cfg = '/etc/openshift/' + @@conf_name
+      _gem_cfg = File.join(File.expand_path(File.dirname(__FILE__) + "/../../conf"), @@conf_name)
+      @config_path = File.exists?(_linux_cfg) ? _linux_cfg : _gem_cfg
 
-        begin
-          @@global_config = ParseConfig.new(@config_path)
-        rescue Errno::EACCES => e
-          puts "Could not open config file: #{e.message}"
-          exit 253
-        end
+      begin
+        @@global_config = ParseConfig.new(@config_path)
+      rescue Errno::EACCES => e
+        puts "Could not open config file: #{e.message}"
+        exit 253
       end
+    end
 
-      def get(name)
-        val = @@global_config.get_value(name)
-        val.gsub!(/\\:/,":") if not val.nil?
-        val
-      end
+    def get(name)
+      val = @@global_config.get_value(name)
+      val.gsub!(/\\:/,":") if not val.nil?
+      val
     end
   end
 end

@@ -63,17 +63,9 @@ module Openshift
           begin
             #Step 1: Create the user
             config = Openshift::SDK::Config.instance
-            user = Model::User.new("a#{napp.app_guid[0..7]}", "#{config.get("app_user_home")}")
-            cmd = "useradd --base-dir #{user.basedir} --gid 100 -m -K UID_MIN=100 -K UID_MAX=499 #{user.name}"
-            out,err,ret = shellCmd(cmd)
-            if ret == 0
-              napp.user = user
-              napp.user.uid = `id -u #{user.name}`
-              napp.user.homedir = "#{user.basedir}/#{user.name}"
-              napp.save!
-            else
-              raise AppCreationException.new("Unable to create user #{error_data.join("\n")} on node")              
-            end
+            application = Application.find(napp.app_guid)
+            napp.user = Model::User.new(application)
+            napp.user.create!
             
             #Step 2: Create the base repository
             napp.app_shared_repo_subdir="#{user.homedir}/#{config.get('app_shared_repo_subdir')}"
@@ -162,10 +154,8 @@ module Openshift
           log.info "Destroying application #{napp.app_guid} on node"
           
           if napp.user
-            cmd = "userdel -f -r #{napp.user.name}"
-            out,err,ret = shellCmd(cmd)
+            napp.user.delete!
             napp.user = nil if ret == 0
-            napp.save!
           end
           
           napp.destroy_complete!

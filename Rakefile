@@ -54,3 +54,8 @@ task :run_all_tests => [:remove_openshift_cartridges, :clean_old_repo, :create_l
     cd "test"
     sh "ruby all_tests.rb"
 end
+
+desc "Generate RDoc"
+task :doc do
+    sh "rdoc ."
+end

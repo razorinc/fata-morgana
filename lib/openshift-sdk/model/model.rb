@@ -37,6 +37,7 @@ module Openshift
         include ActiveModel::Observing
         include ActiveModel::AttributeMethods
         include ActiveModel::Observing
+        include ActiveModel::Conversion
         include Openshift::SDK::Utils::Logger
       
         def self.ds_attr_reader(*accessors)
@@ -184,6 +185,10 @@ module Openshift
           ds = eval("Utils::#{ds_type.capitalize}.instance")
           ds.delete(type,id)
           @changed_attributes.clear
+        end
+
+        def persisted?
+          false
         end
         
         ds_attr_accessor :guid

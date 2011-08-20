@@ -1,3 +1,4 @@
+#--
 # Copyright 2010 Red Hat, Inc.
 #
 # Permission is hereby granted, free of charge, to any person
@@ -19,6 +20,7 @@
 # ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+#++
 
 require 'openshift-sdk/model/application'
 require 'openshift-sdk/model/node_application'
@@ -27,12 +29,10 @@ require 'openshift-sdk/controller/application_observer'
 require 'openshift-sdk/controller/node_application_observer'
 require 'openshift-sdk/controller/audit_observer'
 
-module Openshift
-  module SDK
-    #instantiate observers
-    Openshift::SDK::Controller::StateMachineObserver.instance
-    Openshift::SDK::Controller::ApplicationObserver.instance
-    Openshift::SDK::Controller::NodeApplicationObserver.instance
-  end
+module Openshift::SDK
+  #instantiate observers
+  Openshift::SDK::Controller::StateMachineObserver.instance
+  Openshift::SDK::Controller::ApplicationObserver.instance
+  Openshift::SDK::Controller::NodeApplicationObserver.instance
 end
     
