@@ -21,7 +21,6 @@
 # SOFTWARE.
 
 require 'rubygems'
-require 'uuid'
 require 'openshift-sdk/config'
 require 'openshift-sdk/utils/logger'
 
