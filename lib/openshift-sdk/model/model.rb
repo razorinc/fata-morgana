@@ -113,7 +113,7 @@ module Openshift
         
         def gen_uuid
           fp = File.new("/proc/sys/kernel/random/uuid", "r")
-          self.guid = fp.gets
+          self.guid = fp.gets.strip
           fp.close
         end
         
