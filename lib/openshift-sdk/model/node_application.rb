@@ -35,20 +35,20 @@ module Openshift
         ds_attr_accessor :state, :user, :deleted, :app_guid,:app_shared_repo_subdir, :app_prod_repo_subdir, :app_prod_subdir
         
         state_machine :state, :initial => :not_created, :action => :save! do
-          transition :not_created => :creating, :on => :create
-          transition :creating => :created, :on => :create_complete
-          transition :creating => :destroying, :on => :create_error
-          transition :created => :installing, :on => :install
-          transition :installing => :created, :on => :install_error
-          transition :installing => :stopped, :on => :install_complete
-          transition :stopped => :starting, :on => :start
-          transition :starting => :started, :on => :start_complete
-          transition :started => :stopping, :on => :stop
-          transition :stopping => :stopped, :on => :stop_complete
-          transition :stopped => :uninstalling, :on => :uninstall
-          transition :uninstalling => :created, :on => :uninstall_complete
-          transition :created => :destroying, :on => :destroy
-          transition :destroying => :not_created, :on => :destroy_complete
+          event(:create) { transition :not_created => :creating }
+          event(:create_complete) { transition :creating => :created }
+          event(:create_error) { transition :creating => :destroying }
+          event(:install) { transition :created => :installing }
+          event(:install_error) { transition :installing => :created }
+          event(:install_complete) { transition :installing => :stopped }
+          event(:start) { transition :stopped => :starting }
+          event(:start_complete) { transition :starting => :started }
+          event(:stop) { transition :started => :stopping }
+          event(:stop_complete) { transition :stopping => :stopped }
+          event(:uninstall) { transition :stopped => :uninstalling }
+          event(:uninstall_complete) { transition :uninstalling => :created }
+          event(:destroy) { transition :created => :destroying }
+          event(:destroy_complete) { transition :destroying => :not_created }
         end
           
         def initialize(app_guid=nil)

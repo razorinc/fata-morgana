@@ -36,27 +36,38 @@ module Openshift
         ds_attr_accessor :state, :deploy_state, :artifact_available, :deleted, :descriptor
         
         state_machine :state, :initial => :not_created, :action => :save! do
-          transition :not_created => :creating, :on => :create
-          transition :creating => :created, :on => :create_complete
-          transition :creating => :destroying, :on => :create_error
-          transition :created => :installing, :on => :install
-          transition :installing => :stopped, :on => :install_complete
-          transition :installing => :created, :on => :install_error
-          transition :stopped => :starting, :on => :start
-          transition :starting => :started, :on => :start_complete
-          transition :started => :stopping, :on => :stop
-          transition :stopping => :stopped, :on => :stop_complete
-          transition :stopped => :uninstalling, :on => :uninstall
-          transition :uninstalling => :created, :on => :uninstall_complete
-          transition :created => :destroying, :on => :destroy
-          transition :destroying => :not_created, :on => :destroy_complete
+          event(:create) { transition :not_created => :creating }
+          event(:create_complete) { transition :creating => :created }
+          event(:create_error) { transition :creating => :destroying }
+          event(:install) { transition :created => :installing }
+          event(:install_complete) { transition :installing => :stopped }
+          event(:install_error) { transition :installing => :created }
+          event(:start) { transition :stopped => :starting }
+          event(:start_complete) { transition :starting => :started }
+          event(:stop) { transition :started => :stopping }
+          event(:stop_complete) { transition :stopping => :stopped }
+          event(:uninstall) { transition :stopped => :uninstalling }
+          event(:uninstall_complete) { transition :uninstalling => :created }
+          event(:destroy) { transition :created => :destroying }
+          event(:destroy_complete) { transition :destroying => :not_created }
         end
           
         state_machine :deploy_state, :initial => :idle, :action => :save! do
-          transition :idle => :building, :on => :build, :if => :stopped? or :started? or :stopping? or :starting?
-          transition :building => :idle, :on => :build_complete
-          transition :idle => :deploying, :on => :deploy, :if => :artifact_available?
-          transition :deploying => :idle, :on => :deploy_complete
+          event :build do
+            transition :idle => :building, :if => :stopped? or :started? or :stopping? or :starting?
+          end
+
+          event :build_complete do
+            transition :building => :idle
+          end
+
+          event :deploy do
+            transition :idle => :deploying, :if => :artifact_available?
+          end
+
+          event :deploy_complete do
+            transition :deploying => :idle
+          end
         end
         
         def initialize(app_name=nil,package_root=nil,package_path=nil)

@@ -33,23 +33,23 @@ module Openshift
         ds_attr_accessor :provate_ip, :public_ip
          
         state_machine :state, :initial => :not_created, :action => :save! do
-          transition :standalone => :joining, :on => :join
-          transition :joining => :joined,     :on => :join_complete
-          transition :joining => :standalone, :on => :join_error
+          event(:join) { transition :standalone => :joining }
+          event(:join_complete) { transition :joining => :joined }
+          event(:join_error) { transition :joining => :standalone }
           
-          transition :joined => :syncing, :on => :sync
-          transition :syncing => :synced, :on => :sync_complete
-          transition :syncing => :joined, :on => :sync_error
+          event(:sync) { transition :joined => :syncing }
+          event(:sync_complete) { transition :syncing => :synced }
+          event(:sync_error) { transition :syncing => :joined }
           
-          transition :joined => :unjoining,     :on => :unjoin
-          transition :unjoining => :standalone, :on => :unjoin_complete
-          transition :unjoining => :joined,     :on => :unjoin_error
+          event(:unjoin) { transition :joined => :unjoining }
+          event(:unjoin_complete) { transition :unjoining => :standalone } 
+          event(:unjoin_error) { transition :unjoining => :joined }
         end
         
         state_machine :run_state, :initial => :running, :action => :save! do
-          transition :running   => :rebooting, :on => :reboot
-          transition :rebooting => :running,   :on => :reboot_complete
-          transition :running   => :shutdown,  :on => :shutdown
+          event(:reboot) { transition :running   => :rebooting }
+          event(:reboot_complete) { transition :rebooting => :running }
+          event(:shutdown) { transition :running   => :shutdown }
         end
       end
     end
