@@ -52,8 +52,8 @@ gem build %{gemname}.gemspec
 gem install --local --install-dir %{buildroot}%{gemdir} --force %{gemname}-%{version}.gem
 
 # Symlink into the ruby site library directories
-ln -s %{gemdir}/lib/%{gemname}-%{version}/lib/%{gemname} %{buildroot}%{ruby_sitelib}
-ln -s %{gemdir}/lib/%{gemname}-%{version}/lib/%{gemname}.rb %{buildroot}%{ruby_sitelib}
+ln -s %{gemdir}/gems/%{gemname}-%{version}/lib/%{gemname} %{buildroot}%{ruby_sitelib}
+ln -s %{gemdir}/gems/%{gemname}-%{version}/lib/%{gemname}.rb %{buildroot}%{ruby_sitelib}
 
 # Symlink all the binaries
 for binary in `ls %{buildroot}%{gemdir}/bin`
