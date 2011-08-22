@@ -25,8 +25,16 @@ BuildRequires:  rubygems
 BuildArch:      noarch
 Provides:       rubygem(%{gemname}) = %version
 
+%package -n ruby-%{gemname}
+Summary:        OpenShift SDK Ruby Library
+Requires:       rubygem(%{gemname}) = %version
+Provides:       ruby(%{gemname}) = %version
+
 %description
 This contains the OpenShift Software Development Kit packaged as a rubygem.
+
+%description -n ruby-%{gemname}
+This contains the OpenShift Software Development Kit packaged as a ruby site library.
 
 %prep
 %setup -q
@@ -35,18 +43,59 @@ This contains the OpenShift Software Development Kit packaged as a rubygem.
 
 %install
 rm -rf %{buildroot}
-gem build %{gemname}.gemspec
 mkdir -p %{buildroot}%{gemdir}
-gem install --local --install-dir %{buildroot}%{gemdir} --force %{gemname}-%{version}.gem
 mkdir -p %{buildroot}%{_bindir}
-mv %{buildroot}%{gemdir}/bin/* %{buildroot}%{_bindir}
-rmdir %{buildroot}%{gemdir}/bin
+mkdir -p %{buildroot}%{ruby_sitelib}
+
+# Build and install into the rubygem structure
+gem build %{gemname}.gemspec
+gem install --local --install-dir %{buildroot}%{gemdir} --force %{gemname}-%{version}.gem
+
+# Symlink into the ruby site library directories
+ln -s %{gemdir}/lib/%{gemname}-%{version}/lib/%{gemname} %{buildroot}%{ruby_sitelib}
+ln -s %{gemdir}/lib/%{gemname}-%{version}/lib/%{gemname}.rb %{buildroot}%{ruby_sitelib}
+
+# Symlink all the binaries
+for binary in `ls %{buildroot}%{gemdir}/bin`
+do
+  ln -s %{gemdir}/bin/$binary %{buildroot}%{_bindir}/$binary
+done
 
 %clean
 rm -rf %{buildroot}                                
 
 %files
 %defattr(-,root,root,-)
+%dir %{geminstdir}
+%doc %{geminstdir}/Gemfile
+%{gemdir}/doc/%{gemname}-%{version}
+%{gemdir}/gems/%{gemname}-%{version}
+%{gemdir}/cache/%{gemname}-%{version}.gem
+%{gemdir}/specifications/%{gemname}-%{version}.gemspec
+%{gemdir}/bin/opm
+%{gemdir}/bin/opm-add-to-repo
+%{gemdir}/bin/opm-build
+%{gemdir}/bin/opm-control-to-spec
+%{gemdir}/bin/opm-create
+%{gemdir}/bin/opm-create-rpm
+%{gemdir}/bin/opm-deploy
+%{gemdir}/bin/opm-destroy
+%{gemdir}/bin/opm-export
+%{gemdir}/bin/opm-help
+%{gemdir}/bin/opm-inspect
+%{gemdir}/bin/opm-inspect-descriptor
+%{gemdir}/bin/opm-install
+%{gemdir}/bin/opm-list-applications
+%{gemdir}/bin/opm-list-available-cartridges
+%{gemdir}/bin/opm-list-installed-cartridges
+%{gemdir}/bin/opm-restart
+%{gemdir}/bin/opm-start
+%{gemdir}/bin/opm-stop
+%{gemdir}/bin/opm-uninstall
+
+%files -n ruby-%{gemname}
+%{ruby_sitelib}/%{gemname}
+%{ruby_sitelib}/%{gemname}.rb
 %{_bindir}/opm
 %{_bindir}/opm-add-to-repo
 %{_bindir}/opm-build
@@ -67,12 +116,6 @@ rm -rf %{buildroot}
 %{_bindir}/opm-start
 %{_bindir}/opm-stop
 %{_bindir}/opm-uninstall
-%dir %{geminstdir}
-%doc %{geminstdir}/Gemfile
-%{gemdir}/gems/%{gemname}-%{version}
-%{gemdir}/doc/%{gemname}-%{version}
-%{gemdir}/cache/%{gemname}-%{version}.gem
-%{gemdir}/specifications/%{gemname}-%{version}.gemspec
 
 %changelog
 * Fri Aug 19 2011 Matt Hicks <mhicks@redhat.com> 0.1.4-1
