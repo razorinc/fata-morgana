@@ -5,7 +5,7 @@
 
 Summary:        OpenShift SDK
 Name:           rubygem-%{gemname}
-Version:        0.1.4
+Version:        0.1.5
 Release:        1%{?dist}
 Group:          Development/Languages
 License:        AGPLv3
@@ -118,6 +118,18 @@ rm -rf %{buildroot}
 %{_bindir}/opm-uninstall
 
 %changelog
+* Mon Aug 22 2011 Matt Hicks <mhicks@redhat.com> 0.1.5-1
+- Supporting library packaging and rubygem packaging (mhicks@redhat.com)
+- Merge branch 'master' of github.com:openshift/fata-morgana (ramr@redhat.com)
+- remove unneeded require uuid (markllama@redhat.com)
+- Bug fixes. (ramr@redhat.com)
+- Changing vostok=>openshift (kraman@gmail.com)
+- Removing uuid requires from model (kraman@gmail.com)
+- Adding Rake 0.9.2 as a development dependency (kraman@gmail.com)
+- Fixed paths {vostok => openshift} for test data files Added user model test
+  (kraman@gmail.com)
+- Moving to state_machine 1.0.1 compatible syntax (mhicks@redhat.com)
+
 * Fri Aug 19 2011 Matt Hicks <mhicks@redhat.com> 0.1.4-1
 - Including tests in the gem (mhicks@redhat.com)
 
