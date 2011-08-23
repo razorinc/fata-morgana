@@ -1,4 +1,7 @@
 # from openshift tests
+
+require 'openshift-sdk'
+
 Given /^an accepted node$/ do
 
 end
@@ -21,7 +24,7 @@ Given /^the (\S+) cartridge( not)? installed$/ do | cart_type, negate |
 end
 
 Given /^a yum repository$/ do
-  pending # express the regexp above with the code you wish you had
+  #pending # express the regexp above with the code you wish you had
 end
 
 Given /^the (\S+) package is available in the yum repository$/ do | cart_type |
@@ -29,7 +32,7 @@ Given /^the (\S+) package is available in the yum repository$/ do | cart_type |
 end
 
 When /^I check the presence of the (\S+) cartridge$/ do | cart_type |
-  pending # express the regexp above with the code you wish you had
+  @cartridge = Openshift::SDK::Model::Cartridge.new cart_type
 end
 
 When /^I ask what package provides the (\S+) feature$/ do | cart_type |
@@ -40,8 +43,8 @@ When /^I request the (\S+) cartridge$/ do | cart_type |
   pending # express the regexp above with the code you wish you had
 end
 
-Then /^I find that the (\S+) cartridge is( not)? present$/ do | cart_type, negate |
-  pending # express the regexp above with the code you wish you had
+Then /^I find that the (\S+) cartridge is( not)? installed$/ do | cart_type, negate |
+  @cartridge.is_installed.should be (negate == nil), "cartridge #{cart_type} should#{negate} be installed"
 end
 
 Then /^I find that the (\S+) package is( not)? present$/ do | pkg_name, negate |

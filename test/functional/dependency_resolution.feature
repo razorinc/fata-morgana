@@ -7,13 +7,13 @@ Feature: Cartridge Dependency Resolution
     Given an accepted node 
     And there are no cartridges installed
     When I check the presence of the php cartridge
-    Then I find that the php cartridge is not present
+    Then I find that the php cartridge is not installed
 
   Scenario: Check present cartridge
     Given an accepted node 
     And there are no cartridges installed
     When I check the presence of the php cartridge
-    Then I find that the php cartridge is present
+    Then I find that the php cartridge is installed
 
   Scenario: Check simple dependency resolution
     Given an accepted node 
@@ -29,4 +29,4 @@ Feature: Cartridge Dependency Resolution
     And a yum repository
     And the php package is available in the yum repository
     When I request the php cartridge
-    Then I find that the php cartridge is present
+    Then I find that the php cartridge is installed
