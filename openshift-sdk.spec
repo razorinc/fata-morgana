@@ -43,23 +43,25 @@ This contains the OpenShift Software Development Kit packaged as a ruby site lib
 
 %install
 rm -rf %{buildroot}
-mkdir -p %{buildroot}%{gemdir}
 mkdir -p %{buildroot}%{_bindir}
+mkdir -p %{buildroot}%{_sysconfdir}/openshift
+mkdir -p %{buildroot}%{gemdir}
 mkdir -p %{buildroot}%{ruby_sitelib}
 
 # Build and install into the rubygem structure
 gem build %{gemname}.gemspec
 gem install --local --install-dir %{buildroot}%{gemdir} --force %{gemname}-%{version}.gem
 
-# Symlink into the ruby site library directories
-ln -s %{gemdir}/gems/%{gemname}-%{version}/lib/%{gemname} %{buildroot}%{ruby_sitelib}
-ln -s %{gemdir}/gems/%{gemname}-%{version}/lib/%{gemname}.rb %{buildroot}%{ruby_sitelib}
+# Move the gem binaries to the standard filesystem location
+mv %{buildroot}%{gemdir}/bin/* %{buildroot}%{_bindir}
+rm -rf %{buildroot}%gemdir}/bin
 
-# Symlink all the binaries
-for binary in `ls %{buildroot}%{gemdir}/bin`
-do
-  ln -s %{gemdir}/bin/$binary %{buildroot}%{_bindir}/$binary
-done
+# Move the gem configs to the standard filesystem location
+mv %{buildroot}%{geminstdir}/conf/* %{buildroot}%{_sysconfdir}/openshift
+
+# Symlink into the ruby site library directories
+ln -s %{geminstdir}/lib/%{gemname} %{buildroot}%{ruby_sitelib}
+ln -s %{geminstdir}/lib/%{gemname}.rb %{buildroot}%{ruby_sitelib}
 
 %clean
 rm -rf %{buildroot}                                
@@ -72,33 +74,11 @@ rm -rf %{buildroot}
 %{gemdir}/gems/%{gemname}-%{version}
 %{gemdir}/cache/%{gemname}-%{version}.gem
 %{gemdir}/specifications/%{gemname}-%{version}.gemspec
-%{gemdir}/bin/opm
-%{gemdir}/bin/opm-add-to-repo
-%{gemdir}/bin/opm-build
-%{gemdir}/bin/opm-control-to-spec
-%{gemdir}/bin/opm-create
-%{gemdir}/bin/opm-create-rpm
-%{gemdir}/bin/opm-deploy
-%{gemdir}/bin/opm-destroy
-%{gemdir}/bin/opm-export
-%{gemdir}/bin/opm-help
-%{gemdir}/bin/opm-inspect
-%{gemdir}/bin/opm-inspect-descriptor
-%{gemdir}/bin/opm-install
-%{gemdir}/bin/opm-list-applications
-%{gemdir}/bin/opm-list-available-cartridges
-%{gemdir}/bin/opm-list-installed-cartridges
-%{gemdir}/bin/opm-restart
-%{gemdir}/bin/opm-start
-%{gemdir}/bin/opm-stop
-%{gemdir}/bin/opm-uninstall
-
-%files -n ruby-%{gemname}
-%{ruby_sitelib}/%{gemname}
-%{ruby_sitelib}/%{gemname}.rb
+%{_sysconfdir}/openshift
 %{_bindir}/opm
 %{_bindir}/opm-add-to-repo
 %{_bindir}/opm-build
+%{_bindir}/opm-cache
 %{_bindir}/opm-control-to-spec
 %{_bindir}/opm-create
 %{_bindir}/opm-create-rpm
@@ -116,6 +96,10 @@ rm -rf %{buildroot}
 %{_bindir}/opm-start
 %{_bindir}/opm-stop
 %{_bindir}/opm-uninstall
+
+%files -n ruby-%{gemname}
+%{ruby_sitelib}/%{gemname}
+%{ruby_sitelib}/%{gemname}.rb
 
 %changelog
 * Mon Aug 22 2011 Matt Hicks <mhicks@redhat.com> 0.1.6-1
