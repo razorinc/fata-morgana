@@ -5,7 +5,7 @@
 
 Summary:        OpenShift SDK
 Name:           rubygem-%{gemname}
-Version:        0.1.6
+Version:        0.1.7
 Release:        1%{?dist}
 Group:          Development/Languages
 License:        AGPLv3
@@ -102,6 +102,15 @@ rm -rf %{buildroot}
 %{ruby_sitelib}/%{gemname}.rb
 
 %changelog
+* Tue Aug 23 2011 Matt Hicks <mhicks@redhat.com> 0.1.7-1
+- RPM spec fixes (mhicks@redhat.com)
+- adding test cases (dmcphers@redhat.com)
+- Merge branch 'master' of github.com:openshift/fata-morgana
+  (rchopra@redhat.com)
+- opm cache support (only using sqlite right now). bug fix in sqlite_ds.
+  (rchopra@redhat.com)
+- adding step skeletons for dependency resolution (markllama@gmail.com)
+
 * Mon Aug 22 2011 Matt Hicks <mhicks@redhat.com> 0.1.6-1
 - Hard coding version to remove dependency on parsing spec (mhicks@redhat.com)
 - Removing lib dir from symlink path (mhicks@redhat.com)
