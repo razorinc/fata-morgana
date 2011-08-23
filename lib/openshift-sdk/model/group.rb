@@ -1,3 +1,4 @@
+#--
 # Copyright 2010 Red Hat, Inc.
 #
 # Permission is hereby granted, free of charge, to any person
@@ -19,58 +20,109 @@
 # ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+#--
 
 require 'rubygems'
 require 'json'
 require 'active_model'
 require 'openshift-sdk/config'
 require 'openshift-sdk/model/model'
-require 'openshift-sdk/model/group_signature'
+require 'openshift-sdk/model/component'
 require 'openshift-sdk/model/component_instance'
+require 'openshift-sdk/model/scaling_parameters'
 require 'openshift-sdk/utils/logger'
 
-module Openshift
-  module SDK
-    module Model
-      class Group < OpenshiftModel
-        validates_presence_of :name, :components
-        ds_attr_accessor :name, :components, :nodes
+module Openshift::SDK::Model
+  # == Component Group
+  #
+  # Defines a component group. All components within the group are run on the 
+  # all nodes within a group. Scaling parameters also only apply to this level. 
+  #
+  # == Overall location within descriptor
+  #
+  #      |
+  #      +-Profile
+  #           |
+  #           +-*Group*
+  #               |
+  #               +-Scaling
+  #               |
+  #               +-Component
+  #                     |
+  #                     +-Connector
+  #
+  # == Properties
+  # 
+  # [name] The name of the group
+  # [components] A hash map with all componnts that are part of the group
+  # [nodes] A list of nodes that are part of the group
+  # [scaling] Scaling parameters set for the group
+  class Group < OpenshiftModel
+    validates_presence_of :name, :components
+    ds_attr_accessor :name, :components, :nodes, :scaling
+    
+    def initialize(name=nil, descriptor_data={},cartridge=nil)
+      self.name = name
+      self.components = {}
+      self.scaling = ScalingParameters.new(descriptor_data["scaling"] || {})
+      self.nodes = []
         
-        def initialize
-          self.nodes = []
+      if cartridge.class == Cartridge
+        if descriptor_data["components"]
+          descriptor_data["components"].each{|feature,comp_hash|
+            @components[feature] = Component.new(feature,comp_hash)
+          }
+        else
+          unless cartridge.nil?
+            cart_features = cartridge.provides_feature
+            cart_features.each do |feature|
+              feature = feature[/[a-zA-Z]*/]
+              @components[feature] = Component.new(feature,descriptor_data)
+            end
+          end
         end
-        
-        def self.load_descriptor(name,json_data,app_descriptor,app)
-          g = Group.new
-          g.name=name
-          
-          g.components = {}
-          if json_data["components"]
-            json_data["components"].each{|k,v|
-              g.components[k] = ComponentInstance.load_descriptor(k,v)
-            }
-          else
-            app.requires_feature.each{ |feature|
-              f_inst, f_dep_cmap = ComponentInstance.from_app_dependency(feature)
-              g.components.merge!(f_dep_cmap)
-            }
+      else
+        if descriptor_data["components"]
+          descriptor_data["components"].each{|feature,comp_hash|
+            @components[feature] = Component.new(feature,comp_hash)
+          }
+        else
+          unless cartridge.nil?
+            app_dependencies = cartridge.requires_feature
+            app_dependencies.each do |feature|
+              f_inst, f_dep_cmap = ComponentInstance.from_app_dependency(feature)                                                                                                                                                           
+              @components.merge!(f_dep_cmap)                                                                                                                                                                                                 
+            end
           end
-          
-          #generate group sigature to see if we can share group between applications
-          sig = Model::GroupSignature.gen_signature(g)
-          gsig = Model::GroupSignature.find(sig)
-          unless gsig
-            g.gen_uuid
-            g.save!
-            gsig = Model::GroupSignature.new(sig,g)
-            gsig.save!
-          else
-            g = Group.find(gsig.group_guid)
-          end
-          
-          g
+        end
+      end 
+    end
+    
+    def components=(vals)
+      @components = {}
+      return if vals.class != Hash
+      vals.keys.each do |name|
+        next if name.nil?
+        if vals[name].class == Hash
+          @components[name] = Component.new
+          @components[name].attributes=vals[name]
+        else
+          @components[name] = vals[name]
         end
       end
+    end
+    
+    def scaling=(val)
+      if val.class == Hash
+        @scaling=ScalingParameters.new
+        @scaling.attributes=val
+      else
+        @scaling = val        
+      end
+    end
+    
+    def signature
+      @signature ||= @scaling.generate_signature
     end
   end
 end

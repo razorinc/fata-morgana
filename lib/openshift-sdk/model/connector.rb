@@ -1,3 +1,4 @@
+#--
 # Copyright 2010 Red Hat, Inc.
 #
 # Permission is hereby granted, free of charge, to any person
@@ -19,33 +20,54 @@
 # ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+#++
 
 require 'rubygems'
-require 'active_model'
 require 'openshift-sdk/model/model'
+require 'openshift-sdk/model/connector'
 
-module Openshift
-  module SDK
-    module Model
-      class Connector < OpenshiftModel
-        validates_presence_of :type, :pubsub, :name, :required
-        ds_attr_accessor :type, :pubsub, :name, :required
-        
-        def self.load_descriptor(id,json_data, pubsub)
-          c = Connector.new
-          c.type = json_data['type'] if pubsub == :publisher
-          c.type = json_data['required-type'] if pubsub == :subscriber
-          c.pubsub = pubsub
-          c.name = id
-          c.required = json_data['required'] || false
-          c
-        end
-  
-        def required?
-          return @required
-        end
-      end
+module Openshift::SDK::Model
+  # == Connector
+  #
+  # Defines a connector endpoint definition for a component. Connectors can be
+  # either publishers or subscribers of information.
+  #
+  # == Overall location within descriptor
+  #
+  #      |
+  #      +-Profile
+  #           |
+  #           +-Group
+  #               |
+  #               +-Scaling
+  #               |
+  #               +-Component
+  #                     |
+  #                     +-*Connector*
+  #
+  # == Properties
+  # 
+  # [type] The connector type. Eg: FILESYSTEM:DOC_ROOT
+  # [pubsub] :publisher or :subscriber
+  # [name] The name of this connector. This is what the hook names are based off.
+  # [required] true|false. Applicable only to subscribers
+  class Connector < OpenshiftModel
+    validates_presence_of :type, :pubsub, :name, :required
+    ds_attr_accessor :type, :pubsub, :name, :required
+    
+    def initialize(name=nil,pubsub=nil,descriptor_hash={})
+      @name = name
+      @type = descriptor_hash['type']
+      @pubsub = pubsub
+      @required = descriptor_hash['required'].to_s.downcase == "true"
+    end
+
+    def required?
+      return @required
+    end
+
+    def pubsub
+      @pubsub.to_sym
     end
   end
 end  
-    

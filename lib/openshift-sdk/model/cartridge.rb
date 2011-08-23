@@ -56,7 +56,7 @@ module Openshift
         def descriptor
           return nil unless @is_installed
           descriptor_changed = @descriptor.nil?
-          @descriptor ||= Descriptor.load_descriptor(self)
+          @descriptor ||= Descriptor.new(self)
           descriptor_will_change! if descriptor_changed
           @descriptor
         end
@@ -83,7 +83,7 @@ module Openshift
             package_root = File.dirname package_path
           else
             package_root = package_path = nil
-          end 
+          end
           provides_feature = rpm.provides.delete_if{ |f| !f.match(/openshift-feature-*/) }
           requires = rpm.dependencies.clone.delete_if{ |f| f.match(/openshift-feature-*/) }
           requires_feature = rpm.dependencies - requires
@@ -142,6 +142,8 @@ module Openshift
           cartridge = Cartridge.new(nil,package_root,package_path)
           control_spec = File.open(package_path + "/openshift/control.spec")        
           cartridge.from_opm_spec(control_spec)
+          cartridge.is_installed = true
+          cartridge
         end
   
         def to_s

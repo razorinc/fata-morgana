@@ -28,29 +28,43 @@ require 'openshift-sdk/model/model'
 require 'openshift-sdk/model/cartridge'
 require 'openshift-sdk/model/profile'
 
-module Openshift
-  module SDK
-    module Model
-      class Descriptor < OpenshiftModel
-        validates_presence_of :profiles
-        ds_attr_accessor :profiles
-  
-        def self.load_descriptor(cartridge)
-          d = Descriptor.new
-          f = File.open("#{cartridge.package_path}/openshift/descriptor.json")
-          
-          json_data = JSON.parse(f.read)
-          d.profiles = {}
-          if json_data.has_key?("profiles")
-            json_data["profiles"].each{|k,v|
-              d.profiles[k] = Profile.load_descriptor(k,v,cartridge)
-            }
-          else
-            d.profiles["default"] = Profile.load_descriptor("default",json_data,cartridge)
-          end
-          
-          d
+module Openshift::SDK::Model
+  # == Cartridge descriptor
+  #
+  # Descriptor object that defines all possible profiles/groups/components 
+  # available in the cartridge
+  #
+  # == Overall descriptor
+  #   Descriptor
+  #      |
+  #      +-Profile
+  #           |
+  #           +-Group
+  #               |
+  #               +-Scaling
+  #               |
+  #               +-Component
+  #                     |
+  #                     +-Connector
+  #
+  # == Properties
+  # 
+  # [profiles] Hash list of all profiles defined in the descriptor
+  class Descriptor < OpenshiftModel
+    validates_presence_of :profiles
+    ds_attr_accessor :profiles
+    
+    def initialize(cartridge=nil)
+      @profiles = {}
+      return if cartridge.nil?
+      f = File.open("#{cartridge.package_path}/openshift/descriptor.json")
+      json_data = JSON.parse(f.read)
+      if json_data["profiles"]
+        json_data["profiles"].each do |name, prof_data|
+          @profiles[name] = Profile.new(name,prof_data,cartridge)
         end
+      else
+        @profiles["default"] = Profile.new("default",json_data,cartridge)
       end
     end
   end

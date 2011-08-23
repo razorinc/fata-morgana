@@ -21,9 +21,12 @@
 # SOFTWARE.
 
 require 'rubygems'
+require 'json'
+require 'active_model'
 require 'openshift-sdk/config'
 require 'openshift-sdk/utils/logger'
 
+ActiveSupport::JSON.backend = "JSONGem" 
 module Openshift
   module SDK
     module Model
@@ -31,6 +34,7 @@ module Openshift
         extend ActiveModel::Naming        
         include ActiveModel::Validations      
         include ActiveModel::Serializers::JSON
+        self.include_root_in_json = false
         include ActiveModel::Serializers::Xml
         include ActiveModel::Dirty
         include ActiveModel::Observing
@@ -38,7 +42,7 @@ module Openshift
         include ActiveModel::Observing
         include ActiveModel::Conversion
         include Openshift::SDK::Utils::Logger
-      
+        
         def self.ds_attr_reader(*accessors)
           define_attribute_methods accessors
           
@@ -140,6 +144,7 @@ module Openshift
         end
 
         def attributes=(attr)
+          return if attr.nil?
           attr.each do |name,value|
             send("#{name}=",value)
           end

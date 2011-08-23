@@ -1,3 +1,4 @@
+#--
 # Copyright 2010 Red Hat, Inc.
 #
 # Permission is hereby granted, free of charge, to any person
@@ -19,46 +20,90 @@
 # ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+#++
 
 require 'rubygems'
 require 'active_model'
 require 'openshift-sdk/model/model'
 require 'openshift-sdk/model/connector'
 
-module Openshift
-  module SDK
-    module Model
-      class Component < OpenshiftModel
-        validates_presence_of :feature
-        ds_attr_accessor :feature, :publishes, :subscribes
-       
-        def self.load_descriptor(feature,json_data)
-          publishes = json_data["connectors"]["publishes"]
-          subscribes = json_data["connectors"]["subscribes"]
-          
-          c = Component.new
-          c.feature = feature
-  
-          c.publishes = {}
-          if publishes
-            publishes.each{|k,v|
-              c.publishes[k] = Connector.load_descriptor(k,v,:publisher)
-            }
-          end
-  
-          c.subscribes = {}
-          if subscribes
-            subscribes.each{|k,v|
-              c.subscribes[k] = Connector.load_descriptor(k,v,:subscriber)
-            }
-          end
-          c.gen_uuid
-          c.save!
-          
-          c
+module Openshift::SDK::Model
+  # == Component
+  #
+  # Defines a cartirdge component. Each component provides a feature and
+  # exposes one or more publishing or subscribing connectors
+  #
+  # == Overall location within descriptor
+  #
+  #      |
+  #      +-Profile
+  #           |
+  #           +-Group
+  #               |
+  #               +-Scaling
+  #               |
+  #               +-*Component*
+  #                     |
+  #                     +-Connector
+  #
+  # == Properties
+  # 
+  # [feature] The feature provided by this component
+  # [publishes] Hash of connectors that publish information
+  # [subscribes] Hash of connectors that subscribe to information
+  class Component < OpenshiftModel
+    validates_presence_of :feature
+    ds_attr_accessor :feature, :publishes, :subscribes
+   
+    def initialize(feature=nil,desriptor_hash={})
+      @feature = feature
+      @publishes = {}
+      @subscribes = {}
+      if desriptor_hash["connectors"]
+        publishes = desriptor_hash["connectors"]["publishes"]
+        subscribes = desriptor_hash["connectors"]["subscribes"]
+        @publishes = {}
+        if publishes
+          publishes.each{|name,conn_hash|
+            @publishes[name] = Connector.new(name,:publisher,conn_hash)
+          }
+        end
+
+        @subscribes = {}
+        if subscribes
+          subscribes.each{|name,conn_hash|
+            @subscribes[name] = Connector.new(name,:subscriber,conn_hash)
+          }
+        end
+      end
+    end
+    
+    def publishes=(vals)
+      @publishes = {}
+      return if vals.class != Hash
+      vals.keys.each do |name|
+        next if name.nil?
+        if vals[name].class == Hash
+          @publishes[name] = Connector.new
+          @publishes[name].attributes=vals[name]
+        else
+          @publishes[name] = vals[name]
+        end
+      end
+    end
+   
+    def subscribes=(vals)
+      @subscribes = {}
+      return if vals.class != Hash
+      vals.keys.each do |name|
+        next if name.nil?
+        if vals[name].class == Hash
+          @subscribes[name] = Connector.new
+          @subscribes[name].attributes=vals[name]
+        else
+          @subscribes[name] = vals[name]
         end
       end
     end
   end
 end
-  

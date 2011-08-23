@@ -75,26 +75,27 @@ module Openshift
           cartridge = Cartridge.what_provides(feature)[0]
           cart_descriptor = cartridge.descriptor
           profile_name = cart_descriptor.profiles.keys[0]
-          
-          cmap = {}
-          direct_deps = []
-          cart_descriptor.profiles[profile_name].components.each{ |k,v|
-            v = Component.find(v)
-            
-            c = ComponentInstance.new
-            c.feature = c.name = v.feature
-            c.cartridge = cartridge
-            c.component = v
-            c.profile_name = profile_name
-            cmap[c.name] = c
-            
-            cartridge.requires_feature.each{ |f|
-              f_inst, f_dep_cmap = ComponentInstance.from_app_dependency(f)
-              c.dependency_instances[f] = f_inst
-              cmap.merge!(f_dep_cmap)
-            }
+          profile = cart_descriptor.profiles[profile_name]
+          group_name = profile.groups.keys[0]
+          group = profile.groups[group_name]                                                                                                                                                                         
+                                                                                                                                                                                                                                              
+          cmap = {}                                                                                                                                                                                                                         
+          direct_deps = []                                                                                                                                                                                                                  
+          group.components.each do |name,component|                                                                                                                                                                                                           
+            c = ComponentInstance.new                                                                                                                                                                                                       
+            c.feature = c.name = component.feature                                                                                                                                                                                                  
+            c.cartridge = cartridge                                                                                                                                                                                                         
+            c.component = component                                                                                                                                                                                                                 
+            c.profile_name = profile_name                                                                                                                                                                                                   
+            cmap[c.name] = c                                                                                                                                                                                                                
+                                                                                                                                                                                                                                              
+            cartridge.requires_feature.each{ |f|                                                                                                                                                                                            
+              f_inst, f_dep_cmap = ComponentInstance.from_app_dependency(f)                                                                                                                                                                 
+              c.dependency_instances[f] = f_inst                                                                                                                                                                                            
+              cmap.merge!(f_dep_cmap)                                                                                                                                                                                                       
+            }                                                                                                                                                                                                                               
             direct_deps.push(c.name)
-          }
+          end        
           
           return direct_deps, cmap
         end

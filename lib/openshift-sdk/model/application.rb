@@ -92,7 +92,7 @@ module Openshift
         
         def descriptor
           descriptor_changed = @descriptor.nil?
-          @descriptor ||= AppDescriptor.load_descriptor(self)
+          @descriptor ||= Descriptor.new(self)
           descriptor_will_change! if descriptor_changed
           @descriptor
         end

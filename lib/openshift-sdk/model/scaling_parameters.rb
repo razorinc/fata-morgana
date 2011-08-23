@@ -23,61 +23,43 @@
 #++
 
 require 'rubygems'
-require 'json'
-require 'active_model'
 require 'openshift-sdk/model/model'
-require 'openshift-sdk/model/component'
 
 module Openshift::SDK::Model
-  # == Profile
+  # == Group scaling parameters
   #
-  # Defines a cartridge or application profile. 
+  # Defines group scaling limitations and parameters
   #
   # == Overall location within descriptor
   #
   #      |
-  #      +-*Profile*
+  #      +-Profile
   #           |
   #           +-Group
   #               |
-  #               +-Scaling
-  #               |
-  #               +-Component
-  #                     |
-  #                     +-Connector
+  #               +-*ScalingParameters*
   #
   # == Properties
   # 
-  # [name] The name of the group
-  # [groups] A hash map with all groups for this profile
-  class Profile < OpenshiftModel
-    validates_presence_of :name, :groups
-    ds_attr_accessor :name, :groups
+  # [min] Minimum number nodes requires for the group
+  # [max] :publisher or :subscriber
+  # [default_scale_by] The name of this connector. This is what the hook names are based off.
+  # [requires_dedicated]
+  class ScalingParameters < OpenshiftModel
+    validates_presence_of :min, :max, :default_scale_by, :requires_dedicated
+    ds_attr_accessor :min, :max, :default_scale_by, :requires_dedicated
     
-    def initialize(name=nil,descriptor_data={},cartridge=nil)
-      self.name = name
-      self.groups = {}
-      if descriptor_data["groups"]
-        descriptor_data["groups"].each do |name, grp_data|
-          @groups[name] = Group.new(name,grp_data,cartridge)
-        end
-      else
-        @groups["default"] = Group.new("default",descriptor_data,cartridge)
-      end
+    def initialize(descriptor_hash={})
+      @min = descriptor_hash["min"] || 1
+      @max = descriptor_hash["max"] || -1
+      @default_scale_by = descriptor_hash["default_scale_by"] || "+1"
+      @requires_dedicated = descriptor_hash['requires_dedicated'].to_s.downcase == "true" || false
     end
     
-    def groups=(vals)
-      @groups = {}
-      return if vals.class != Hash
-      vals.keys.each do |name|
-        next if name.nil?
-        if vals[name].class == Hash
-          @groups[name] = Component.new
-          @groups[name].attributes=vals[name]
-        else
-          @groups[name] = vals[name]
-        end
-      end
+    def generate_signature
+      sigd = "false"
+      sigd = Time.now.nsec.to_s if @requires_dedicated
+      "#{min}-#{max}-#{sigd}"
     end
   end
-end
+end  
