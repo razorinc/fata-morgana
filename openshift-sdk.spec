@@ -5,7 +5,7 @@
 
 Summary:        OpenShift SDK
 Name:           rubygem-%{gemname}
-Version:        0.1.5
+Version:        0.1.6
 Release:        1%{?dist}
 Group:          Development/Languages
 License:        AGPLv3
@@ -52,8 +52,8 @@ gem build %{gemname}.gemspec
 gem install --local --install-dir %{buildroot}%{gemdir} --force %{gemname}-%{version}.gem
 
 # Symlink into the ruby site library directories
-ln -s %{gemdir}/lib/%{gemname}-%{version}/lib/%{gemname} %{buildroot}%{ruby_sitelib}
-ln -s %{gemdir}/lib/%{gemname}-%{version}/lib/%{gemname}.rb %{buildroot}%{ruby_sitelib}
+ln -s %{gemdir}/gems/%{gemname}-%{version}/lib/%{gemname} %{buildroot}%{ruby_sitelib}
+ln -s %{gemdir}/gems/%{gemname}-%{version}/lib/%{gemname}.rb %{buildroot}%{ruby_sitelib}
 
 # Symlink all the binaries
 for binary in `ls %{buildroot}%{gemdir}/bin`
@@ -118,6 +118,14 @@ rm -rf %{buildroot}
 %{_bindir}/opm-uninstall
 
 %changelog
+* Mon Aug 22 2011 Matt Hicks <mhicks@redhat.com> 0.1.6-1
+- Hard coding version to remove dependency on parsing spec (mhicks@redhat.com)
+- Removing lib dir from symlink path (mhicks@redhat.com)
+- adding skeleton of functional tests (markllama@redhat.com)
+- strip leading space from version string (markllama@redhat.com)
+- added version unit test (markllama@redhat.com)
+- ignore emacs backup files (markllama@redhat.com)
+
 * Mon Aug 22 2011 Matt Hicks <mhicks@redhat.com> 0.1.5-1
 - Supporting library packaging and rubygem packaging (mhicks@redhat.com)
 - Merge branch 'master' of github.com:openshift/fata-morgana (ramr@redhat.com)

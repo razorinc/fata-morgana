@@ -21,9 +21,9 @@ class TestVersion < Test::Unit::TestCase
   end
 
   def test_version_pattern
-    assert_match(/^(\d+)\.(\d+)\.(\d+)$/, 
+    assert_match(/^(\d+)\.(\d+)$/, 
                  Openshift::SDK::VERSION,
-                 "Version string must be of the form N.N.N"
+                 "Version string must be of the form N.N"
                  )
   end
 end
