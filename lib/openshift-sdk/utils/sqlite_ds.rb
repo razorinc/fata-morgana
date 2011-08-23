@@ -49,7 +49,7 @@ SQL
         end
         
         def find_all_ids(type)
-          return @db.execute("select ids from data where type=?", [type])
+          return @db.execute("select id from data where type=?", [type])
         end
         
         def find(type, id)
