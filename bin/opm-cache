@@ -43,6 +43,8 @@ write <key string> <value string>:
    Sets the value against the given key 
 delete <key string>:
    Delete the entry for the given key
+su_read <key string>:
+   Use <key string> as the key to get values from the root database (readonly)
 
 USAGE
 end
@@ -99,6 +101,13 @@ def execute_query
             key = ARGV.shift
             if key
                 return_value = dbinstance.find(key, id)
+            else
+                raise
+            end
+        when "su_read"
+            key = ARGV.shift
+            if key
+                return_value = dbinstance.su_find(key, id)
             else
                 raise
             end

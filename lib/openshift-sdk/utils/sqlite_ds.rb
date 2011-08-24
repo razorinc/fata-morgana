@@ -21,29 +21,51 @@
 # SOFTWARE.
 
 require 'rubygems'
+require 'open3'
 require 'openshift-sdk/config'
 require 'sqlite3'
+require 'openshift-sdk/utils/logger'
+require 'openshift-sdk/utils/shell_exec'
 
 module Openshift
   module SDK
     module Utils
       class Sqlite
         include Singleton
+        include Openshift::SDK::Utils::ShellExec
+        include Openshift::SDK::Utils::Logger
+
         attr_reader :db
         
         def initialize
+          o,e,rc = shellCmd('id -u')
+          uid = Integer(o)
+
           config = Openshift::SDK::Config.instance
           datasource_location = config.get('datasource_location')
+          dir, filename =  File.split(datasource_location)
+          filename = String(uid) + "_" + filename
+          datasource_location = dir + "/" + filename
           @db = SQLite3::Database.new datasource_location
           rows = @db.execute <<-SQL
-            create table if not exists data (
-              type varchar(30),
-              id varchar(30),
-              value varchar(30)
-            );
+                create table if not exists data (
+                  type varchar(30),
+                  id varchar(30),
+                  value varchar(30)
+                );
 SQL
         end
         
+        def su_find(type, id)
+          config = Openshift::SDK::Config.instance
+          datasource_location = config.get('datasource_location')
+          dir, filename =  File.split(datasource_location)
+          filename = "0_" + filename
+          datasource_location = dir + "/" + filename
+          @db = SQLite3::Database.new datasource_location
+          find(type, id)
+        end
+
         def find_all(type)
           return @db.execute("select value from data where type=?", [type]) 
         end
