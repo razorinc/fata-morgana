@@ -57,7 +57,7 @@ module Openshift::SDK::Model
     
     def initialize(name=nil,pubsub=nil,descriptor_hash={})
       @name = name
-      @type = descriptor_hash['type']
+      @type = descriptor_hash['type'] || descriptor_hash['required-type']
       @pubsub = pubsub
       @required = descriptor_hash['required'].to_s.downcase == "true"
     end

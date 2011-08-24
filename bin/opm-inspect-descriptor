@@ -65,4 +65,4 @@ if args['--help'] || app_path.nil?
 end
 
 a = Openshift::SDK::Model::Application.from_opm(app_path)
-print a.to_json
+print a.descriptor.to_json

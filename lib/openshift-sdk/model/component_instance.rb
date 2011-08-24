@@ -38,33 +38,6 @@ module Openshift
           @dependency_instances = {}
         end
         
-        def cartridge
-          Cartridge.find(@cartridge)
-        end
-        
-        def cartridge=(c)
-          cartridge_will_change! if c.guid != @cartridge
-          @cartridge = c.guid
-        end
-        
-        def component
-          Component.find(@component)
-        end
-        
-        def component=(c)
-          component_will_change! if c.guid != @component
-          @component = c.guid
-        end
-        
-        def component_guid
-          @component
-        end
-        
-        def component_guid=(c)
-          component_will_change! if @component != c
-          @component = c
-        end
-        
         #for XML, JSON serialization
         def attributes
           {"name"=> @name, "feature"=> @feature, "cartridge"=>self.cartridge, "component" => self.component,
@@ -77,26 +50,26 @@ module Openshift
           profile_name = cart_descriptor.profiles.keys[0]
           profile = cart_descriptor.profiles[profile_name]
           group_name = profile.groups.keys[0]
-          group = profile.groups[group_name]                                                                                                                                                                         
-                                                                                                                                                                                                                                              
-          cmap = {}                                                                                                                                                                                                                         
-          direct_deps = []                                                                                                                                                                                                                  
-          group.components.each do |name,component|                                                                                                                                                                                                           
-            c = ComponentInstance.new                                                                                                                                                                                                       
-            c.feature = c.name = component.feature                                                                                                                                                                                                  
-            c.cartridge = cartridge                                                                                                                                                                                                         
-            c.component = component                                                                                                                                                                                                                 
-            c.profile_name = profile_name                                                                                                                                                                                                   
-            cmap[c.name] = c                                                                                                                                                                                                                
-                                                                                                                                                                                                                                              
-            cartridge.requires_feature.each{ |f|                                                                                                                                                                                            
-              f_inst, f_dep_cmap = ComponentInstance.from_app_dependency(f)                                                                                                                                                                 
-              c.dependency_instances[f] = f_inst                                                                                                                                                                                            
-              cmap.merge!(f_dep_cmap)                                                                                                                                                                                                       
-            }                                                                                                                                                                                                                               
+          group = profile.groups[group_name]
+
+          cmap = {}
+          direct_deps = []
+          group.components.each do |name,component|
+            c = ComponentInstance.new
+            c.feature = c.name = component.feature
+            c.cartridge = cartridge
+            c.component = component
+            c.profile_name = profile_name
+            cmap[c.name] = c
+                           
+            cartridge.requires_feature.each{ |f|
+              f_inst, f_dep_cmap = ComponentInstance.from_app_dependency(f)
+              c.dependency_instances[f] = {"group_name"=> group.name, "cinst_names" => f_inst}
+              cmap.merge!(f_dep_cmap)
+            }
             direct_deps.push(c.name)
-          end        
-          
+          end
+
           return direct_deps, cmap
         end
         

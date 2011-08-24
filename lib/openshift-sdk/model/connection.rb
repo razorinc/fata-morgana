@@ -1,3 +1,4 @@
+#--
 # Copyright 2010 Red Hat, Inc.
 #
 # Permission is hereby granted, free of charge, to any person
@@ -19,21 +20,62 @@
 # ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+#++
 
 require 'rubygems'
 require 'active_model'
 require 'openshift-sdk/model/model'
 
-module Openshift
-  module SDK
-    module Model
-      class Connection < OpenshiftModel
-        validates_presence_of :name, :pub, :sub
-        ds_attr_accessor :name, :pub, :sub
-  
-        def initialize(name,pub,sub)
-          @name, @pub, @sub = name, pub, sub
-        end
+module Openshift::SDK::Model
+  # == Connection
+  # 
+  # Defines a connection between two component connectors
+  #
+  # == Overall location within descriptor
+  #
+  #      |
+  #      +-Profile
+  #           |
+  #           +-Group
+  #           |   |
+  #           |   +-Scaling
+  #           |   |
+  #           |   +-Component
+  #           |         |
+  #           |         +-Connector
+  #           |
+  #           +-*Connection*
+  #               |
+  #               +-ConnectionEndpoint
+  #
+  # == Properties
+  # 
+  # [name] Connection name
+  # [pub] The publishing connection endpoint
+  # [sub] The subscribing connection endpoint
+  class Connection < OpenshiftModel
+    validates_presence_of :name, :pub, :sub
+    ds_attr_accessor :name, :pub, :sub
+
+    def initialize(name=nil,pub=nil,sub=nil)
+      @name, @pub, @sub = name, pub, sub
+    end
+
+    def pub=(val)
+      if val.class == Hash
+        @pub=ConnectionEndpoint.new
+        @pub.attributes=val
+      else
+        @pub = val        
+      end
+    end
+
+    def sub=(val)
+      if val.class == Hash
+        @sub=ConnectionEndpoint.new
+        @sub.attributes=val
+      else
+        @sub = val        
       end
     end
   end

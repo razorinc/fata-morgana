@@ -1,3 +1,4 @@
+#--
 # Copyright 2010 Red Hat, Inc.
 #
 # Permission is hereby granted, free of charge, to any person
@@ -19,22 +20,43 @@
 # ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+#++
 
 require 'rubygems'
 require 'active_model'
 require 'openshift-sdk/model/model'
 
-module Openshift
-  module SDK
-    module Model
-      class ConnectionEndpoint < OpenshiftModel
-        validates_presence_of :group_name, :component_name, :connector_name
-        ds_attr_accessor :group_name, :component_name, :connector_name
-        
-        def initialize(group_name, component_name, connector_name)
-          @group_name, @component_name, @connector_name= group_name, component_name, connector_name
-        end
-      end
+module Openshift::SDK::Model
+  # == Connection
+  # 
+  # Defines a connection between two component connectors
+  #
+  # == Overall location within descriptor
+  #
+  #      |
+  #      +-Profile
+  #           |
+  #           +-Group
+  #           |   |
+  #           |   +-Scaling
+  #           |   |
+  #           |   +-Component
+  #           |         |
+  #           |         +-Connector
+  #           |
+  #           +-Connections
+  #
+  # == Properties
+  # 
+  # [group_name] The group in which the component is instantiated
+  # [component_name] The name of the component instance
+  # [connector_name] The connector name for the component
+  class ConnectionEndpoint < OpenshiftModel
+    validates_presence_of :group_name, :component_name, :connector_name
+    ds_attr_accessor :group_name, :component_name, :connector_name
+    
+    def initialize(group_name, component_name, connector_name)
+      @group_name, @component_name, @connector_name= group_name, component_name, connector_name
     end
   end
 end
