@@ -62,11 +62,11 @@ module Openshift::SDK::Model
   # [nodes] A list of nodes that are part of the group
   # [scaling] Scaling parameters set for the group
   class Group < OpenshiftModel
-    validates_presence_of :name, :components
-    ds_attr_accessor :name, :components, :nodes, :scaling
+    validates_presence_of :components
+    ds_attr_accessor :components, :nodes, :scaling
     
-    def initialize(name=nil, descriptor_data={},cartridge=nil)
-      self.name = name
+    def initialize(guid=nil, descriptor_data={},cartridge=nil)
+      self.guid = guid
       self.components = {}
       self.scaling = ScalingParameters.new(descriptor_data["scaling"] || {})
       self.nodes = []
@@ -99,7 +99,7 @@ module Openshift::SDK::Model
       vals.keys.each do |name|
         next if name.nil?
         if vals[name].class == Hash
-          @components[name] = Component.new
+          @components[name] = ComponentInstance.new
           @components[name].attributes=vals[name]
         else
           @components[name] = vals[name]

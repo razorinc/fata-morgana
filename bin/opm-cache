@@ -50,7 +50,6 @@ USAGE
 end
 
 require 'openshift-sdk'
-require 'openshift-sdk/utils/sqlite_ds'
 
 opts = GetoptLong.new(
     ["--porcelin",               GetoptLong::NO_ARGUMENT],
@@ -75,69 +74,20 @@ if args['--help']
   exit -101
 end
 
-def execute_query
-    # get the cache instance depending upon the platform
-    config = Openshift::SDK::Config.instance
-    platform_type = config.get('platform')
-    dbinstance = nil
-    if platform_type == 'express' or platform_type == nil
-        dbinstance = Openshift::SDK::Utils::Sqlite.instance
-    else
-        # this code does not work yet
-        # to be written for Flex/Vostok integration
-        #@dbinstance = Openshift::SDK::Utils::FlexDB
-        $stderr.puts "Platform #{platform_type} not supported. Check configuration file."
-        return nil
-    end
-
-    # parse the remaining args to form the query
-    command = ARGV.shift
-    id = ENV['USER']
-    key = nil
-    value = nil
-    return_value = nil
-    case command
-        when "read"
-            key = ARGV.shift
-            if key
-                return_value = dbinstance.find(key, id)
-            else
-                raise
-            end
-        when "su_read"
-            key = ARGV.shift
-            if key
-                return_value = dbinstance.su_find(key, id)
-            else
-                raise
-            end
-        when "write"
-            key = ARGV.shift
-            value = ARGV.shift
-            if key and value
-                return_value = dbinstance.save(key, id, value)
-            else
-                raise
-            end
-        when "delete"
-            key = ARGV.shift
-            if key
-                return_value = dbinstance.delete(key, id)
-            else
-                raise
-            end
-        else
-            raise 
-    end # end - case command
-    return return_value
-end
-
+command = ARGV.shift
+key = ARGV.shift
 begin
-    query_response = execute_query
-    print query_response
+  case command
+  when "read"
+    print Openshift::SDK::Model::ApplicationData.instance.read(key)
+  when "write"
+    value = ARGV.shift
+    Openshift::SDK::Model::ApplicationData.instance.write(key,value)
+  when "delete"
+    Openshift::SDK::Model::ApplicationData.instance.delete(key)
+  end
 rescue Exception => e
-    print e, "\n"
-    usage
-    exit -101
+  Openshift::SDK::log.error e
+  exit -101
 end
 

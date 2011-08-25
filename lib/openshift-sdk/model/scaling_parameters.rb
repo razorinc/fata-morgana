@@ -36,8 +36,16 @@ module Openshift::SDK::Model
   #      +-Profile
   #           |
   #           +-Group
+  #           |   |
+  #           |   +-*Scaling*
+  #           |   |
+  #           |   +-Component
+  #           |         |
+  #           |         +-Connector
+  #           |
+  #           +-Connection
   #               |
-  #               +-*ScalingParameters*
+  #               +-*ConnectionEndpoint*
   #
   # == Properties
   # 

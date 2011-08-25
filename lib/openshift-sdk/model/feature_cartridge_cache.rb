@@ -24,59 +24,35 @@
 
 require 'rubygems'
 require 'active_model'
-require 'openshift-sdk/model/model'
+require 'singleton'
+require 'openshift-sdk/model/cartridge'
 
 module Openshift::SDK::Model
-  # == Connection
-  # 
-  # Defines a connection between two component connectors
-  #
-  # == Overall location within descriptor
-  #
-  #      |
-  #      +-Profile
-  #           |
-  #           +-Group
-  #           |   |
-  #           |   +-Scaling
-  #           |   |
-  #           |   +-Component
-  #           |         |
-  #           |         +-Connector
-  #           |
-  #           +-*Connection*
-  #               |
-  #               +-ConnectionEndpoint
-  #
-  # == Properties
-  # 
-  # [name] Connection name
-  # [pub] The publishing connection endpoint
-  # [sub] The subscribing connection endpoint
-  class Connection < OpenshiftModel
-    validates_presence_of :pub, :sub, :type
-    ds_attr_accessor :pub, :sub, :type
-
-    def initialize(guid=nil,pub=nil,sub=nil,type=nil)
-      @guid, @pub, @sub, @type = guid, pub, sub, type
+  class FeatureCartridgeCache < OpenshiftModel
+    def self.instance
+      @@instance ||= FeatureCartridgeCache.find("feature-cartridge-map")
+      @@instance ||= FeatureCartridgeCache.new
     end
 
-    def pub=(val)
-      if val.class == Hash
-        @pub=ConnectionEndpoint.new
-        @pub.attributes=val
-      else
-        @pub = val        
-      end
+    validates_presence_of :map
+    ds_attr_accessor :map
+    
+    def initialize
+      @map = {}
+      @guid = "feature-cartridge-map"
     end
-
-    def sub=(val)
-      if val.class == Hash
-        @sub=ConnectionEndpoint.new
-        @sub.attributes=val
-      else
-        @sub = val        
+  
+    def what_provides(feature)
+      return @map[feature].map{ |cguid| Cartridge.find(cguid) } if @map[feature]
+      map_will_change!
+      carts = Cartridge.what_provides(feature)
+      carts.each do |cart|
+        cart.save!
       end
+      
+      @map[feature] = carts.map{ |cart| cart.guid }
+      save!
+      map[feature].map{ |cguid| Cartridge.find(cguid) }
     end
   end
 end

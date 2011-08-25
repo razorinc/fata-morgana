@@ -71,13 +71,19 @@ module Openshift
           ds_attr_writer(*accessors)
         end
         
-        def self.find(id)
+        def self.bucket
+          "app"
+        end
+        
+        def self.find(id,bucket=nil)
+          bucket ||= self.bucket
+          
           type = self.name
           config = Openshift::SDK::Config.instance
           ds_type = config.get("datasource_type")
           require "openshift-sdk/utils/#{ds_type}_ds"
           ds = eval("Utils::#{ds_type.capitalize}.instance")
-          value = ds.find(type,id)
+          value = ds.find(type,id,bucket)
           return nil unless value
           ret = YAML.load(value)
           ret.loaded_from_db!
@@ -89,13 +95,14 @@ module Openshift
           @errors = ActiveModel::Errors.new(self)
         end
         
-        def self.find_all()
+        def self.find_all(bucket=nil)
+          bucket ||= self.bucket
           type = self.name
           config = Openshift::SDK::Config.instance
           ds_type = config.get("datasource_type")
           require "openshift-sdk/utils/#{ds_type}_ds"
           ds = eval("Utils::#{ds_type.capitalize}.instance")
-          values = ds.find_all(type)
+          values = ds.find_all(type,bucket)
   
           ret_vals = []
           values.each do |value|
@@ -106,13 +113,14 @@ module Openshift
           ret_vals
         end
         
-        def self.find_all_guids()
+        def self.find_all_guids(bucket=nil)
+          bucket ||= self.bucket
           type = self.name
           config = Openshift::SDK::Config.instance
           ds_type = config.get("datasource_type")
           require "openshift-sdk/utils/#{ds_type}_ds"
           ds = eval("Utils::#{ds_type.capitalize}.instance")
-          return ds.find_all_ids(type)
+          return ds.find_all_ids(type,bucket)
         end
         
         def gen_uuid
@@ -151,6 +159,8 @@ module Openshift
         end
         
         def save!
+          bucket ||= self.class.bucket
+          
           unless self.changed?
             log.debug "not saving #{self.class.name}. no change\n"
             return self
@@ -171,13 +181,15 @@ module Openshift
           ds_type = config.get("datasource_type")
           require "openshift-sdk/utils/#{ds_type}_ds"
           ds = eval("Utils::#{ds_type.capitalize}.instance")
-          yaml = ds.save(type,id,value)
+          yaml = ds.save(type,id,value,bucket)
           @changed_attributes.clear
           
           self
         end
         
         def delete!
+          bucket ||= self.class.bucket
+                    
           return nil unless self.changed?
           log.debug "deleting\n"
           type = self.class.name
@@ -187,7 +199,7 @@ module Openshift
           ds_type = config.get("datasource_type")
           require "openshift-sdk/utils/#{ds_type}_ds"
           ds = eval("Utils::#{ds_type.capitalize}.instance")
-          ds.delete(type,id)
+          ds.delete(type,id,bucket)
           @changed_attributes.clear
         end
 
@@ -196,6 +208,7 @@ module Openshift
         end
         
         ds_attr_accessor :guid
+        ds_attr_reader :bucket
         validates_presence_of :guid
       end
     end

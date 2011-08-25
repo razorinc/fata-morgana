@@ -113,12 +113,12 @@ module Openshift::SDK::Model
             comp_group = cinst.cartridge.descriptor.profiles[cinst.profile_name].groups[cinst.component_group_name]            
             
             #match groups based on colocated instances
-            colos = colocated_components[cinst.name]
+            colos = colocated_components[cinst.guid]
             colos.each do |colo_cinst_name|
               colo_cinst = components[colo_cinst_name]
               if colo_cinst.group_name
                 cinst.group_name = colo_cinst.group_name                
-                groups[cinst.group_name].components[cinst.name] = cinst
+                groups[cinst.group_name].components[cinst.guid] = cinst
                 #TODO: adjust group scaling or error out if necessary
               end
             end
@@ -140,7 +140,6 @@ module Openshift::SDK::Model
               g = Group.new
               g.scaling = comp_group.scaling.clone
               g.gen_uuid
-              g.name = g.guid
               groups[g.guid] = g
               g.components[cinst.guid] = cinst
               cinst.group_name = g.guid
@@ -248,19 +247,21 @@ module Openshift::SDK::Model
               next
             end
           end
-          sub = ConnectionEndpoint.new(cinst.component_group_name, cinst.name, cname)
+          sub = ConnectionEndpoint.new(cinst.component_group_name, cinst.guid, cname)
 
           publishers.each do |data|
             pub_group_name = data['group']
             pub_group = groups[pub_group_name]
-            pub_comp_name = data['comp'].name
+            pub_comp_name = data['comp'].guid
             pub_conn_name = data['conn_name']
             pub_comp = data['comp']
             
             pub = ConnectionEndpoint.new(pub_group_name, pub_comp_name, pub_conn_name)
 
             conn_name = "conn#{Time.now.usec}"
-            ret_connections[conn_name] = Connection.new(conn_name, pub, sub, req_type)
+            conn = Connection.new(conn_name, pub, sub, req_type)
+            conn.gen_uuid
+            ret_connections[conn.guid] = conn
           end
         }
       end

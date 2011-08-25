@@ -22,8 +22,8 @@
 
 require 'rubygems'
 require 'open3'
-require 'openshift-sdk/config'
 require 'sqlite3'
+require 'openshift-sdk/config'
 require 'openshift-sdk/utils/logger'
 require 'openshift-sdk/utils/shell_exec'
 
@@ -35,47 +35,47 @@ module Openshift
         include Openshift::SDK::Utils::ShellExec
         include Openshift::SDK::Utils::Logger
 
-        attr_reader :db
-        
+        attr_reader :buckets
         def initialize
-          o,e,rc = shellCmd('id -u')
-          uid = Integer(o)
-
+          @buckets = {}
+          
           config = Openshift::SDK::Config.instance
           datasource_location = config.get('datasource_location')
-          dir, filename =  File.split(datasource_location)
-          filename = String(uid) + "_" + filename
-          datasource_location = dir + "/" + filename
-          @db = SQLite3::Database.new datasource_location
-          rows = @db.execute <<-SQL
+
+          #app bucket is based on user group id
+          o,e,rc = shellCmd('id -ng')
+          group = o.strip!
+
+          @buckets['admin'] = SQLite3::Database.new "#{datasource_location}/admin_db.db"
+          @buckets['app'] = SQLite3::Database.new "#{datasource_location}/#{group}_db.db"
+          begin
+            init_db @buckets['admin']
+          rescue Exception => e
+            #ignore
+          end
+          init_db @buckets['app']
+        end
+        
+        def init_db(db)
+          rows = db.execute <<-SQL
                 create table if not exists data (
                   type varchar(30),
                   id varchar(30),
                   value varchar(30)
-                );
+                )
 SQL
         end
         
-        def su_find(type, id)
-          config = Openshift::SDK::Config.instance
-          datasource_location = config.get('datasource_location')
-          dir, filename =  File.split(datasource_location)
-          filename = "0_" + filename
-          datasource_location = dir + "/" + filename
-          @db = SQLite3::Database.new datasource_location
-          find(type, id)
-        end
-
-        def find_all(type)
-          return @db.execute("select value from data where type=?", [type]) 
+        def find_all(type,bucket="app")
+          return @buckets[bucket].execute("select value from data where type=?", [type]) 
         end
         
-        def find_all_ids(type)
-          return @db.execute("select id from data where type=?", [type])
+        def find_all_ids(type,bucket="app")
+          return @buckets[bucket].execute("select id from data where type=?", [type])
         end
         
-        def find(type, id)
-          rows = @db.execute("select value from data where type=? and id=?", [type, id.to_s]) 
+        def find(type, id, bucket="app")
+          rows = @buckets[bucket].execute("select value from data where type=? and id=?", [type, id.to_s]) 
           if rows.length > 0
             return rows[0][0]
           else
@@ -83,17 +83,18 @@ SQL
           end
         end
         
-        def save(type,id,value)
-          @db.transaction do 
-            @db.execute "DELETE FROM data where type=? and id=?", [type, id.to_s]
-            @db.execute "INSERT INTO data (type,id,value) VALUES (?,?,?)", [type,id.to_s,value]
+        def save(type,id,value,bucket=nil)
+          bucket ||= "app"
+          @buckets[bucket].transaction do 
+            @buckets[bucket].execute "DELETE FROM data where type=? and id=?", [type, id.to_s]
+            @buckets[bucket].execute "INSERT INTO data (type,id,value) VALUES (?,?,?)", [type,id.to_s,value]
           end          
-          find(type,id)
+          find(type,id,bucket)
         end
         
         def delete(type,id)
-          @db.transaction do 
-            @db.execute "DELETE FROM data where type=? and id=?", [type, id.to_s]
+          @buckets[bucket].transaction do 
+            @buckets[bucket].execute "DELETE FROM data where type=? and id=?", [type, id.to_s]
           end          
         end
       end
