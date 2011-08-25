@@ -54,11 +54,11 @@ module Openshift::SDK::Model
   # [pub] The publishing connection endpoint
   # [sub] The subscribing connection endpoint
   class Connection < OpenshiftModel
-    validates_presence_of :name, :pub, :sub
-    ds_attr_accessor :name, :pub, :sub
+    validates_presence_of :name, :pub, :sub, :type
+    ds_attr_accessor :name, :pub, :sub, :type
 
-    def initialize(name=nil,pub=nil,sub=nil)
-      @name, @pub, @sub = name, pub, sub
+    def initialize(name=nil,pub=nil,sub=nil,type=nil)
+      @name, @pub, @sub, @type = name, pub, sub, type
     end
 
     def pub=(val)

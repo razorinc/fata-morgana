@@ -27,7 +27,6 @@ require 'state_machine'
 require 'openshift-sdk/config'
 require 'openshift-sdk/model/cartridge'
 require 'openshift-sdk/model/model'
-require 'openshift-sdk/model/app_descriptor'
 
 module Openshift
   module SDK

@@ -26,7 +26,10 @@ require 'rubygems'
 require 'json'
 require 'active_model'
 require 'openshift-sdk/model/model'
-require 'openshift-sdk/model/component'
+require 'openshift-sdk/model/group'
+require 'openshift-sdk/model/component_instance'
+require 'openshift-sdk/model/connection'
+require 'openshift-sdk/model/connection_endpoint'
 
 module Openshift::SDK::Model
   # == Profile
@@ -67,11 +70,92 @@ module Openshift::SDK::Model
           @groups[name] = Group.new(name,grp_data,cartridge)
         end
       else
-        @groups["default"] = Group.new("default",descriptor_data,cartridge)
-      end
+        if cartridge.class == Cartridge
+          @groups["default"] = Group.new("default",descriptor_data,cartridge)
+        end
+        
+        if cartridge.class == Application
+          components = {}
+          if descriptor_data["components"]
+            #all components have already been defined in the provided descriptor
+            descriptor_data["components"].each{|comp_name,comp_hash|
+              components[comp_name] = ComponentInstance.new(comp_name,comp_hash)
+            } 
+          else
+            #no components have been defined in descriptor so have to create 
+            #them based on application dependencies
+            app_dependencies = cartridge.requires_feature
+            app_dependencies.each do |feature|
+              components.merge! ComponentInstance.component_instance_for_feature(feature)
+            end
+          end
+          
+          #all components instances are known, no decide connections
+          #components may not be in groups yet 
+          log.debug "load connections ...\n"
+          connections = load_connections(components,descriptor_data)
 
-      if cartridge.class == Application
-        load_connections(descriptor_data)
+          #look for components that must be co-located
+          colocated_components = {}
+          colocated_components.default = []
+          connections.each do |conn_name, conn|
+            if conn.type.match(/^FILESYSTEM/)
+              colocated_components[conn.pub.component_name].push(conn.sub.component_name)
+              colocated_components[conn.sub.component_name].push(conn.pub.component_name)
+            end
+          end
+          
+          #start forming groups based on group signature and colocation constraints
+          proc_components = components.values.clone
+          groups = {}
+          begin
+            cinst = proc_components.pop
+            comp_group = cinst.cartridge.descriptor.profiles[cinst.profile_name].groups[cinst.component_group_name]            
+            
+            #match groups based on colocated instances
+            colos = colocated_components[cinst.name]
+            colos.each do |colo_cinst_name|
+              colo_cinst = components[colo_cinst_name]
+              if colo_cinst.group_name
+                cinst.group_name = colo_cinst.group_name                
+                groups[cinst.group_name].components[cinst.name] = cinst
+                #TODO: adjust group scaling or error out if necessary
+              end
+            end
+            
+            #match groups based on group signature
+            unless cinst.group_name
+              group_sig = comp_group.signature
+              groups.each do |gname, ginst|
+                if ginst.signature == group_sig
+                  ginst.components[cinst.guid] = cinst
+                  cinst.group_name = ginst.guid
+                end
+              end
+            end
+            
+            #if no group signature match or colocated requirement then make 
+            #a new group
+            unless cinst.group_name
+              g = Group.new
+              g.scaling = comp_group.scaling.clone
+              g.gen_uuid
+              g.name = g.guid
+              groups[g.guid] = g
+              g.components[cinst.guid] = cinst
+              cinst.group_name = g.guid
+            end
+          end while proc_components.size > 0
+          
+          #update connections based on new groups
+          connections.each do |cname, conn|
+            conn.pub.group_name = components[conn.pub.component_name].group_name
+            conn.sub.group_name = components[conn.sub.component_name].group_name
+          end
+          
+          self.connections = connections
+          self.groups = groups
+        end
       end
     end
     
@@ -103,48 +187,57 @@ module Openshift::SDK::Model
       end
     end
 
-    def load_connections(descriptor_data={})
-      groups.each do |gname, group|
-        group.components.each do |cname, cinst|
-          if cinst.dependency_instances.keys.size > 0
-            cinst.dependency_instances.each do |dep_feature,dep_cinst_data|
-              dep_cinst_data["cinst_names"].each do |cinst_name|
-                dep_cinst = groups[dep_cinst_data["group_name"]].components[cinst_name]
-                cinst1 = {"group_name" => dep_cinst_data["group_name"], "cinst" => dep_cinst}
-                cinst2 = {"group_name" => group.name, "cinst" => cinst}
-                establish_connection(cinst1, cinst2)
-              end
-            end
-          end
+    private
+
+    def load_connections(components, descriptor_data={})
+      connections = {}
+      components.each do |cname, cinst|
+        log.debug "Connections for #{cname}\n"
+        cinst.dependency_instances.each do |dep_cinst_name|
+          log.debug "\tDep name #{dep_cinst_name}\n"
+          dep_cinst = components[dep_cinst_name]
+          connections.merge! create_connections(dep_cinst, cinst)
         end
       end
 
       if descriptor_data["connections"]
         descriptor_data["connections"].each do |name, conn_info|
-          cinst1 = find_cinst_by_name(conn_info[0])
-          cinst2 = find_cinst_by_name(conn_info[1])
-
+          cinst1 = find_component(components, conn_info[0])
+          cinst2 = find_component(components, conn_info[1])
+          
           log.error("Unable to find component instance named #{conn_info[0]} for connection #{name}") unless cinst1
           log.error("Unable to find component instance named #{conn_info[1]} for connection #{name}") unless cinst2
           next if cinst1.nil? or cinst2.nil?
 
-          establish_connection(cinst1,cinst2)
+          connections.merge! create_connections(cinst1,cinst2)
         end
+      end
+      
+      connections
+    end
+    
+    def find_component(components, name)
+      return components[name] if components[name]
+        
+      #if not a name, search by feature
+      components.each do |cname, cinst|
+        return cinst if cinst.component.feature == name
       end
     end
 
-    def establish_connection(cinst1,cinst2)
+    def create_connections(cinst1,cinst2)
+      ret_connections = {}
       type_publisher = {}
-      [cinst1,cinst2].each do |cinst_info|
-        cinst_info["cinst"].component.publishes.each do |cname,cinfo|
+      [cinst1,cinst2].each do |cinst|
+        cinst.component.publishes.each do |cname,cinfo|
           type = cinfo.type
           type_publisher[type] = [] unless type_publisher[type]
-          type_publisher[type].push({"group"=> cinst_info["group_name"], "comp_name"=> (cinst_info["cinst"].name), "conn_name"=> cname})
+          type_publisher[type].push({"group"=> cinst.component_group_name, "comp"=> cinst, "conn_name"=> cname})
         end
       end
 
-      [cinst1,cinst2].each do |cinst_info|
-        cinst_info["cinst"].component.subscribes.each{ |cname,cinfo|
+      [cinst1,cinst2].each do |cinst|
+        cinst.component.subscribes.each{ |cname,cinfo|
           req_type = cinfo.type
           publishers = type_publisher[req_type]
           unless publishers
@@ -155,30 +248,23 @@ module Openshift::SDK::Model
               next
             end
           end
-          sub = ConnectionEndpoint.new(cinst_info["group_name"], cinst_info["cinst"].name, cname)
+          sub = ConnectionEndpoint.new(cinst.component_group_name, cinst.name, cname)
 
           publishers.each do |data|
             pub_group_name = data['group']
             pub_group = groups[pub_group_name]
-            pub_comp_name = data['comp_name']
+            pub_comp_name = data['comp'].name
             pub_conn_name = data['conn_name']
-            pub_comp = pub_group.components[pub_comp_name]
+            pub_comp = data['comp']
+            
             pub = ConnectionEndpoint.new(pub_group_name, pub_comp_name, pub_conn_name)
 
-            conn_name = "conn#{(self.connections.size+1)}"
-            self.connections[conn_name] = Connection.new(conn_name, pub, sub)
+            conn_name = "conn#{Time.now.usec}"
+            ret_connections[conn_name] = Connection.new(conn_name, pub, sub, req_type)
           end
-
         }
       end
-    end
-
-    def find_cinst_by_name(cname)
-      groups.each do |gname, group|
-        cinst = group.components[cname]
-        return {"group_name" => gname, "cinst" => cinst} if cinst
-      end
-      nil
+      ret_connections
     end
   end
 end

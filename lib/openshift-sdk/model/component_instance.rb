@@ -27,72 +27,95 @@ require 'openshift-sdk/model/descriptor'
 require 'openshift-sdk/model/cartridge'
 require 'openshift-sdk/model/component_instance'
 
-module Openshift
-  module SDK
-    module Model
-      class ComponentInstance < OpenshiftModel
-        validates_presence_of :name, :feature, :cartridge, :component, :profile_name
-        ds_attr_accessor :name, :feature, :cartridge, :component, :profile_name, :dependency_instances
-        
-        def initialize
-          @dependency_instances = {}
-        end
-        
-        #for XML, JSON serialization
-        def attributes
-          {"name"=> @name, "feature"=> @feature, "cartridge"=>self.cartridge, "component" => self.component,
-            "profile_name" => profile_name}
-        end
-        
-        def self.from_app_dependency(feature)
-          cartridge = Cartridge.what_provides(feature)[0]
-          cart_descriptor = cartridge.descriptor
-          profile_name = cart_descriptor.profiles.keys[0]
-          profile = cart_descriptor.profiles[profile_name]
-          group_name = profile.groups.keys[0]
-          group = profile.groups[group_name]
-
-          cmap = {}
-          direct_deps = []
-          group.components.each do |name,component|
-            c = ComponentInstance.new
-            c.feature = c.name = component.feature
-            c.cartridge = cartridge
-            c.component = component
-            c.profile_name = profile_name
-            cmap[c.name] = c
-                           
-            cartridge.requires_feature.each{ |f|
-              f_inst, f_dep_cmap = ComponentInstance.from_app_dependency(f)
-              c.dependency_instances[f] = {"group_name"=> group.name, "cinst_names" => f_inst}
-              cmap.merge!(f_dep_cmap)
-            }
-            direct_deps.push(c.name)
-          end
-
-          return direct_deps, cmap
-        end
-        
-        def self.load_descriptor(name,json_data)
-          c = ComponentInstance.new
-          c.name = name
-          c.feature = json_data["feature"]
-          cartridge_name = json_data["cartridge_name"]
-          cartridge = nil
-          if cartridge_name
-            cartridge = Cartridge.from_rpm(cartridge_name)
-          else
-            cartridge = Cartridge.what_provides(c.feature)[0]  
-          end
-          cart_descriptor = cartridge.descriptor
-          c.profile_name = json_data["profile_name"] || cart_descriptor.profiles.keys[0]
-          component_guid = cart_descriptor.profiles[c.profile_name].components[c.feature]
-          c.component_guid = component_guid
-          c.cartridge = cartridge
-  
-          c
-        end      
+module Openshift::SDK::Model
+  class ComponentInstance < OpenshiftModel
+    validates_presence_of :name, :feature, :cartridge, :component, :profile_name, :group_name
+    ds_attr_accessor :name, :feature, :cartridge, :component, :profile_name, :dependency_instances, :component_group_name, :group_name
+    
+    def initialize(name=nil,descriptor_data=nil)
+      self.dependency_instances = {}
+      return if name.nil?
+      
+      self.name = name
+      self.feature = descriptor_data["feature"]
+      cartridge_name = descriptor_data["cartridge_name"]
+      cartridge = nil
+      if cartridge_name
+        cartridge = Cartridge.from_rpm(cartridge_name)
+      else
+        cartridge = Cartridge.what_provides(self.feature)[0]  
       end
+      cart_descriptor = cartridge.descriptor
+      self.profile_name = descriptor_data["profile_name"] || cart_descriptor.profiles.keys[0]
+      profile = cart_descriptor.profiles[self.profile_name]
+      profile.groups.each do |gname, group|
+        self.component = group.components[feature]
+        break if self.component
+      end
+      component_guid = self.component.guid
+      self.component_guid = component_guid
+      self.cartridge = cartridge
+      self.gen_uuid
+    end
+    
+    #for XML, JSON serialization
+    def attributes
+      {"name"=> @name, "feature"=> @feature, "cartridge"=>self.cartridge, "component" => self.component,
+        "profile_name" => profile_name}
+    end
+    
+    # Searches for a required feature in all cartridges. If a cartridge with
+    # the required feature is found then it loops through all profiles and
+    # finds one which provides the feature. It then instantiates all components
+    # that are part of that profile.
+    def self.component_instance_for_feature(feature, profile=nil)
+      cartridges = Cartridge.what_provides(feature)
+      components = {}
+      cartridges.each do |cartridge|
+        cart_descriptor = cartridge.descriptor
+        cart_descriptor.profiles.each do |profile_name, profile_inst|
+          next if profile and profile_name != profile
+          
+          profile_provides_feature = false
+          profile_inst.groups.each do |group_name, group|
+            if group.components[feature]
+              #this profile matches required feature so 
+              #instantiate all components within the profile
+              profile_provides_feature = true
+              break
+            end
+          end
+          
+          if profile_provides_feature
+            profile_inst.groups.each do |group_name, group|
+              group.components.each do |cname, component|
+                cinst = ComponentInstance.new
+                cinst.gen_uuid
+                cinst.name = cinst.guid
+                cinst.cartridge = cartridge
+                cinst.feature = component.feature
+                cinst.component = component
+                cinst.profile_name = profile_name
+                cinst.component_group_name = group_name
+                components[cinst.name]=cinst
+              end
+            end
+            
+            dependency_instances = {}
+            cartridge.requires_feature.each do |req_feature|
+              dependency_instances.merge! component_instance_for_feature(req_feature)
+            end
+            components.each do |cname,cinst|
+              cinst.dependency_instances = dependency_instances.keys
+            end
+            components.merge! dependency_instances
+            
+            break
+          end
+        end
+      end
+        
+      components
     end
   end
 end

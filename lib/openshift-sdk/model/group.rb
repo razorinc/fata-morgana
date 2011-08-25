@@ -70,6 +70,7 @@ module Openshift::SDK::Model
       self.components = {}
       self.scaling = ScalingParameters.new(descriptor_data["scaling"] || {})
       self.nodes = []
+      return unless descriptor_data.keys.size > 0
         
       if cartridge.class == Cartridge
         if descriptor_data["components"]
@@ -80,25 +81,15 @@ module Openshift::SDK::Model
           unless cartridge.nil?
             cart_features = cartridge.provides_feature
             cart_features.each do |feature|
-              feature = feature[/[a-zA-Z]*/]
+              feature = feature[/[^ =(]*/]
               @components[feature] = Component.new(feature,descriptor_data)
             end
           end
         end
       else
-        if descriptor_data["components"]
-          descriptor_data["components"].each{|feature,comp_hash|
-            @components[feature] = Component.new(feature,comp_hash)
-          }
-        else
-          unless cartridge.nil?
-            app_dependencies = cartridge.requires_feature
-            app_dependencies.each do |feature|
-              f_inst, f_dep_cmap = ComponentInstance.from_app_dependency(feature)                                                                                                                                                           
-              @components.merge!(f_dep_cmap)                                                                                                                                                                                                 
-            end
-          end
-        end
+        descriptor_data["components"].each{|comp_name,comp_hash|
+          @components[comp_name] = ComponentInstance.new(comp_name,comp_hash)
+        }
       end 
     end
     
