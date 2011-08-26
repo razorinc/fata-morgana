@@ -20,6 +20,7 @@ Requires:       rubygem(json_pure)
 Requires:       rubygem(mocha)
 Requires:       rubygem(parseconfig)
 Requires:       rubygem(sqlite3)
+Requires:       rubygem(state_machine)
 BuildRequires:  ruby
 BuildRequires:  rubygems
 BuildArch:      noarch
