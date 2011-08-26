@@ -100,6 +100,7 @@ module Openshift::SDK::Model
     end
 
     def switch_privileges
+        Process::GID.change_privilege(Integer(`id -g #{self.name}`))
         Process::UID.change_privilege(Integer(`id -u #{self.name}`))
     end
 
