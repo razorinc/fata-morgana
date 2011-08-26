@@ -5,7 +5,7 @@
 
 Summary:        OpenShift SDK
 Name:           rubygem-%{gemname}
-Version:        0.1.7
+Version:        0.1.8
 Release:        1%{?dist}
 Group:          Development/Languages
 License:        AGPLv3
@@ -103,6 +103,36 @@ rm -rf %{buildroot}
 %{ruby_sitelib}/%{gemname}.rb
 
 %changelog
+* Fri Aug 26 2011 Matt Hicks <mhicks@redhat.com> 0.1.8-1
+- Adding state_machine runtime dependency (mhicks@redhat.com)
+- change group permissions too, when switching privileges (rchopra@redhat.com)
+- bug fixes on testing of opm create command (rchopra@redhat.com)
+- Merge branch 'master' of github.com:openshift/fata-morgana
+  (rchopra@redhat.com)
+- initial support for 'opm create' - still to do in this : addition of
+  interfaces (rchopra@redhat.com)
+- opm install not to be used for cart install independently. added comments for
+  the basic understanding of the task. (rchopra@redhat.com)
+- Fixed group test cases. Updated opm-cache to use model class Update sq_lite
+  backend to use buckets Added more intelegence to group creation when provided
+  a minimal descriptor. (kraman@gmail.com)
+- Making group creationg more intelegent based on group scaling signature and
+  colocating components that have non-TCP connections (kraman@gmail.com)
+- Basic connection working to unblock Ram (kraman@gmail.com)
+- Updating connector,component,group,profile,descriptor code and test cases
+  Still WIP on cleaning up descriptor objects, connections, group merging
+  (kraman@gmail.com)
+- opm cache - support for multiple users (rchopra@redhat.com)
+- ignore everything in tmp (markllama@redhat.com)
+- starting to fill in steps that actually touch the code base
+  (markllama@redhat.com)
+- start creating private yum config for functional testing
+  (markllama@redhat.com)
+- added env globals for functional testing (markllama@redhat.com)
+- started creating custom yum.conf for integration testing
+  (markllama@redhat.com)
+- added a tiny httpd for integration testing (markllama@redhat.com)
+
 * Tue Aug 23 2011 Matt Hicks <mhicks@redhat.com> 0.1.7-1
 - RPM spec fixes (mhicks@redhat.com)
 - adding test cases (dmcphers@redhat.com)
