@@ -32,21 +32,13 @@ module Openshift
   module SDK
     module Model
       class Application < Cartridge
-        ds_attr_accessor :state, :deploy_state, :artifact_available, :deleted, :descriptor, :user, :interfaces
+        ds_attr_accessor :state, :deploy_state, :artifact_available, :deleted, :descriptor, :users, :user_group_id, :interfaces
         
         state_machine :state, :initial => :not_created, :action => :save! do
           event(:create) { transition :not_created => :creating }
           event(:create_complete) { transition :creating => :created }
           event(:create_error) { transition :creating => :destroying }
-          event(:install) { transition :created => :installing }
-          event(:install_complete) { transition :installing => :stopped }
-          event(:install_error) { transition :installing => :created }
-          event(:start) { transition :stopped => :starting }
-          event(:start_complete) { transition :starting => :started }
-          event(:stop) { transition :started => :stopping }
-          event(:stop_complete) { transition :stopping => :stopped }
-          event(:uninstall) { transition :stopped => :uninstalling }
-          event(:uninstall_complete) { transition :uninstalling => :created }
+
           event(:destroy) { transition :created => :destroying }
           event(:destroy_complete) { transition :destroying => :not_created }
         end
