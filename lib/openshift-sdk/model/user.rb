@@ -61,8 +61,9 @@ module Openshift::SDK::Model
     def create!
       config = Openshift::SDK::Config.instance
       min_uid = config.get("min_user_id") || "100"
-      max_uid = config.get("max_user_id") || "100"
+      max_uid = config.get("max_user_id") || "1000"
       uid_str = "-u #{self.uid}" if self.uid
+      FileUtils.mkdir_p self.basedir
       cmd = "useradd --base-dir #{self.basedir} #{uid_str} -m -K UID_MIN=#{min_uid} -K UID_MAX=#{max_uid} #{self.name}"
       out,err,ret = shellCmd(cmd)
       if ret == 0
@@ -82,8 +83,8 @@ module Openshift::SDK::Model
         FileUtils.mkdir_p prod_dir
         FileUtils.mkdir_p shared_dir
 
-        FileUtils.chown_R self.name, get_group(), prod_dir
-        FileUtils.chown_R self.name, get_group(), shared_dir
+        FileUtils.chown_R self.name, get_group, prod_dir
+        FileUtils.chown_R self.name, get_group, shared_dir
 
         FileUtils.chmod 1760,prod_dir
         FileUtils.chmod 1760,shared_dir
@@ -94,11 +95,12 @@ module Openshift::SDK::Model
     end
 
     def get_group
-        `id -g #{self.name}`
+        g = `id -g #{self.name}`
+        Integer(g)
     end
 
     def switch_privileges
-        Process::UID.grant_privilege(`id -u #{self.name}`)
+        Process::UID.change_privilege(Integer(`id -u #{self.name}`))
     end
 
     # Deleted the user account on the system.

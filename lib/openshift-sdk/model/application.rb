@@ -32,7 +32,7 @@ module Openshift
   module SDK
     module Model
       class Application < Cartridge
-        ds_attr_accessor :state, :deploy_state, :artifact_available, :deleted, :descriptor, :interfaces
+        ds_attr_accessor :state, :deploy_state, :artifact_available, :deleted, :descriptor, :user, :interfaces
         
         state_machine :state, :initial => :not_created, :action => :save! do
           event(:create) { transition :not_created => :creating }
@@ -96,7 +96,11 @@ module Openshift
           @descriptor
         end
         
-        def populate_work_area(home_dir)
+        def populate_work_area(user, home_dir, version, summary)
+            self.user = user
+            if self.package_root.nil?
+                self.package_root = home_dir
+            end
             if self.package_path.nil?
                 self.package_path = home_dir + "/" + self.name
             end
@@ -104,16 +108,20 @@ module Openshift
             FileUtils.mkdir_p os_dir
 
             # check and create control file
-            if not File.exist(os_dir + "/control.spec")
+            if not File.exist?(os_dir + "/control.spec")
+                self.version = version
+                self.summary = summary
+                self.native_name = self.name
+                self.provides_feature = [self.name + "-" + self.user]
                 control_spec_contents = self.to_s
-                cfile = File.open(os_dir + "/control.spec")
+                cfile = File.new(os_dir + "/control.spec", "w")
                 cfile.write(control_spec_contents)
                 cfile.close
             end
 
             # check and create descriptor file
-            if not File.exist(os_dir + "/descriptor.json")
-                des_file = File.open(os_dir + "/descriptor.json")
+            if not File.exist?(os_dir + "/descriptor.json")
+                des_file = File.new(os_dir + "/descriptor.json", "w")
                 des_file.write("{}")
                 des_file.close
             end

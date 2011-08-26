@@ -29,7 +29,7 @@ opm create: Creates a new application container. This command must be run as roo
 
 == Usage
 
-opm create [NAME [VERSION]] [OPTIONS]
+opm create [NAME [VERSION [SUMMARY]]] 
 
 Options:
 -h|--help:
@@ -61,20 +61,31 @@ end
 $opm_debug = true if args['--debug']
 $porcelin = args['--porcelin'] ? true : false
 
-arg1 = ARGV.shift
-if File.directory? arg1
-  opm_dir = arg1
-else
-  name = arg1
-  version = ARGV.shift || "1.0"
+begin
+    name = ARGV.shift
+    if name.nil?
+        raise
+    end
+    version = ARGV.shift
+    if not version.nil?
+        summary = ARGV.shift
+        if summary.nil?
+            summary = ""
+        end
+    else
+        version = "1.0"
+    end
+rescue Exception=>e
+    usage
+    exit -100
 end
 
-if args['--help'] || (opm_dir.nil? && name.nil?)
+if args['--help'] 
   usage
   exit -101
 end
 
-# expected args - app name 
+# expected args - application name 
 # this script runs as system interface (on Flex - paster, on Express - libra-passenger)
 # create a bare-bones app object
 # create a new user (using new guid from app)
@@ -97,7 +108,7 @@ user.switch_privileges
 
 # setup app package path
 user_home_dir = user.basedir + "/" + user.name
-app.populate_work_area(user_home_dir)
+app.populate_work_area(user.name, user_home_dir, version, summary)
 app.save!
 
 print app.guid
