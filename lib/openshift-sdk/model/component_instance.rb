@@ -26,24 +26,25 @@ require 'openshift-sdk/model/model'
 require 'openshift-sdk/model/descriptor'
 require 'openshift-sdk/model/cartridge'
 require 'openshift-sdk/model/component_instance'
+require 'openshift-sdk/model/feature_cartridge_cache'
 
 module Openshift::SDK::Model
   class ComponentInstance < OpenshiftModel
-    validates_presence_of :name, :feature, :cartridge, :component, :profile_name, :group_name
-    ds_attr_accessor :name, :feature, :cartridge, :component, :profile_name, :dependency_instances, :component_group_name, :group_name
+    validates_presence_of :feature, :cartridge, :component, :profile_name, :group_name
+    ds_attr_accessor :feature, :cartridge, :component, :profile_name, :dependency_instances, :component_group_name, :group_name
     
-    def initialize(name=nil,descriptor_data=nil)
+    def initialize(guid=nil,descriptor_data=nil)
       self.dependency_instances = {}
-      return if name.nil?
+      return if guid.nil?
       
-      self.name = name
+      self.guid = guid
       self.feature = descriptor_data["feature"]
       cartridge_name = descriptor_data["cartridge_name"]
       cartridge = nil
       if cartridge_name
         cartridge = Cartridge.from_rpm(cartridge_name)
       else
-        cartridge = Cartridge.what_provides(self.feature)[0]  
+        cartridge = FeatureCartridgeCache.instance.what_provides(self.feature)[0]
       end
       cart_descriptor = cartridge.descriptor
       self.profile_name = descriptor_data["profile_name"] || cart_descriptor.profiles.keys[0]
@@ -60,7 +61,7 @@ module Openshift::SDK::Model
     
     #for XML, JSON serialization
     def attributes
-      {"name"=> @name, "feature"=> @feature, "cartridge"=>self.cartridge, "component" => self.component,
+      {"feature"=> @feature, "cartridge"=>self.cartridge, "component" => self.component,
         "profile_name" => profile_name}
     end
     
@@ -69,7 +70,8 @@ module Openshift::SDK::Model
     # finds one which provides the feature. It then instantiates all components
     # that are part of that profile.
     def self.component_instance_for_feature(feature, profile=nil)
-      cartridges = Cartridge.what_provides(feature)
+      cartridges = FeatureCartridgeCache.instance.what_provides(feature)
+      print feature, cartridges, "\n"
       components = {}
       cartridges.each do |cartridge|
         cart_descriptor = cartridge.descriptor
@@ -91,13 +93,12 @@ module Openshift::SDK::Model
               group.components.each do |cname, component|
                 cinst = ComponentInstance.new
                 cinst.gen_uuid
-                cinst.name = cinst.guid
                 cinst.cartridge = cartridge
                 cinst.feature = component.feature
                 cinst.component = component
                 cinst.profile_name = profile_name
                 cinst.component_group_name = group_name
-                components[cinst.name]=cinst
+                components[cinst.guid]=cinst
               end
             end
             

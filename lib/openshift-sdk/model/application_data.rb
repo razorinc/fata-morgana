@@ -1,3 +1,4 @@
+#--
 # Copyright 2010 Red Hat, Inc.
 #
 # Permission is hereby granted, free of charge, to any person
@@ -19,34 +20,40 @@
 # ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+#++
 
 require 'rubygems'
-require 'json'
 require 'active_model'
-require 'openshift-sdk/config'
 require 'openshift-sdk/model/model'
-require 'openshift-sdk/model/component_instance'
-require 'openshift-sdk/utils/logger'
 
-module Openshift
-  module SDK
-    module Model
-      class GroupSignature < OpenshiftModel
-        ds_attr_accessor :group_guid
-        
-        def self.gen_signature(group)
-          sig = []
-          group.components.each do |name, cinst|
-            sig.push "#{cinst.component_guid}-#{cinst.profile_name}-#{cinst.cartridge.guid}"
-          end
-          sig.sort!.hash
-        end
-        
-        def initialize(signature=nil, group = nil)
-          self.guid = signature
-          self.group_guid = group.guid
-        end
-      end
+module Openshift::SDK::Model
+  class ApplicationData < OpenshiftModel
+    def self.instance
+      @@instance ||= ApplicationData.find("user-application-data")
+      @@instance ||= ApplicationData.new
+    end
+    
+    ds_attr_accessor :data
+    
+    def initialize
+      @guid = "user-application-data"
+      @data = {}
+    end
+    
+    def read(key)
+      @data[key]
+    end
+    
+    def write(key,value)
+      data_will_change!
+      @data[key]=value
+      save!
+    end
+    
+    def delete(key)
+      data_will_change!
+      @data.delete(key)
+      save!
     end
   end
 end

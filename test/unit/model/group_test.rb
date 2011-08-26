@@ -7,7 +7,8 @@ module Openshift::SDK::Model
     include ActiveModel::Lint::Tests
 
     def setup()
-      Component.any_instance.expects(:new).at_least_once.returns(Component.new())
+      FeatureCartridgeCache.expects(:instance).at_least_once.returns(FeatureCartridgeCache.new)
+      ComponentInstance.any_instance.expects(:initialize).at_least_once.returns(nil)
     end
     
     def model
@@ -46,7 +47,7 @@ module Openshift::SDK::Model
       g = Group.new.from_json data
       assert_not_nil g
       assert_equal ScalingParameters,g.scaling.class
-      assert_equal Component,g.components["feat1"].class
+      assert_equal ComponentInstance,g.components["feat1"].class
     end
 
     def test_xml
@@ -56,7 +57,7 @@ module Openshift::SDK::Model
       g = Group.new.from_xml data
       assert_not_nil g
       assert_equal ScalingParameters,g.scaling.class
-      assert_equal Component,g.components["feat1"].class
+      assert_equal ComponentInstance,g.components["feat1"].class
     end
 
     def test_yaml
@@ -66,7 +67,7 @@ module Openshift::SDK::Model
       g = YAML.load(data)
       assert_not_nil g
       assert_equal ScalingParameters,g.scaling.class
-      assert_equal Component,g.components["feat1"].class
+      assert_equal ComponentInstance,g.components["feat1"].class
     end
   end
 end
