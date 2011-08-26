@@ -59,9 +59,16 @@ end
 $opm_debug = true if args['--debug']
 $porcelin = args['--porcelin'] ? true : false
 app_id = ARGV.shift
-cartridge = ARGV.shift
 
 if args['--help'] || app_id.nil? || cartridge.nil?
   usage
   exit -101
 end
+
+# For installing a new version of the application 
+# get the application descriptor
+#  go through all its components
+#     setup all the components
+#     opm establish-connections for all
+#
+#
