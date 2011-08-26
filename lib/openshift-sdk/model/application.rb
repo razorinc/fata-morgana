@@ -32,7 +32,7 @@ module Openshift
   module SDK
     module Model
       class Application < Cartridge
-        ds_attr_accessor :state, :deploy_state, :artifact_available, :deleted, :descriptor
+        ds_attr_accessor :state, :deploy_state, :artifact_available, :deleted, :descriptor, :interfaces
         
         state_machine :state, :initial => :not_created, :action => :save! do
           event(:create) { transition :not_created => :creating }
@@ -96,6 +96,29 @@ module Openshift
           @descriptor
         end
         
+        def populate_work_area(home_dir)
+            if self.package_path.nil?
+                self.package_path = home_dir + "/" + self.name
+            end
+            os_dir = self.package_path + "/openshift"
+            FileUtils.mkdir_p os_dir
+
+            # check and create control file
+            if not File.exist(os_dir + "/control.spec")
+                control_spec_contents = self.to_s
+                cfile = File.open(os_dir + "/control.spec")
+                cfile.write(control_spec_contents)
+                cfile.close
+            end
+
+            # check and create descriptor file
+            if not File.exist(os_dir + "/descriptor.json")
+                des_file = File.open(os_dir + "/descriptor.json")
+                des_file.write("{}")
+                des_file.close
+            end
+        end
+
         def delete!
           self.deleted = "true"
           super

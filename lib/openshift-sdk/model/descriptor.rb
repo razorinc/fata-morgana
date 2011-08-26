@@ -58,7 +58,11 @@ module Openshift::SDK::Model
       @profiles = {}
       return if cartridge.nil?
       f = File.open("#{cartridge.package_path}/openshift/descriptor.json")
-      json_data = JSON.parse(f.read)
+      begin
+          json_data = JSON.parse(f.read)
+      rescue Exception => e
+          json_data = {}
+      end
       if json_data["profiles"]
         json_data["profiles"].each do |name, prof_data|
           @profiles[name] = Profile.new(name,prof_data,cartridge)

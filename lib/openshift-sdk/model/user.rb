@@ -61,10 +61,9 @@ module Openshift::SDK::Model
     def create!
       config = Openshift::SDK::Config.instance
       min_uid = config.get("min_user_id") || "100"
-      max_uid = config.get("min_user_id") || "100"
-      gid = config.get("group_id") || "100"
+      max_uid = config.get("max_user_id") || "100"
       uid_str = "-u #{self.uid}" if self.uid
-      cmd = "useradd --base-dir #{self.basedir} #{uid_str} --gid #{gid} -m -K UID_MIN=#{min_uid} -K UID_MAX=#{max_uid} #{self.name}"
+      cmd = "useradd --base-dir #{self.basedir} #{uid_str} -m -K UID_MIN=#{min_uid} -K UID_MAX=#{max_uid} #{self.name}"
       out,err,ret = shellCmd(cmd)
       if ret == 0
         self.uid ||= get_uid
@@ -74,8 +73,32 @@ module Openshift::SDK::Model
       end
     end
 
+    def setup_app_territory 
+        config = Openshift::SDK::Config.instance
+        prod_dir ||= config.get("app_prod_dir")
+        shared_dir ||= config.get("app_shared_dir")
+        prod_dir = prod_dir + "/" + self.name
+        shared_dir = shared_dir + "/" + self.name
+        FileUtils.mkdir_p prod_dir
+        FileUtils.mkdir_p shared_dir
+
+        FileUtils.chown_R self.name, get_group(), prod_dir
+        FileUtils.chown_R self.name, get_group(), shared_dir
+
+        FileUtils.chmod 1760,prod_dir
+        FileUtils.chmod 1760,shared_dir
+    end
+
     def get_uid
       `id -u #{self.name}`
+    end
+
+    def get_group
+        `id -g #{self.name}`
+    end
+
+    def switch_privileges
+        Process::UID.grant_privilege(`id -u #{self.name}`)
     end
 
     # Deleted the user account on the system.

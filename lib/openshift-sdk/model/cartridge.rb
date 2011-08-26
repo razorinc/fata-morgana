@@ -47,6 +47,7 @@ module Openshift
           @requires = requires
           @is_installed = is_installed
           @hooks = hooks
+          @summary = ""
         end
         
         def installed?

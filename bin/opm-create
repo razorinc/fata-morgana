@@ -29,7 +29,7 @@ opm create: Creates a new application container. This command must be run as roo
 
 == Usage
 
-opm create [NAME [VERSION]] [OPM_DIR] [OPTIONS]
+opm create [NAME [VERSION]] [OPTIONS]
 
 Options:
 -h|--help:
@@ -42,6 +42,7 @@ USAGE
 end
 
 require 'openshift-sdk'
+require 'fileutils'
 
 opts = GetoptLong.new(
     ["--porcelin",               GetoptLong::NO_ARGUMENT],
@@ -73,14 +74,31 @@ if args['--help'] || (opm_dir.nil? && name.nil?)
   exit -101
 end
 
-app = nil
-if opm_dir
-  app = Openshift::SDK::Model::Application.from_opm(opm_dir)
-else
-  app = Openshift::SDK::Model::Application.new(name)
-  app.version = version
-end
+# expected args - app name 
+# this script runs as system interface (on Flex - paster, on Express - libra-passenger)
+# create a bare-bones app object
+# create a new user (using new guid from app)
+# fill up the super-user datastore that contains the map
+#   of user<=>app
+# then, acting as the new user, fill up the application object
+#   i.e. create basic descriptor/control.spec
 
+# create new app
+app = Openshift::SDK::Model::Application.new(name)
 app.gen_uuid
-app.create!
-print "Application with GUID: #{app.guid} created\n"
+
+# create user for this app
+user = Openshift::SDK::Model::User.new(app)
+user.create!
+user.setup_app_territory
+
+# change privileges
+user.switch_privileges
+
+# setup app package path
+user_home_dir = user.basedir + "/" + user.name
+app.populate_work_area(user_home_dir)
+app.save!
+
+print app.guid
+
