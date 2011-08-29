@@ -78,5 +78,11 @@ module Openshift::SDK::Model
         @sub = val        
       end
     end
+
+    def browse(obj= nil)
+      print self.to_json
+      return self
+    end
+
   end
 end

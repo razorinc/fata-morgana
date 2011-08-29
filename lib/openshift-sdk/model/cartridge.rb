@@ -113,32 +113,33 @@ module Openshift::SDK::Model
       dds_cart
     end
   
-    def from_opm_spec(control_spec)
-      control_spec.each{|line|
-        val = line.split(/:/)[1]
-        if not val.nil?
-          val.strip!
-          case line
-            when /^Summary:/
-              self.summary = val
-            when /^Name:/
-              self.name = val
-            when /^Version:/
-              self.version = val
-            when /^License:/
-              self.license = val
-            when /^Provides:/
-              self.provides_feature = val.split(/,[ ]*/)
-            when /^Requires:/
-              self.requires_feature = val.split(/,[ ]*/)
-            when /^Native-Requires:/
-              self.requires.push(val)
-          end
-        end
-      }
+    def from_opm_spec(control_spec=nil)
+      new_file = control_spec.nil?
+      if new_file
+        control_spec = File.open(self.package_path + "/openshift/control.spec")
+      end
+      contents = control_spec.read
+      spec_objects  = YAML::load(contents)
+      self.summary = spec_objects["Summary"]
+      self.name = spec_objects["Name"]
+      self.version = spec_objects["Version"]
+      self.license = spec_objects["License"]
+      self.provides_feature = spec_objects["Provides"] || []
+      self.requires_feature = spec_objects["Requires"] || []
+      self.requires = spec_objects["Native-Requires"] || []
+      if new_file
+        control_spec.close
+      end 
       self
     end
   
+    def update_control_file
+      control_spec_contents = self.to_s
+      cfile = File.new(self.package_path + "/openshift/control.spec", "w")
+      cfile.write(control_spec_contents)
+      cfile.close
+    end
+
     def self.from_opm(package_path)
       package_root = File.dirname(package_path)
       cartridge = Cartridge.new(nil,package_root,package_path)
@@ -149,19 +150,20 @@ module Openshift::SDK::Model
     end
   
     def to_s
-    str = <<-EOF
+      yaml_object = {}
+      yaml_object["Name"] = self.name
+      yaml_object["Native name"] = self.native_name
+      yaml_object["Package root"] = self.package_root
+      yaml_object["Package path"] = self.package_path
+      yaml_object["Summary"] = self.summary
+      yaml_object["Version"] = self.version
+      yaml_object["License"] = self.license
+      yaml_object["Provides"] = self.provides_feature
+      yaml_object["Requires"] = self.requires_feature
+      yaml_object["Native-Requires"] = self.requires
 
-  Name: #{name}
-  Native name: #{native_name}
-  Package root: #{package_root}
-  Package path: #{package_path}
-  Summary: #{summary.strip}
-  Version: #{version}
-  License: #{license}
-  Provides feature: #{provides_feature.join(", ")}
-  Requires feature: #{requires_feature.join(", ")}
-  Native requires: #{requires.join(", ")}
-EOF
+      str = YAML::dump(yaml_object)
+      return str
     end
   end
 end
