@@ -71,10 +71,12 @@ module Openshift::SDK::Model
     # that are part of that profile.
     def self.component_instance_for_feature(feature, profile=nil)
       cartridges = FeatureCartridgeCache.instance.what_provides(feature)
-      print feature, cartridges, "\n"
+#print feature, cartridges, "\n"
       components = {}
       cartridges.each do |cartridge|
+        next if cartridge.nil?
         cart_descriptor = cartridge.descriptor
+        next if cart_descriptor.nil?
         cart_descriptor.profiles.each do |profile_name, profile_inst|
           next if profile and profile_name != profile
           

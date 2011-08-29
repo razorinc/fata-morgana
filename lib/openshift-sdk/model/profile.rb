@@ -110,6 +110,7 @@ module Openshift::SDK::Model
           groups = {}
           begin
             cinst = proc_components.pop
+            next if cinst.nil?
             comp_group = cinst.cartridge.descriptor.profiles[cinst.profile_name].groups[cinst.component_group_name]            
             
             #match groups based on colocated instances

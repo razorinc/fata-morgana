@@ -25,15 +25,19 @@ def usage
     puts <<USAGE
 == Synopsis
 
-opm list-applications: Prints a list of all installed applications
+opm add-feature: Adds a feature (native or openshift) a deployed application
 
 == Usage
 
-opm list-applications
+opm add-feature APPID FEATURE-NAME ["native"]
 
 Options:
 -h|--help:
    Prints this message
+
+APPID: The ID of the application to add the feature to
+FEATURE-NAME : The name of the feature, e.g. php-zend
+"native" : keyword, conveys whether this is a native-system dependency (e.g. gcc)
 USAGE
 end
 
@@ -47,25 +51,51 @@ opts = GetoptLong.new(
 
 args = {}
 begin
-    opts.each{ |k,v| args[k]=v }
+  opts.each{ |k,v| args[k]=v }
 rescue GetoptLong::Error => e
-    usage
-    exit -100
+  usage
+  exit -100
 end
 
 $opm_debug = true if args['--debug']
 $porcelin = args['--porcelin'] ? true : false
+app_id = ARGV.shift
+feature = ARGV.shift
+native = ARGV.shift
 
-if args['--help']
+if args['--help'] || app_id.nil? || feature.nil?
   usage
   exit -101
 end
 
-alist = Openshift::SDK::Model::Application.find_all()
-return_list = Array.new
-alist.each { |app|
-  return_list << app.guid
-}
+app = Openshift::SDK::Model::Application.find(app_id)
+if app.nil?
+  print "Error: Application(#{app_id}) not found"
+end
 
-print return_list.to_json
+# re-read the control file if something was hand-written
+app.from_opm_spec
+
+# add new feature
+if not native.nil? 
+  if app.requires.nil?
+    app.requires = [feature]
+  else
+    if not app.requires.include? feature
+      app.requires << feature
+    end
+  end
+else
+  if app.requires_feature.nil?
+    app.requires_feature = [feature]
+  else
+    if not app.requires.include? feature
+      app.requires_feature << feature
+    end
+  end
+end
+
+app.update_control_file
+
+app.save!
 

@@ -113,7 +113,11 @@ module Openshift::SDK::Model
       dds_cart
     end
   
-    def from_opm_spec(control_spec)
+    def from_opm_spec(control_spec=nil)
+      new_file = control_spec.nil?
+      if new_file
+        control_spec = File.open(self.package_path + "/openshift/control.spec")
+      end
       control_spec.each{|line|
         val = line.split(/:/)[1]
         if not val.nil?
@@ -132,13 +136,23 @@ module Openshift::SDK::Model
             when /^Requires:/
               self.requires_feature = val.split(/,[ ]*/)
             when /^Native-Requires:/
-              self.requires.push(val)
+              self.requires = val.split(/,[ ]*/)
           end
         end
       }
+      if new_file
+        control_spec.close
+      end 
       self
     end
   
+    def update_control_file
+      control_spec_contents = self.to_s
+      cfile = File.new(self.package_path + "/openshift/control.spec", "w")
+      cfile.write(control_spec_contents)
+      cfile.close
+    end
+
     def self.from_opm(package_path)
       package_root = File.dirname(package_path)
       cartridge = Cartridge.new(nil,package_root,package_path)
@@ -151,16 +165,16 @@ module Openshift::SDK::Model
     def to_s
     str = <<-EOF
 
-  Name: #{name}
-  Native name: #{native_name}
-  Package root: #{package_root}
-  Package path: #{package_path}
-  Summary: #{summary.strip}
-  Version: #{version}
-  License: #{license}
-  Provides feature: #{provides_feature.join(", ")}
-  Requires feature: #{requires_feature.join(", ")}
-  Native requires: #{requires.join(", ")}
+Name: #{name}
+Native name: #{native_name}
+Package root: #{package_root}
+Package path: #{package_path}
+Summary: #{summary.strip}
+Version: #{version}
+License: #{license}
+Provides: #{provides_feature.join(", ")}
+Requires: #{requires_feature.join(", ")}
+Native-Requires: #{requires.join(", ")}
 EOF
     end
   end
