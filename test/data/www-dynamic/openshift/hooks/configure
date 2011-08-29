@@ -1,0 +1,81 @@
+#!/bin/bash
+#
+# Copyright © 2010 Red Hat, Inc. All rights reserved
+#
+# This copyrighted material is made available to anyone wishing to use, modify,
+# copy, or redistribute it subject to the terms and conditions of the GNU
+# General Public License v.2.  This program is distributed in the hope that it
+# will be useful, but WITHOUT ANY WARRANTY expressed or implied, including the
+# implied warranties of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.  You should have
+# received a copy of the GNU General Public License along with this program;
+# if not, write to the Free Software Foundation, Inc., 51 Franklin Street,
+# Fifth Floor, Boston, MA 02110-1301, USA. Any Red Hat trademarks that are
+# incorporated in the source code or documentation are not subject to the GNU
+# General Public License and may only be used or replicated with the express
+# permission of Red Hat, Inc.
+#
+
+# Exit on errors.
+set -e
+
+cartridge_name="www-dynamic.apache2"
+source ./common.sh
+
+hook_name=$(basename "$0")
+test $OPENSHIFT_TRACE_HOOKS && echo "!DEBUG! :$SHLVL: $hook_name $@"
+
+function copy_defaults() {
+   src=${1:-""}
+   dest=${2:-""}
+ 
+   [ ! -f "${infile}" ]  &&  die 22 "copy_defaults - invalid source '${src}'"
+   [ -z "${outfile}" ]   &&  die 22 "copy_defaults - invalid dest '${dest}'"
+
+   subst_list=""
+   for v in `env | grep "^_OPENSHIFT_" | cut -f1 -d '='`; do
+      subst_list="${subst_list} s#${$v}#${!v}#g;"
+   done
+   sed "${subst_list}" "${src}" >  "${dest}"
+
+}  #  End of function  copy_defaults.
+
+
+function do_configuration() {
+   declare -r platform_type=${OPENSHIFT_PLATFORM_TYPE:-"/express"}
+
+   #  Configure is called a few times in the lifecycle of the app. 
+   component_dir=${OPENSHIFT_COMPONENT_CONFIG_DIR:-"/tmp"}
+   cart_cfgdir="${cartridge_name}/conf"
+   cfgdir="${component_dir}/${cart_cfgdir}"
+
+   #  Ensure configuration exists for the component.
+   if ! test -d "${cfgdir}"; then
+      mkdir -p "${cfgdir}" "${cfgdir}/../conf.d/"
+
+      # Copy over the defaults to the app component space.
+      copy_defaults "../templates/httpd.conf"  "${cfgdir}/httpd.conf"
+      copy_defaults "../templates/os-${platform_type}.conf"  \
+                    "${cfgdir}/../conf.d/os-${platform_type}.conf"
+   fi
+
+}  #  End of function  do_configuration.
+
+
+#
+# _main()
+#
+os_check_args "$@"  ||  print_usage "Setup www-dynamic.apache2 Component"
+
+app_guid=$1
+component_guid=$2
+
+case "$hook_name" in 
+   configure)    do_configuration  ;;
+   deconfigure)                    ;;
+esac
+
+
+#  Not doing any more in setup right now. Everything else will be done via
+#  connectors (setup-connections).
+
