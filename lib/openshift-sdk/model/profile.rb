@@ -187,6 +187,33 @@ module Openshift::SDK::Model
       end
     end
 
+    def browse(group_name = nil)
+      print "Enter name of group/connection to browse"
+      if group_name.nil?
+        print "\nName : ", self.name, "\n"
+        print "\nGroups :\n"
+        @groups.keys.each { |group|
+          next if group.nil?
+          print "\t", @groups[group].guid, "\n"
+        }
+        print "\nConnections :\n"
+        @connections.keys.each { |conn|
+          next if conn.nil?
+          print "\t", @connections[conn].name, "\n"
+        }
+      else
+        group = @groups[group_name]
+        if group.nil?
+          return group
+        end
+        conn = @connections[group_name]
+        if conn.nil?
+          return conn
+        end
+      end
+      return self
+    end
+
     private
 
     def load_connections(components, descriptor_data={})
@@ -268,5 +295,6 @@ module Openshift::SDK::Model
       end
       ret_connections
     end
+
   end
 end

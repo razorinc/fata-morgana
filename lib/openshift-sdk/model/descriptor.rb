@@ -71,5 +71,20 @@ module Openshift::SDK::Model
         @profiles["default"] = Profile.new("default",json_data,cartridge)
       end
     end
+
+    def browse(profile_name = nil)
+      if profile_name.nil?
+        print "\nProfiles :\n"
+        @profiles.keys.each { |profile|
+          next if profile.nil?
+          print "\t", @profiles[profile].name, "\n"
+        }
+      else
+        profile = @profiles[profile_name]
+        return profile
+      end
+      print "Enter name of profile to browse\n"
+      return self
+    end
   end
 end
