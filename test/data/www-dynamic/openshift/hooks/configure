@@ -19,12 +19,15 @@
 # Exit on errors.
 set -e
 
+# Initialization.
 cartridge_name="www-dynamic.apache2"
+hook_name=$(basename "$0")
+test $OS_TRACE_HOOKS && echo "!DEBUG! :$SHLVL: $hook_name $@"
+
 source ./common.sh
 
-hook_name=$(basename "$0")
-test $OPENSHIFT_TRACE_HOOKS && echo "!DEBUG! :$SHLVL: $hook_name $@"
 
+#  Functions.
 function copy_defaults() {
    src=${1:-""}
    dest=${2:-""}
@@ -42,21 +45,21 @@ function copy_defaults() {
 
 
 function do_configuration() {
-   declare -r platform_type=${OPENSHIFT_PLATFORM_TYPE:-"/express"}
+   cfgdir=${1:-"/tmp"}
+   declare -r platform_type=${_OPENSHIFT_PLATFORM_TYPE:-"/express"}
 
    #  Configure is called a few times in the lifecycle of the app. 
-   component_dir=${OPENSHIFT_COMPONENT_CONFIG_DIR:-"/tmp"}
-   cart_cfgdir="${cartridge_name}/conf"
-   cfgdir="${component_dir}/${cart_cfgdir}"
+   cart_cfg_subdir="${cartridge_name}/conf"
+   cloc="${cfgdir}/${cart_cfg_subdir}"
 
    #  Ensure configuration exists for the component.
-   if ! test -d "${cfgdir}"; then
-      mkdir -p "${cfgdir}" "${cfgdir}/../conf.d/"
+   if ! test -d "${cloc}"; then
+      mkdir -p "${cloc}" "${cloc}/../conf.d/"
 
       # Copy over the defaults to the app component space.
-      copy_defaults "../templates/httpd.conf"  "${cfgdir}/httpd.conf"
+      copy_defaults "../templates/httpd.conf"  "${cloc}/httpd.conf"
       copy_defaults "../templates/os-${platform_type}.conf"  \
-                    "${cfgdir}/../conf.d/os-${platform_type}.conf"
+                    "${cloc}/../conf.d/os-${platform_type}.conf"
    fi
 
 }  #  End of function  do_configuration.
@@ -68,11 +71,13 @@ function do_configuration() {
 os_check_args "$@"  ||  print_usage "Setup www-dynamic.apache2 Component"
 
 app_guid=$1
-component_guid=$2
+comp_guid=$2
+
+cfgdir="${_OPENSHIFT_APP_CONFIG_DIR}/$comp_guid"
 
 case "$hook_name" in 
-   configure)    do_configuration  ;;
-   deconfigure)                    ;;
+   configure)    do_configuration "${cfgdir}" ;;
+   deconfigure)                               ;;
 esac
 
 
