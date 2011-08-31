@@ -1,0 +1,274 @@
+#!/usr/bin/env ruby
+# Copyright 2010 Red Hat, Inc.
+#
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation files
+# (the "Software"), to deal in the Software without restriction,
+# including without limitation the rights to use, copy, modify, merge,
+# publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so,
+# subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT.  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+# BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+# ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+# CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+def usage
+    puts <<USAGE
+== Synopsis
+
+opm app-browser: Browses through a given application's architecture
+
+== Usage
+
+opm app-browser APPID 
+
+Options:
+-h|--help:
+   Prints this message
+
+APPID: The ID of the application to browse
+USAGE
+end
+
+require 'openshift-sdk'
+require 'yaml'
+
+opts = GetoptLong.new(
+    ["--porcelin",               GetoptLong::NO_ARGUMENT],
+    ["--debug",                  GetoptLong::NO_ARGUMENT],
+    ["--help",             "-h", GetoptLong::NO_ARGUMENT]
+)
+
+args = {}
+begin
+  opts.each{ |k,v| args[k]=v }
+rescue GetoptLong::Error => e
+  usage
+  exit -100
+end
+
+$opm_debug = true if args['--debug']
+$porcelin = args['--porcelin'] ? true : false
+app_id = ARGV.shift
+
+if args['--help'] || app_id.nil? 
+  usage
+  exit -101
+end
+
+app = Openshift::SDK::Model::Application.find(app_id)
+if app.nil?
+  print "Error: Application(#{app_id}) not found"
+end
+
+def cmd_usage
+  print "Command :\n"
+  print "  print - Print the current scope's debug info\n"
+  print "  pop - Pop to previous scope (no info printed)\n"
+  print "  <input> - Input any information asked for to push scope\n"
+  print "  exit - Exit the utility\n"
+end
+
+def browse(obj, user_input = nil)
+  browse_hash = {}
+  browse_hash['self'] = []
+  case obj
+    when Array
+      browse_hash["Array"] = obj.clone
+    when Hash
+      browse_hash["Hash"] = obj.keys.clone
+    when TrueClass 
+      browse_hash['self'] = ["true"]
+    when FalseClass
+      browse_hash['self'] = ["false"]
+    when String
+      browse_hash['self'] = obj
+    else
+      varlist = obj.attributes.keys
+      varlist.each { |var|
+        avar = var #[1..-1]
+        #next if avar=="attributes"
+        begin
+          attr = eval "obj.#{avar}"
+        rescue Exception =>e
+          print "Error (", e, ") evaluating ", avar, "\n"
+          next
+        end
+        case attr
+          when String
+            description = browse_hash['self']
+            description << "#{avar} : #{attr}"  
+            browse_hash['self'] = description
+          when NilClass
+            description = browse_hash['self']
+            description << "#{avar} : nil"  
+            browse_hash['self'] = description
+          when Array
+            if attr.length == 0
+              description = browse_hash['self']
+              description << "#{avar} : []"  
+              browse_hash['self'] = description
+            else
+              browse_hash[avar] = attr.clone
+            end
+          when Hash
+            if attr.length == 0
+              description = browse_hash['self']
+              description << "#{avar} : {}"  
+              browse_hash['self'] = description
+            else
+              browse_hash[avar] = attr.keys.clone
+            end
+          when FalseClass
+            description = browse_hash['self']
+            description << "#{avar} : #{attr}"
+            browse_hash['self'] = description
+          when TrueClass
+            description = browse_hash['self']
+            description << "#{avar} : #{attr}"
+            browse_hash['self'] = description
+          else
+            browse_hash[avar] = [attr]
+        end
+      }
+  end  
+
+  if user_input.nil?
+    return browse_hash, obj
+  else
+    return_obj = nil
+    case obj
+      when Array
+        obj.each { |item|
+          if String(item)==choice
+            return_obj = item
+            break
+          end
+        }
+      when Hash
+        return_obj = obj[choice]
+      else
+        category, choice = user_input
+        attr = eval "obj.#{category}"
+        case attr
+          when Array
+            attr.each { |item|
+              if String(item)==choice
+                return_obj = item
+                break
+              end
+            }
+          when Hash
+            return_obj = attr[choice]
+          else
+            return_obj = attr
+        end
+    end
+    return browse_hash, return_obj||self
+  end
+end
+
+def command(current_object, object_stack)
+  user_choice_list = []
+  bhash, operate_object = browse(current_object)
+  if bhash['self']
+    print "Description:", current_object.class, "\n"
+    bhash['self'].each { |elem|
+      print "\t", elem, "\n"
+    }
+  end
+
+  counter = 1
+  category_hash = {}
+  bhash.keys.each { |key|
+    next if key == "self"
+
+    print "\t", key, "\n"
+    itemlist = bhash[key]
+    itemlist.each { |item|
+      print "\t\t#{counter}. ", item, "\n"
+      user_choice_list << item
+      category_hash[counter] = key
+      counter += 1
+    }
+  }
+
+  print "\n"
+  print "\t#{counter}. Print same menu again\n"
+  user_choice_list << "Print"
+  counter += 1
+  
+  print "\t#{counter}. Pop to previous browsed item\n"
+  user_choice_list << "Pop"
+  counter += 1
+  
+  print "\t#{counter}. Print YAML of the object\n"
+  user_choice_list << "Yaml"
+  counter += 1
+  
+  print "\t#{counter}. Exit\n"
+  user_choice_list << "Exit"
+  counter += 1
+  
+
+  print "Select choice : "
+
+  begin
+    input = gets.chomp.strip
+  rescue
+    exit 0
+  end
+
+  case input
+    when ""
+      return current_object, object_stack
+    when "help"
+      cmd_usage
+      return current_object, object_stack
+    when "exit"
+      exit 0
+  end
+
+  user_choice = user_choice_list[Integer(input)-1]
+
+  case user_choice
+    when "Pop":
+      current_object = object_stack.pop
+      return current_object, object_stack
+    when "Print":
+      return current_object, object_stack
+    when "Yaml" :
+      print "############################ YAML #####################\n"
+      print YAML::dump(current_object)
+      print "############################## #####################\n\n"
+      return current_object, object_stack
+    when "Exit"
+      exit -101
+  end
+
+  user_input_category = category_hash[Integer(input)]
+  user_input = user_input_category, user_choice
+  bhash, return_obj = browse(current_object, user_input)
+  if return_obj != current_object and not return_obj.nil?
+    object_stack.push(current_object)
+    current_object = return_obj
+  end
+  return current_object, object_stack
+end
+
+current_object = app.descriptor
+object_stack = []
+
+while true
+  current_object, object_stack = command(current_object, object_stack)
+end
+
