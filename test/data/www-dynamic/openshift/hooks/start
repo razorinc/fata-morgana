@@ -19,36 +19,25 @@
 # Exit on errors.
 set -e
 
-# Initialization.
-cartridge_name="www-dynamic.apache2"
-hook_name=$(basename "$0")
-test $OPENSHIFT_TRACE_HOOKS && echo "!DEBUG! :$SHLVL: $hook_name $@"
-
-source ./common.sh
-
 
 #
 # _main()
 #
-os_check_args "$@"  ||  print_usage "Start www-dynamic.apache2 Component"
+source ./common.sh
+os_initialize_hook_env $@
+[ $# -eq 2 ]  ||  os_print_hook_usage
 
-app_guid=$1
-component_guid=$2
-declare -r platform_type=${_OPENSHIFT_PLATFORM_TYPE:-"/express"}
-
-cfgdir="${_OPENSHIFT_APP_CONFIG_DIR:-"/tmp"}/$comp_guid"
-cart_cfg_subdir="${cartridge_name}/conf"
-cloc="${cfgdir}/${cart_cfg_subdir}"
+cfgdir="${OPENSHIFT_APP_PROD_DIR:-"."}/${app_config_subdir}/$component_guid/conf/"
 
 #  First up need to ensure configuration exists for the component.
-if ! test -f "${cloc}/httpd.conf"; then
-   echo "Error: Missing configuration file - ${cloc}/httpd.conf" 2>
+if ! test -f "${cfgdir}/httpd.conf"; then
+   echo "Error: Missing configuration file - ${cfgdir}/httpd.conf" 2>
    exit 2
 fi
 
 
 #  Setup command line options.
-httpd_opts="-C 'Include ${cfgdir}/${cartridge_name}/conf.d/*.conf'"
+httpd_opts="-C 'Include ${cfgdir}/../conf.d/*.conf'"
 
 if [ "X$hook_name" = "Xstart" ]; then
    addrnport="$_OPENSHIFT_APP_BINDADDR:$_OPENSHIFT_APP_PORT"
@@ -57,6 +46,13 @@ if [ "X$hook_name" = "Xstart" ]; then
    httpd_opts="${httpd_opts} -C 'Group $_OPENSHIFT_APP_GROUP'"
 fi
 
+prod_dir="${OPENSHIFT_APP_PROD_DIR:-"."}"
+var_run_dir="$prod_dir/var/run"
+
+[ -d "$var_run_dir" ]  ||  mkdir -p "$var_run_dir"
+
+cd "$prod_dir"
 /usr/sbin/httpd -f ${cfgdir}/httpd.conf ${httpd_opts} -k $hook_name
 
-logger -p user.notice  "www-dynamic.apache2: $0 $@ + opts=${httpd_opts}"
+logger -p user.notice  "$cartridge_name->$0 $@ + opts=${httpd_opts}"
+exit 0

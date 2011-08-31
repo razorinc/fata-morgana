@@ -19,16 +19,14 @@
 # Exit on errors.
 set -e
 
-# Initialization.
-cartridge_name="www-dynamic.apache2"
-hook_name=$(basename "$0")
-test $OPENSHIFT_TRACE_HOOKS && echo "!DEBUG! :$SHLVL: $hook_name $@"
 
+#
+# _main():  Install hook does nothing for the www-dynamic cartridge.
+#
 source ./common.sh
+os_initialize_hook_env $@
+[ $# -eq 2 ]  ||  os_print_hook_usage
 
-
-#
-# _main():  Install hook does nothing.
-#
+os_debug_log "for application $application_guid"
 exit 0
 

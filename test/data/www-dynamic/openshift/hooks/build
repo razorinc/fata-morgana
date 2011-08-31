@@ -21,33 +21,12 @@ set -e
 
 
 #
-# Functions.
-#
-function configure_app() {
-   os_debug_log "application $application_guid"
-
-}  #  End of function  configure_app.
-
-
-function deconfigure_app() {
-   os_debug_log "application $application_guid"
-
-}  #  End of function  deconfigure_app.
-
-
-#
-# _main()
+# _main():  Build hook does nothing for the www-dynamic cartridge.
 #
 source ./common.sh
 os_initialize_hook_env $@
 [ $# -eq 2 ]  ||  os_print_hook_usage
 
-case "$hook_name" in 
-   configure)    configure_app    ;;
-   deconfigure)  deconfigure_app  ;;
-esac
-
-
-#  Not doing any more in setup right now. Everything else will be done via
-#  connectors (setup-connections).
+os_debug_log "for application $application_guid"
+exit 0
 
