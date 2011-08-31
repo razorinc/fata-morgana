@@ -68,10 +68,12 @@ module Openshift::SDK::Model
       if descriptor_data["groups"]
         descriptor_data["groups"].each do |name, grp_data|
           @groups[name] = Group.new(name,grp_data,cartridge)
+          self.connections = load_connections(components,descriptor_data)
         end
       else
         if cartridge.class == Cartridge
           @groups["default"] = Group.new("default",descriptor_data,cartridge)
+          self.connections = load_connections(components,descriptor_data)
         end
         
         if cartridge.class == Application
@@ -90,7 +92,7 @@ module Openshift::SDK::Model
             end
           end
           
-          #all components instances are known, no decide connections
+          #all components instances are known, now decide connections
           #components may not be in groups yet 
           log.debug "load connections ...\n"
           connections = load_connections(components,descriptor_data)
@@ -185,33 +187,6 @@ module Openshift::SDK::Model
           @connections[name] = vals[name]
         end
       end
-    end
-
-    def browse(group_name = nil)
-      print "Enter name of group/connection to browse"
-      if group_name.nil?
-        print "\nName : ", self.name, "\n"
-        print "\nGroups :\n"
-        @groups.keys.each { |group|
-          next if group.nil?
-          print "\t", @groups[group].guid, "\n"
-        }
-        print "\nConnections :\n"
-        @connections.keys.each { |conn|
-          next if conn.nil?
-          print "\t", @connections[conn].name, "\n"
-        }
-      else
-        group = @groups[group_name]
-        if group.nil?
-          return group
-        end
-        conn = @connections[group_name]
-        if conn.nil?
-          return conn
-        end
-      end
-      return self
     end
 
     private
