@@ -48,7 +48,7 @@ function os_setup_environment() {
       os_source_config "${os_cfgdir}/$f" 
    done
 
-   os_source_config "${1:-"/tmp"}/.app.env"
+   os_source_config "${1:-"/tmp"}/${app_env_config_file:-"app.env"}"
 
 }  #  End of function  os_setup_environment.
 
@@ -85,7 +85,7 @@ function os_initialize_hook_env() {
       echo "!TRACE! :$SHLVL: $cartridge_name->$hook_name $@"
    fi
 
-   os_setup_environment "${_OPENSHIFT_APP_CONFIG_DIR}"
+   os_setup_environment "${OPENSHIFT_APP_HOME_DIR:-"."}/${app_config_subdir}"
 
    application_guid=$1
    component_guid=$2

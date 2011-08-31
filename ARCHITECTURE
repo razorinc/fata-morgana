@@ -14,6 +14,7 @@ Tentative:
 
           configuration/    symlinked to ->  ~uuid/app/configuration/ on flex
 	                    a "real" internal directory on express
+               app.env            application environment settings
                <php1-guid>/       php1 component configuration
                     www-dynamic/        symlink to -> ../<www-dynamic-guid>
 
@@ -44,22 +45,23 @@ Workflow
 ========
   Workflow (+events+connectors+hooks) and how they tie in together -- this
   is a 'scrappy' first attempt:
-  application-create-event*
-  add-feature|component-to-application  [times-n]
-     resolves to either app-component or native-dependencies or cartridges
-     for each dependency:
-        if native-dependency:  yum install native-dependency
+  application-create*
+  add-feature|component-to-application  [optional - called 0-n times]
+     <install-dependencies-and-copy-scaffolding>
+        for each dependency:
+           if native:  yum install native
         else:
            run-hook(install)
-           for all sub-dependencies: install && build && configure
+           for all sub-dependencies: install && build && copy-scaffolding
            run-hook(build)
-           run-hook(configure)
-  deploy-application-event*
+           run-hook(copy-scaffolding-to-be-renamed-hook)
+  deploy-application*
+     <install-dependencies-and-copy-scaffolding>
      for each cartridge:  run-hook(configure)
      for each component:  establish-connections*  #  could be called 'n' times.
-  start-stop-application-event*
+  start-stop-application*
      for cartridge in start-or-stop-order:  run-hook(start|stop)
-  delete-application-event*
+  delete-application*
      for each cartridge: 
         run-hook(deconfigure)
         *remove (handle removal?? flex only likely)
