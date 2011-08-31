@@ -93,6 +93,8 @@ module Openshift::SDK::Model
           end
           
           #all components instances are known, now decide connections
+          log.debug components.to_yaml
+          
           #components may not be in groups yet 
           log.debug "load connections ...\n"
           connections = load_connections(components,descriptor_data)
@@ -110,7 +112,7 @@ module Openshift::SDK::Model
           #start forming groups based on group signature and colocation constraints
           proc_components = components.values.clone
           groups = {}
-          begin
+          while proc_components.size > 0
             cinst = proc_components.pop
             next if cinst.nil?
             comp_group = cinst.cartridge.descriptor.profiles[cinst.profile_name].groups[cinst.component_group_name]            
@@ -147,7 +149,7 @@ module Openshift::SDK::Model
               g.components[cinst.guid] = cinst
               cinst.group_name = g.guid
             end
-          end while proc_components.size > 0
+          end 
           
           #update connections based on new groups
           connections.each do |cname, conn|

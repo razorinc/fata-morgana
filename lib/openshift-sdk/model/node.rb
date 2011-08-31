@@ -31,7 +31,24 @@ module Openshift
       class Node < OpenshiftModel
         ds_attr_accessor :group_guid, :state, :is_responding, :last_updated, :cluster, :node_application_map
         ds_attr_accessor :provate_ip, :public_ip
-         
+        
+        def self.bucket
+          "admin"
+        end
+        
+        @@this_node = nil
+        def self.this_node
+          if @@this_node
+            @@this_node 
+          else
+            n = Node.new
+            n.gen_uuid
+            n.save!
+            @@this_node = n
+          end
+        end
+        
+        
         state_machine :state, :initial => :not_created, :action => :save! do
           event(:join) { transition :standalone => :joining }
           event(:join_complete) { transition :joining => :joined }
@@ -46,10 +63,9 @@ module Openshift
           event(:unjoin_error) { transition :unjoining => :joined }
         end
         
-        state_machine :run_state, :initial => :running, :action => :save! do
-          event(:reboot) { transition :running   => :rebooting }
-          event(:reboot_complete) { transition :rebooting => :running }
-          event(:shutdown) { transition :running   => :shutdown }
+        def initialize
+          super()
+          self.node_application_map = {}
         end
       end
     end

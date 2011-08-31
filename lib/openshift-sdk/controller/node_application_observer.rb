@@ -29,9 +29,9 @@ require 'openshift-sdk/config'
 require 'openshift-sdk/utils/logger'
 require 'openshift-sdk/utils/shell_exec'
 require 'openshift-sdk/utils/version_control'
+require 'openshift-sdk/model/user'
 require 'openshift-sdk/model/application'
 require 'openshift-sdk/model/node_application'
-
 
 module Openshift
   module SDK
@@ -61,34 +61,30 @@ module Openshift
         def after_create(napp, transition)
           log.info "Creating application #{napp.app_guid} on node"
           begin
-            #Step 1: Create the user
-            config = Openshift::SDK::Config.instance
-            application = Application.find(napp.app_guid)
-            napp.user = Model::User.new(application)
-            napp.user.create!
+            app = Model::Application.find(napp.app_guid,napp.user_group_id)
+            app.users.each do |user_guid|
+              user = Model::User.find(user_guid)
+              user.create!
+            end
             
-            #Step 2: Create the base repository
-            napp.app_shared_repo_subdir="#{user.homedir}/#{config.get('app_shared_repo_subdir')}"
-            napp.app_prod_repo_subdir="#{user.homedir}/#{config.get('app_prod_repo_subdir')}"
-            napp.app_prod_subdir="#{user.homedir}/#{config.get('app_prod_subdir')}"
-           
-            base_repo = Openshift::SDK::Utils::VersionControl.new(napp.app_shared_repo_subdir)
-            base_repo.create(true)
-            
-            #Step 3: Create the production checkout
-            prod_repo = Openshift::SDK::Utils::VersionControl.new(napp.app_prod_subdir, napp.app_prod_repo_subdir)
-            prod_repo.create_from base_repo
-            napp.save!
-            raise AppCreationException.new("Unable to create repository directory at #{napp.repodir} on node") if $?.to_i != 0
+            user = Model::User.find(napp.primary_user_id)
+            napp.create_app_directories
+            user.run_as{
+              napp.setup_repo
+              napp.setup_app_production
+              napp.setup_app_development
+              napp.setup_app_scaffold              
+              napp.save!
+            }
+            napp.create_complete!            
           rescue Exception => e
+            binding.pry
             log.error(e.message)
             napp.create_error!
-            raise e            
           end
-          napp.create_complete!
         end
         
-        def after_create_error(napp, transition)      
+        def after_create_error(napp, transition)
           log.info "Error occured while creating application #{napp.app_guid} on node"
           after_destroy(napp,transition)
         end
@@ -97,67 +93,9 @@ module Openshift
           log.info "Application #{napp.app_guid} created on node"
         end
         
-        def after_install(napp, transition)
-          log.info "Installing application #{napp.app_guid} on node"
-          #Step 1: install missing dependencies
-          begin
-            app = Model::Application.find napp.app_guid
-            missing_features = []
-            app.requires_feature.each do |feature|
-              carts = Model::Cartridge.what_provides feature
-              feature_installed = false
-              carts.each do |cart|
-                feature_installed = cart.installed?
-                break if feature_installed
-              end
-              
-              missing_features.push("openshift-feature-#{feature}") unless feature_installed
-            end
-            
-            if missing_features.length > 0
-              #check instalpolicy here
-              cmd = "yum install -y -q #{missing_features.join(" ")}"
-              out,err,ret = shellCmd(cmd)
-              raise AppInstallationException.new("Unable to install cartridge for feature #{feature}") unless ret == 0
-            end
-            
-            #Step 2: call configure hook on direct dependencies
-            
-            #Step 3: connect components
-          rescue AppInstallationException => e
-            napp.install_error!
-            raise e
-          rescue Exception => e
-            napp.install_error!
-            raise AppInstallationException.new(e.message)
-          end
-          
-          napp.install_complete!
-        end
-        
-        def after_start(napp, transition)
-          log.info "Starting application #{napp.app_guid} on node"
-          napp.start_complete!
-        end
-        
-        def after_stop(napp, transition)
-          log.info "Stopping application #{napp.app_guid} on node"
-          application.stop_complete!
-        end
-        
-        def after_uninstall(napp, transition)
-          log.info "Uninstalling application #{napp.app_guid} on node"
-          napp.uninstall_complete!
-        end
-        
         def after_destroy(napp, transition)
           log.info "Destroying application #{napp.app_guid} on node"
-          
-          if napp.user
-            napp.user.delete!
-            napp.user = nil if ret == 0
-          end
-          
+          napp.remove_app
           napp.destroy_complete!
         end
         

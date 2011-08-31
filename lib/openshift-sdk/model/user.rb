@@ -59,7 +59,10 @@ module Openshift::SDK::Model
       uids = UidUserMap.find_all_guids
       uid = nil
       (min_uid..max_uid).each do |id|
-        uid = id unless uids.include? id.to_s
+        unless uids.include? id.to_s
+          uid = id 
+          break
+        end
       end
       user = User.new app,uid.to_s
       user.gen_uuid
@@ -67,13 +70,13 @@ module Openshift::SDK::Model
       uum.save!
       user.save!
       
-      user
+      user.guid
     end
 
     private
     
     def initialize(uid=nil,uname=nil,user_guid=nil,app_guid=nil)
-      return unless uid      
+      return unless uid
       guid_will_change!
       user_guid_will_change!
       @guid,@name,@user_guid,@app_guid=uid,uname,user_guid,app_guid
@@ -98,12 +101,12 @@ module Openshift::SDK::Model
       #TODO: execute in distributed lock
       
       config = Openshift::SDK::Config.instance
-      min_gid = (config.get("min_group_id") || "100").to_i
+      min_gid = (config.get("min_group_id") || "550").to_i
       max_gid = (config.get("max_group_id") || "1000").to_i
       gids = GidApplicationMap.find_all_guids
       gid = nil
-      min_gid..max_gid.step do |id|
-        unless gids.contains? id.to_s
+      (min_gid..max_gid).each do |id|
+        unless gids.include? id.to_s
           gid = id 
           break
         end
@@ -128,24 +131,38 @@ module Openshift::SDK::Model
   # Represents a user account on the system. This object will keep track of
   # name, home directory, user id.
   class User < OpenshiftModel
-    include Openshift::SDK::Utils::ShellExec
+    include Openshift::SDK::Utils::ShellExec    
     validates_presence_of :name, :basedir
     ds_attr_accessor :name, :basedir, :uid, :gid, :homedir, :app_guid
+    
+    def self.bucket
+      "admin"
+    end
 
     # Initializes the user object. app object must be provided for username to
     # be selected properly. uid is optional and will automatically select an
     # unused uid if not provided.
     def initialize(app=nil,uid=nil)
       config = Openshift::SDK::Config.instance
-      @app, @basedir = app.guid,basedir
+      @app_guid, @basedir = app.guid,basedir
       @basedir ||= config.get("app_user_home")
       @guid = @name = "a#{app.guid[0..7]}"
       @uid = uid
       @gid = app.user_group_id
     end
 
+    def homedir
+      @homedir ||= "#{basedir}/#{name}"
+    end
+
     # Creates the user account on the system or raises a UserCreationException.
     def create!
+      cmd = "groupadd -f -g #{self.gid} g#{self.app_guid[0..7]}"
+      out,err,ret = shellCmd(cmd)
+      unless ret == 0
+        raise UserCreationException.new("Unable to create group for user. Error: #{err}")
+      end
+            
       uid_str = ""
       FileUtils.mkdir_p self.basedir
       cmd = "useradd --base-dir #{self.basedir} -u #{self.uid} -g #{self.gid} -m #{self.name}"
@@ -164,39 +181,27 @@ module Openshift::SDK::Model
       unless ret == 0
         raise UserDeletionException.new("Unable to delete user. Error: #{err}")
       end
+      
+      cmd = "groupdel #{self.gid}"
+      out,err,ret = shellCmd(cmd)
     end    
 
-    def setup_app_territory 
-        config = Openshift::SDK::Config.instance
-        prod_dir ||= config.get("app_prod_dir")
-        shared_dir ||= config.get("app_shared_dir")
-        prod_dir = prod_dir + "/" + self.name
-        shared_dir = shared_dir + "/" + self.name
-        FileUtils.mkdir_p prod_dir
-        FileUtils.mkdir_p shared_dir
-
-        FileUtils.chown_R self.name, get_group, prod_dir
-        FileUtils.chown_R self.name, get_group, shared_dir
-
-        FileUtils.chmod 1760,prod_dir
-        FileUtils.chmod 1760,shared_dir
-    end
-
-    def switch_privileges
-        Process::GID.change_privilege(@uid.to_i)
-        Process::UID.change_privilege(@gid.to_i)
-    end
-    
-    def save!
-      uumap = UidUserMap.new self.uid, self.name, self.guid, self.app_guid
-      uumap.save!
-      super.save!      
+    def run_as(&block)
+      old_gid = Process::GID.eid
+      old_uid = Process::UID.eid
+      fork{
+        fork{
+          Process::GID.change_privilege(@gid.to_i)
+          Process::UID.change_privilege(@uid.to_i)      
+          yield block          
+        }
+      }
     end
     
     def delete!
       uumap = UidUserMap.find(self.uid)
       uumap.delete!
-      super.delete!
+      super
     end
   end
 end

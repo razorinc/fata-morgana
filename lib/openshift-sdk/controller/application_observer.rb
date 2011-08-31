@@ -40,10 +40,13 @@ module Openshift
       
       class ApplicationObserver < ActiveModel::Observer
         include Openshift::SDK::Utils::Logger
-        observe Model::Application        
+        observe Model::Application
         
         def before_transition(application, transition)
-          raise InvalidApplicationException.new("application object is not valid") unless application.valid?
+          unless application.valid?
+            log.error application.errors
+            raise InvalidApplicationException.new("application object is not valid") 
+          end
         end
         
         def after_transition(application, transition)
@@ -52,17 +55,27 @@ module Openshift
         def after_create(application, transition)
           log.info "Creating application #{application.guid}"
           begin
-            napp_delegate = Controller::NodeApplicationDelegate.instance
-            napp_delegate.create application
+            #Reserve the group this app will run under
+            application.user_group_id = Model::GidApplicationMap.reserve_application_group(application)
             
-            application.package_root = config.get("app_user_home")
-            application.package_root = "#{application.package_root}/a#{napp.app_guid[0..7]}"
+            #Reserve the first user for the app
+            application.users.push(Model::UidUserMap.reserve_application_user(application))
+            
+            #Load an empty descriptor and this node to the default group on the descriptor
+            group = Model::Group.new
+            group.gen_uuid
+            application.descriptor.profiles["default"].groups["default"] = group
+            application.active_profile = "default"
+            group.nodes.push(Model::Node.this_node.guid)
+            application.save!
+            
+            NodeApplicationDelegate.instance.create(application)
+            application.reload_descriptor
+            application.create_complete!            
           rescue Exception => e
-            raise e
             log.error(e.message)
             application.create_error!
           end
-          application.create_complete!
         end
         
         def after_create_error(application, transition)      
@@ -72,58 +85,6 @@ module Openshift
         
         def after_create_complete(application, transition)      
           log.info "Application #{application.guid} created"
-        end
-        
-        def after_install(application, transition)
-          print "Installing application #{application.guid}\n"
-          begin
-            napp_delegate = Controller::NodeApplicationDelegate.instance
-            napp_delegate.install application
-          rescue Exception => e
-            raise e
-            log.error(e.message)
-            application.install_error!
-          end
-          application.install_complete!
-        end
-        
-        def after_start(application, transition)
-          print "Starting application #{application.guid}\n"
-          begin
-            napp_delegate = Controller::NodeApplicationDelegate.instance
-            napp_delegate.start application
-          rescue Exception => e
-            raise e
-            log.error(e.message)
-            application.start_error!
-          end
-          application.start_complete!  
-        end
-        
-        def after_stop(application, transition)
-          print "Stopping application #{application.guid}\n"
-          begin
-            napp_delegate = Controller::NodeApplicationDelegate.instance
-            napp_delegate.stop application
-          rescue Exception => e
-            raise e
-            log.error(e.message)
-            application.stop_error!
-          end
-          application.stop_complete!  
-        end
-        
-        def after_uninstall(application, transition)
-          print "Uninstalling application #{application.guid}\n"
-          begin
-            napp_delegate = Controller::NodeApplicationDelegate.instance
-            napp_delegate.uninstall application
-          rescue Exception => e
-            raise e
-            log.error(e.message)
-            application.uninstall_error!
-          end
-          application.uninstall_complete!  
         end
         
         def after_destroy(application, transition)

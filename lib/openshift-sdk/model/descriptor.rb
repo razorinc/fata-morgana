@@ -57,11 +57,12 @@ module Openshift::SDK::Model
     def initialize(cartridge=nil)
       @profiles = {}
       return if cartridge.nil?
-      f = File.open("#{cartridge.package_path}/openshift/descriptor.json")
+      
       begin
-          json_data = JSON.parse(f.read)
+        f = File.open("#{cartridge.package_path}/openshift/descriptor.json")
+        json_data = JSON.parse(f.read)
       rescue Exception => e
-          json_data = {}
+        json_data = {}
       end
       f.close
       if json_data["profiles"]

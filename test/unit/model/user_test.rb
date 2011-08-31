@@ -11,6 +11,8 @@ module Openshift::SDK::Model
     def test_reserve_application_user
       Openshift::SDK::Config.any_instance.expects(:get).with("package_root").returns("/opt/openshift/cartridges")
       Openshift::SDK::Config.any_instance.expects(:get).with("app_user_home").returns("/opt/openshift/applications")
+      Openshift::SDK::Config.any_instance.expects(:get).with("datasource_type").returns("sqlite")
+      Openshift::SDK::Config.any_instance.expects(:get).with("datasource_location").returns("/var/tmp/")      
       application = Application.new("testapp")
       application.guid = "12345678901234567890"
       application.user_group_id = "100"
@@ -21,8 +23,7 @@ module Openshift::SDK::Model
       UidUserMap.any_instance.expects(:save!).at_least_once.returns(true)
       User.any_instance.expects(:save!).at_least_once.returns(true)
       
-      user = UidUserMap.reserve_application_user application
-      assert_equal user.uid,"2"
+      uguid=UidUserMap.reserve_application_user(application)
     end
   end
   

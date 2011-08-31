@@ -29,14 +29,6 @@ require 'openshift-sdk/utils/shell_exec'
 module Openshift
   module SDK
     module Utils
-      class ShellExecutionException < Exception ;
-        attr_accessor :rc
-        def initialize(msg, rc=-1)
-          super msg
-          self.rc = rc 
-        end
-      end
-      
       class VersionControl
         attr_accessor :work_tree,:git_dir, :is_bare
         include Openshift::SDK::Utils::Logger
@@ -79,8 +71,8 @@ module Openshift
             reset
           rescue ShellExecutionException => ex
             if ex.rc == 128 #empty repository
-              shellCmd("touch .gitignore", self.work_tree)
-              add(".gitignore")
+              shellCmd("touch #{self.work_tree}/.gitignore", self.work_tree)
+              add("#{self.work_tree}/.gitignore")
               commit("Initial commit")
             else
               raise ex
@@ -98,9 +90,9 @@ module Openshift
         
         def add(file_paths)
           if file_paths.class == 'Array'
-            shellCmd("git --work-tree=#{self.work_tree} --git-dir=#{self.git_dir} add -- #{file_paths.join(' ')}", self.work_tree)
+            shellCmd("git --work-tree=#{self.work_tree} --git-dir=#{self.git_dir} add -f -- #{file_paths.join(' ')}", self.work_tree)
           else
-            shellCmd("git --work-tree=#{self.work_tree} --git-dir=#{self.git_dir} add -- #{file_paths}", self.work_tree)
+            shellCmd("git --work-tree=#{self.work_tree} --git-dir=#{self.git_dir} add -f -- #{file_paths}", self.work_tree)
           end
         end
         

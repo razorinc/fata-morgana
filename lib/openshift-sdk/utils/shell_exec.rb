@@ -25,44 +25,52 @@ require 'open3'
 require 'openshift-sdk/config'
 require 'openshift-sdk/utils/logger'
 
-module Openshift
-  module SDK
-    module Utils
-      module ShellExec
-        def shellCmd(cmd, pwd=".", ignore_err=false, expected_rc=0)
-          out = err = rc = nil          
-          begin
-            log.debug cmd
-            rc_file = "/var/tmp/#{Process.pid}.#{rand}"
-            log.debug m_cmd = "cd #{pwd}; #{cmd}; echo $? > #{rc_file}"
-            stdin, stdout, stderr = Open3.popen3(m_cmd){ |stdin,stdout,stderr,thr|
-              stdin.close
-              log.debug "--out--"
-              log.debug out = stdout.read
-              log.debug "--err--"
-              log.debug err = stderr.read          
-              stdout.close
-              stderr.close  
-            }
-            f_rc_file = File.open(rc_file,"r")
-            rc = f_rc_file.read.to_i
-            f_rc_file.close
-            log.debug `rm -f #{rc_file}`
-            log.debug "rc = #{rc}"
-          rescue Exception => e
-            log.error e.class
-            log.error e.message
-            raise ShellExecutionException.new(e.message) unless ignore_err
-          end
-          
-          if !ignore_err and rc != expected_rc 
-            raise ShellExecutionException.new("Shell command '#{cmd}' returned an error. rc=#{rc}", rc)
-          end
-           
-          return [out, err, rc]
-        end
-      end
+module Openshift::SDK::Utils
+  class ShellExecutionException < Exception
+    attr_accessor :rc
+    def initialize(msg, rc=-1)
+      super msg
+      self.rc = rc 
     end
   end
 end
-        
+
+module Openshift::SDK::Utils::ShellExec
+  def shellCmd(cmd, pwd=".", ignore_err=false, expected_rc=0)
+    Openshift::SDK::Utils::ShellExec.shellCmd(cmd, pwd, ignore_err, expected_rc)
+  end
+  
+  def self.shellCmd(cmd, pwd=".", ignore_err=false, expected_rc=0)
+    out = err = rc = nil         
+    log = Openshift::SDK::log 
+    begin
+      log.debug cmd
+      rc_file = "/var/tmp/#{Process.pid}.#{rand}"
+      log.debug m_cmd = "cd #{pwd}; #{cmd}; echo $? > #{rc_file}"
+      stdin, stdout, stderr = Open3.popen3(m_cmd){ |stdin,stdout,stderr,thr|
+        stdin.close
+        log.debug "--out--"
+        log.debug out = stdout.read
+        log.debug "--err--"
+        log.debug err = stderr.read          
+        stdout.close
+        stderr.close  
+      }
+      f_rc_file = File.open(rc_file,"r")
+      rc = f_rc_file.read.to_i
+      f_rc_file.close
+      log.debug `rm -f #{rc_file}`
+      log.debug "rc = #{rc}"
+    rescue Exception => e
+      log.error e.class
+      log.error e.message
+      raise Openshift::SDK::Utils::ShellExecutionException.new(e.message) unless ignore_err
+    end
+    
+    if !ignore_err and rc != expected_rc 
+      raise Openshift::SDK::Utils::ShellExecutionException.new("Shell command '#{cmd}' returned an error. rc=#{rc}", rc)
+    end
+     
+    return [out, err, rc]
+  end
+end

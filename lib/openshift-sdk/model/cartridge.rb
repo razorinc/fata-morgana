@@ -30,7 +30,7 @@ require 'openshift-sdk/model/descriptor'
 
 module Openshift::SDK::Model
   class Cartridge < OpenshiftModel
-    validates_presence_of :name, :native_name, :package_root, :package_path, :summary, :version, :provides_feature
+    #validates_presence_of :name, :native_name, :package_root, :package_path, :summary, :version, :provides_feature
     ds_attr_accessor :name, :native_name, :package_root, :package_path, :summary, :version, :license, :provides_feature, :requires_feature, :requires, :descriptor, :is_installed, :hooks 
     def self.bucket
       "admin"
@@ -53,6 +53,12 @@ module Openshift::SDK::Model
     
     def installed?
       @is_installed
+    end
+    
+    def reload_descriptor
+      descriptor_will_change!
+      @descriptor = nil
+      self.descriptor
     end
     
     def descriptor
@@ -148,7 +154,7 @@ module Openshift::SDK::Model
       cartridge.is_installed = true
       cartridge
     end
-  
+    
     def to_s
       yaml_object = {}
       yaml_object["Name"] = self.name
