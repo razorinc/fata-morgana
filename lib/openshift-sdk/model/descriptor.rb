@@ -63,6 +63,7 @@ module Openshift::SDK::Model
       rescue Exception => e
           json_data = {}
       end
+      f.close
       if json_data["profiles"]
         json_data["profiles"].each do |name, prof_data|
           @profiles[name] = Profile.new(name,prof_data,cartridge)
@@ -70,21 +71,15 @@ module Openshift::SDK::Model
       else
         @profiles["default"] = Profile.new("default",json_data,cartridge)
       end
-    end
 
-    def browse(profile_name = nil)
-      if profile_name.nil?
-        print "\nProfiles :\n"
-        @profiles.keys.each { |profile|
-          next if profile.nil?
-          print "\t", @profiles[profile].name, "\n"
-        }
-      else
-        profile = @profiles[profile_name]
-        return profile
+      f = File.open("#{cartridge.package_path}/openshift/descriptor.json", "w")
+      begin
+        f.write(self.to_json)
+      rescue Exception => e
+        log.error("Failed to write descriptor to #{cartridge.package_path}/openshift/descriptor.json! Reason :", String(e))
       end
-      print "Enter name of profile to browse\n"
-      return self
+      f.close
     end
   end
 end
+

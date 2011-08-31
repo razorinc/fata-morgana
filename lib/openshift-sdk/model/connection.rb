@@ -79,10 +79,5 @@ module Openshift::SDK::Model
       end
     end
 
-    def browse(obj= nil)
-      print self.to_json
-      return self
-    end
-
   end
 end
