@@ -1,3 +1,70 @@
+Directory hierarchy
+===================
+
+Tentative:
+   a. Local user/group created per application :
+          uid=<uuid>
+          gid=<uuid>
+          homedir=/opt/openshift/applications/<uuid>/
+      Hierarchy:
+        ~/
+          app/
+             .openshift/     symlinked from  <- ~uuid/configuration/  on flex
+                             unused in express for now
+
+          configuration/    symlinked to ->  ~uuid/app/configuration/ on flex
+	                    a "real" internal directory on express
+               <php1-guid>/       php1 component configuration
+                    www-dynamic/        symlink to -> ../<www-dynamic-guid>
+
+               <www-dynamic-guid> www-dynamic configuration
+               php1                     symlink to -> <php1-guid>
+               <secondphp-guid>/  secondphp component configuration
+               secondphp                symlink to -> <secondphp-guid>
+
+          repository/     symlink to ->  /var/openshift/repository/<uuid>
+          production      symlink to ->  /srv/openshift/<uuid>
+
+   b. Repository created for application
+          Location: /var/openshift/repository/<uuid>
+
+   c. Deployment location = /srv/openshift/<uuid>
+      Hierarchy:
+          app/.openshift/
+          configuration/    symlinked to ->  ../app/.openshift/ always
+
+   d. Cartridges installed to /opt/openshift/cartridges/
+
+
+   Hooks use  ${app.home}/configuration 
+
+
+
+Workflow
+========
+  Workflow (+events+connectors+hooks) and how they tie in together -- this
+  is a 'scrappy' first attempt:
+  application-create-event*
+  add-feature|component-to-application  [times-n]
+     resolves to either app-component or native-dependencies or cartridges
+     for each dependency:
+        if native-dependency:  yum install native-dependency
+        else:
+           run-hook(install)
+           for all sub-dependencies: install && build && configure
+           run-hook(build)
+           run-hook(configure)
+  deploy-application-event*
+     for each cartridge:  run-hook(configure)
+     for each component:  establish-connections*  #  could be called 'n' times.
+  start-stop-application-event*
+     for cartridge in start-or-stop-order:  run-hook(start|stop)
+  delete-application-event*
+     for each cartridge: 
+        run-hook(deconfigure)
+        *remove (handle removal?? flex only likely)
+
+
 Calls to cartridge hooks
 ========================
 
@@ -14,4 +81,23 @@ component_guid = The instance identifier for app (unique to each app in a
     cluster.  if an app has 2 nodes in the cluster, each app on that node
     would get a different component_guid - like instance_1 instance_2)
 app_name = String name used for messaging (in express $NAME-$DOMAIN)
+
+
+    Environment passed to hooks:
+       Global Set:
+          OPENSHIFT_CONFIG_DIR     #  default: /etc/openshift
+          OPENSHIFT_PROFILE        #  express|flex
+
+      App specific:
+          OPENSHIFT_APP_GUID
+          OPENSHIFT_APP_TYPE            #  php|tomcat|jboss ... 
+          OPENSHIFT_APP_HOME_DIR        #  ${HOME}/
+          OPENSHIFT_APP_REPO_DIR        #  ${HOME}/repository/
+          OPENSHIFT_APP_PROD_DIR        #  ${HOME}/production/
+
+      On a per-hook basis?? 
+          OPENSHIFT_APP_BINDADDR   #  internal bind address 
+                                   #  127.0.*.*  - 'n' (=64) per app.
+          OPENSHIFT_APP_PORT       #  internal port number.
+
 
