@@ -25,44 +25,53 @@ declare -A  g_subst_map
 # Functions.
 #
 function init_substitution_map() {
-   cfg_dir="${1:-'.'}"
-   g_subst_map['www-dynamic:CONFIG_DIR']="${cfg_dir}"
+   local cfg_dir mapinfo
+   cfg_dir=${1:-'.'}
+   g_subst_map['www-dynamic:CONFIGURATION_DIR']="$cfg_dir"
+   g_subst_map['www-dynamic:BIND_ADDRESS']=`os_get_userifaddr`
 
    for k in `env | grep "^OPENSHIFT_" | cut -f1 -d '='`; do
       g_subst_map[$k]="${!k}"
    done
 
+   mapinfo="keys:[${!g_subst_map[@]}], values:[${g_subst_map[*]}]"
+   [ -n "$_DEBUG_HOOKS" ]  &&  os_debug_log "init_subst_map($1) = $mapinfo"
+   return 0
+
 }  #  End of function  init_substitution_map.
 
 
 function copy_template() {
+   local src dest
    src=${1:-""}
    dest=${2:-""}
  
-   [ ! -f "${src}" ]  &&  die 22 "copy_template - invalid source '${src}'"
-   [ -z "${dest}" ]   &&  die 22 "copy_template - invalid dest '${dest}'"
+   [ ! -f "$src" ]  &&  die 22 "copy_template - invalid source '$src'"
+   [ -z "$dest" ]   &&  die 22 "copy_template - invalid dest '$dest'"
 
    substitutions=""
-   for k in ${!g_subst_map[@]}"; do 
-      substitutions="s#\${$k}#${g_subst_map[$k]}#g;"
+   for k in ${!g_subst_map[@]}; do 
+      substitutions="$substitutions; s#\${$k}#${g_subst_map[$k]}#g;"
    done
 
-   sed "${substitutions}" "${src}" >  "${dest}"
+   sed "${substitutions}" "$src" >  "$dest"
 
 }  #  End of function  copy_template.
 
 
 function copy_scaffolding() {
-   config_dir="${1:-"."}/conf"
+   app_config_dir=${1:-"."}
 
    #  Ensure configuration exists for the component.
-   if ! test -d "${config_dir}"; then
-      mkdir -p "${config_dir}" "${config_dir}/../conf.d/"
+   if ! test -d "$app_config_dir/conf"; then
+      mkdir -p "$app_config_dir/conf" "$app_config_dir/conf.d/"
 
-      # Copy over the interpolated template to the app component space.
-      copy_template "../templates/httpd.conf"  "${config_dir}/httpd.conf"
-      copy_template "../templates/os-${openshift_profile}.conf"  \
-                    "${config_dir}/../conf.d/os-${openshift_profile}.conf"
+      local templates_dir
+      templates_dir=$(cd -P "${hook_dir}/../templates" && pwd -P)
+      for f in `(cd "$templates_dir"; find . -type f)`; do
+         # Copy over the interpolated template to the app component space.
+         copy_template "$templates_dir/$f" "$app_config_dir/$f"
+      done
    fi
 
 }  #  End of function  copy_scaffolding.
@@ -71,12 +80,13 @@ function copy_scaffolding() {
 #
 # _main()
 #
-source ./common.sh
+source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/common.sh
 os_initialize_hook_env $@
-[ $# -eq 2 ]  ||  os_print_hook_usage
+[ $# -ge 1 ]  ||  os_print_hook_usage
 
-cfgdir="${OPENSHIFT_APP_PROD_DIR:-"."}/${app_config_subdir}/$component_guid"
-init_substitution_map "${cfgdir}"
-copy_scaffolding      "${cfgdir}"
+comp_guid=${OPENSHIFT_COMPONENT_GUID:-""}
+cfgdir=${OPENSHIFT_APP_PROD_DIR:-"."}/$app_config_subdir/$comp_guid
+init_substitution_map "$cfgdir"
+copy_scaffolding      "$cfgdir"
 
 

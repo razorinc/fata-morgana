@@ -24,13 +24,13 @@ set -e
 # Functions.
 #
 function configure_app() {
-   os_debug_log "application $application_guid"
+   os_debug_log "for application $application_name"
 
 }  #  End of function  configure_app.
 
 
 function deconfigure_app() {
-   os_debug_log "application $application_guid"
+   os_debug_log "for application $application_name"
 
 }  #  End of function  deconfigure_app.
 
@@ -38,9 +38,9 @@ function deconfigure_app() {
 #
 # _main()
 #
-source ./common.sh
+source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/common.sh
 os_initialize_hook_env $@
-[ $# -eq 2 ]  ||  os_print_hook_usage
+[ $# -ge 1 ]  ||  os_print_hook_usage
 
 case "$hook_name" in 
    configure)    configure_app    ;;

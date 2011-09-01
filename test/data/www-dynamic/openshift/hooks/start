@@ -23,36 +23,35 @@ set -e
 #
 # _main()
 #
-source ./common.sh
-os_initialize_hook_env $@
-[ $# -eq 2 ]  ||  os_print_hook_usage
+source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/common.sh
+os_initialize_hook_env "$@"
+[ $# -ge 1 ]  ||  os_print_hook_usage
 
-cfgdir="${OPENSHIFT_APP_PROD_DIR:-"."}/${app_config_subdir}/$component_guid/conf/"
+comp_guid=${OPENSHIFT_COMPONENT_GUID:-""}
+cfgdir=${OPENSHIFT_APP_PROD_DIR:-"."}/$app_config_subdir/$comp_guid
+cfgfile="$cfgdir/conf/httpd.conf"
 
-#  First up need to ensure configuration exists for the component.
-if ! test -f "${cfgdir}/httpd.conf"; then
-   echo "Error: Missing configuration file - ${cfgdir}/httpd.conf" 2>
-   exit 2
+#  Ensure configuration exists for the component.
+if ! test -f "$cfgfile"; then
+   die 2 "Missing configuration file - $cfgfile"
 fi
 
 
 #  Setup command line options.
-httpd_opts="-C 'Include ${cfgdir}/../conf.d/*.conf'"
+httpd_opts="-C 'Include $cfgdir/conf.d/*.conf'"
 
 if [ "X$hook_name" = "Xstart" ]; then
-   addrnport="$_OPENSHIFT_APP_BINDADDR:$_OPENSHIFT_APP_PORT"
-   httpd_opts="${httpd_opts} -C 'Listen $addrnport'"
-   httpd_opts="${httpd_opts} -C 'User  $_OPENSHIFT_APP_USER'"
-   httpd_opts="${httpd_opts} -C 'Group $_OPENSHIFT_APP_GROUP'"
+   user_name=`id -un`
+   group_name=`id -gn`
+   [ `id -u` -eq 0 ]  && user_name=apache  &&  group_name=apache
+
+   httpd_opts="${httpd_opts} -C 'User  $user_name"
+   httpd_opts="${httpd_opts} -C 'Group $group_name"
 fi
 
-prod_dir="${OPENSHIFT_APP_PROD_DIR:-"."}"
-var_run_dir="$prod_dir/var/run"
+rundir="${OPENSHIFT_APP_PROD_DIR:-"."}"
+[ -d "$rundir/var/run" ]  ||  mkdir -p "$rundir/var/run"
 
-[ -d "$var_run_dir" ]  ||  mkdir -p "$var_run_dir"
-
-cd "$prod_dir"
-/usr/sbin/httpd -f ${cfgdir}/httpd.conf ${httpd_opts} -k $hook_name
-
-logger -p user.notice  "$cartridge_name->$0 $@ + opts=${httpd_opts}"
+(cd "$rundir"; /usr/sbin/httpd -f $cfgfile $httpd_opts -k $hook_name)
+os_log_notice "$@ + opts=${httpd_opts}"
 exit 0

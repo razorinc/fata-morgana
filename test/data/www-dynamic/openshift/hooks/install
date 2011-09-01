@@ -23,10 +23,10 @@ set -e
 #
 # _main():  Install hook does nothing for the www-dynamic cartridge.
 #
-source ./common.sh
+source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/common.sh
 os_initialize_hook_env $@
-[ $# -eq 2 ]  ||  os_print_hook_usage
+[ $# -ge 1 ]  ||  os_print_hook_usage
 
-os_debug_log "for application $application_guid"
+os_debug_log "for application $application_name"
 exit 0
 
