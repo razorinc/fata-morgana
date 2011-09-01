@@ -255,6 +255,7 @@ module Openshift::SDK::Model
       components.each do |cname, cinst|
         return cinst if cinst.component.feature == name
       end
+      return nil
     end
 
     def create_connections(cinst1,cinst2)

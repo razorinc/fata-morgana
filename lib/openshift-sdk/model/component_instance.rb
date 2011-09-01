@@ -31,7 +31,7 @@ require 'openshift-sdk/model/feature_cartridge_cache'
 module Openshift::SDK::Model
   class ComponentInstance < OpenshiftModel
     validates_presence_of :feature, :cartridge, :component, :profile_name, :group_name
-    ds_attr_accessor :feature, :cartridge, :component, :profile_name, :dependency_instances, :component_group_name, :group_name
+    ds_attr_accessor :feature, :cartridge, :component, :profile_name, :dependency_instances, :component_group_name, :group_name, :component_guid
     
     def initialize(guid=nil,descriptor_data=nil)
       self.dependency_instances = {}
