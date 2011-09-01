@@ -37,7 +37,9 @@ Tentative:
    d. Cartridges installed to /opt/openshift/cartridges/
 
 
-   Hooks use  ${app.home}/configuration 
+   Hooks use  ${app.deployment.dir}/configuration except when scaffolding
+   is copied over into the application space when adding a cartridge
+   (feature) to the application.
 
 
 
@@ -74,32 +76,37 @@ Tentative:
 
 Calls to all cartridge hooks will take the following form:
 
-$cartridge/$hook $APP_GUID $COMPONENT_GUID $APP_NAME
+$cartridge/$hook $APP_NAME [$APP_GUID]
 
 cartridge = Cartridge we're working with (php, apache, mysql, etc)
 hook = Call to the hook we want (start, stop, deconfigure)
-app_guid = The unique identifier for the app (UUID)
-component_guid = The instance identifier for app (unique to each app in a
-    cluster.  if an app has 2 nodes in the cluster, each app on that node
-    would get a different component_guid - like instance_1 instance_2)
 app_name = String name used for messaging (in express $NAME-$DOMAIN)
+app_guid = The unique identifier for the app (UUID). Optional.
+           This is really needed only if multiple apps resolve to the same
+           app_name (will not be the case on express and as of now its a
+           flex-only thingy). Ooh, we could also differentiate this based on
+           the user name and really need the guid only when the user or the
+           executing id is part of multiple groups w/ the same-named apps.
 
+Simplying this so that we can always get the hook "context" using the
+application name as the key -- allows for a "hook" to be run directly
+and the context/environment to get setup internally.
 
-    Environment passed to hooks:
-       Global Set:
-          OPENSHIFT_CONFIG_DIR     #  default: /etc/openshift
-          OPENSHIFT_PROFILE        #  express|flex
+Environment passed to hooks includes:
+   Global Set:
+      OPENSHIFT_CONFIG_DIR          #  default: /etc/openshift
+      OPENSHIFT_PROFILE             #  express|flex
 
-      App specific:
-          OPENSHIFT_APP_GUID
-          OPENSHIFT_APP_TYPE            #  php|tomcat|jboss ... 
-          OPENSHIFT_APP_HOME_DIR        #  ${HOME}/
-          OPENSHIFT_APP_REPO_DIR        #  ${HOME}/repository/
-          OPENSHIFT_APP_PROD_DIR        #  ${HOME}/production/
+   App/Cartridge specific:
+      OPENSHIFT_APP_GUID
+      OPENSHIFT_COMPONENT_GUID
+      OPENSHIFT_APP_TYPE            #  php|tomcat|jboss ...
+      OPENSHIFT_APP_HOME_DIR        #  ${HOME}/
+      OPENSHIFT_APP_REPO_DIR        #  ${HOME}/repository/
+      OPENSHIFT_APP_PROD_DIR        #  ${HOME}/production/
 
-      On a per-hook basis?? 
-          OPENSHIFT_APP_BINDADDR   #  internal bind address 
-                                   #  127.0.*.*  - 'n' (=64) per app.
-          OPENSHIFT_APP_PORT       #  internal port number.
+   On a per-hook basis?? This is not needed as of now ...
+      OPENSHIFT_APP_BINDADDR        #  internal bind address
+                                    #  127.0.*.*  - 'n' (=64) per app.
 
 
