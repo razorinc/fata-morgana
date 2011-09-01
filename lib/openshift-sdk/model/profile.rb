@@ -68,11 +68,39 @@ module Openshift::SDK::Model
       if descriptor_data["groups"]
         descriptor_data["groups"].each do |name, grp_data|
           @groups[name] = Group.new(name,grp_data,cartridge)
+          components = {}
+          if descriptor_data["components"]
+            #all components have already been defined in the provided descriptor
+            descriptor_data["components"].each{|comp_name,comp_hash|
+              components[comp_name] = ComponentInstance.new(comp_name,comp_hash)
+            } 
+          else
+            #no components have been defined in descriptor so have to create 
+            #them based on application dependencies
+            app_dependencies = cartridge.requires_feature
+            app_dependencies.each do |feature|
+              components.merge! ComponentInstance.component_instance_for_feature(feature)
+            end
+          end
           self.connections = load_connections(components,descriptor_data)
         end
       else
         if cartridge.class == Cartridge
           @groups["default"] = Group.new("default",descriptor_data,cartridge)
+          components = {}
+          if descriptor_data["components"]
+            #all components have already been defined in the provided descriptor
+            descriptor_data["components"].each{|comp_name,comp_hash|
+              components[comp_name] = ComponentInstance.new(comp_name,comp_hash)
+            } 
+          else
+            #no components have been defined in descriptor so have to create 
+            #them based on application dependencies
+            app_dependencies = cartridge.requires_feature
+            app_dependencies.each do |feature|
+              components.merge! ComponentInstance.component_instance_for_feature(feature)
+            end
+          end
           self.connections = load_connections(components,descriptor_data)
         end
         
