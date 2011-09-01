@@ -85,31 +85,7 @@ if args['--help']
   exit -101
 end
 
-# expected args - application name 
-# this script runs as system interface (on Flex - paster, on Express - libra-passenger)
-# create a bare-bones app object
-# create a new user (using new guid from app)
-# fill up the super-user datastore that contains the map
-#   of user<=>app
-# then, acting as the new user, fill up the application object
-#   i.e. create basic descriptor/control.spec
-
-# create new app
 app = Openshift::SDK::Model::Application.new(name)
 app.gen_uuid
-
-# create user for this app
-user = Openshift::SDK::Model::User.new(app)
-user.create!
-user.setup_app_territory
-
-# change privileges
-user.switch_privileges
-
-# setup app package path
-user_home_dir = user.basedir + "/" + user.name
-app.populate_work_area(user.name, user_home_dir, version, summary)
-app.save!
-
+app.create!
 print app.guid
-

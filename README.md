@@ -49,6 +49,15 @@ To build and install the gem from the source tree, use:
 Local Env
 ---------
 
+To install required gems, you will first need some RPMs
+
+	sudo yum -y install ruby rubygems sqlite3-devel rpm-build createrepo
+
+Install the required gems
+
+	sudo gem install rake bundler
+	sudo bundle
+
 To run from a local checkout run:
 
     eval $( rake local_env | tail -n +1 )
@@ -64,6 +73,8 @@ Build Test Packages
     baseurl=file:///var/tmp/openshift-repo
     enabled=1
     gpgcheck=0" > /etc/yum.repos.d/openshift.repo
+
+	rake install_openshift_cartridges
 
 Running Unit Tests
 ------------------

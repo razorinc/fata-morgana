@@ -28,71 +28,28 @@ require 'openshift-sdk/model/node'
 require 'openshift-sdk/model/application'
 require 'openshift-sdk/model/node_application'
 
-module Openshift
-  module SDK
-    module Controller
-      class NodeApplicationDelegate
-        include Object::Singleton
-        attr_reader :nodes
-
-        def initialize
-          node = Model::Node.find("1") || Model::Node.new("1")
-          node.save!
-          @nodes = [node]          
+module Openshift::SDK::Controller
+  class NodeApplicationDelegate
+    include Object::Singleton
+    
+    def create(application)
+      profile = application.descriptor.profiles[application.active_profile]
+      profile.groups.each do |gname, group|
+        group.nodes.each do |node_guid|
+          node = Openshift::SDK::Model::Node.find(node_guid)
+          napp = node.node_application_map[application.guid] = Openshift::SDK::Model::NodeApplication.new(application.guid,application.user_group_id)
+          napp.gen_uuid
+          napp.save!          
+          napp.create!
         end
-        
-        def elect_node
-          @nodes[0]
-        end
-        
-        def create(application)
-          #create the application on all nodes
-          @nodes.each do |node|
-            #use REST or dbus or mcollective here
-            napp = Model::NodeApplication.new application.guid
-            napp.gen_uuid
-            napp.save!
-            
-            node[application.guid] = napp.guid
-            node.save!
-            napp.create!
-            
-            #connect all node local repositories to each other
-            #napp.connect_repository_remotes Model::Node.find_all
-          end
-          
-          #import the application code on an elected node
-          #node = elect_node
-           
-          
-          #replicate application code to all nodes
-        end
-        
-        def install(application)
-          napp_guid = node[application.guid]
-          napp = Model::NodeApplication.find(napp_guid)
-          napp.install!
-        end
-        
-        def start(application)
-          napp_guid = node[application.guid]
-          napp = Model::NodeApplication.find(napp_guid)
-          napp.start!
-        end
-        
-        def stop(application)
-          napp_guid = node[application.guid]
-          napp = Model::NodeApplication.find(napp_guid)
-          napp.stop!
-        end
-        
-        def uninstall(application)
-          napp_guid = node[application.guid]
-          napp = Model::NodeApplication.find(napp_guid)
-          napp.uninstall!
-        end
-        
-        def destroy(application)
+      end
+    end
+    
+    def destroy(application)
+      profile = application.descriptor.profiles[application.active_profile]
+      profile.groups.each do |gname, group|
+        group.nodes.each do |node_guid|
+          node = Openshift::SDK::Model::Node.find(node_guid)
           napp_guid = node[application.guid]
           napp = Model::NodeApplication.find(napp_guid)
           napp.destroy!

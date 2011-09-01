@@ -68,11 +68,39 @@ module Openshift::SDK::Model
       if descriptor_data["groups"]
         descriptor_data["groups"].each do |name, grp_data|
           @groups[name] = Group.new(name,grp_data,cartridge)
+          components = {}
+          if descriptor_data["components"]
+            #all components have already been defined in the provided descriptor
+            descriptor_data["components"].each{|comp_name,comp_hash|
+              components[comp_name] = ComponentInstance.new(comp_name,comp_hash)
+            } 
+          else
+            #no components have been defined in descriptor so have to create 
+            #them based on application dependencies
+            app_dependencies = cartridge.requires_feature
+            app_dependencies.each do |feature|
+              components.merge! ComponentInstance.component_instance_for_feature(feature)
+            end
+          end
           self.connections = load_connections(components,descriptor_data)
         end
       else
         if cartridge.class == Cartridge
           @groups["default"] = Group.new("default",descriptor_data,cartridge)
+          components = {}
+          if descriptor_data["components"]
+            #all components have already been defined in the provided descriptor
+            descriptor_data["components"].each{|comp_name,comp_hash|
+              components[comp_name] = ComponentInstance.new(comp_name,comp_hash)
+            } 
+          else
+            #no components have been defined in descriptor so have to create 
+            #them based on application dependencies
+            app_dependencies = cartridge.requires_feature
+            app_dependencies.each do |feature|
+              components.merge! ComponentInstance.component_instance_for_feature(feature)
+            end
+          end
           self.connections = load_connections(components,descriptor_data)
         end
         
@@ -93,6 +121,8 @@ module Openshift::SDK::Model
           end
           
           #all components instances are known, now decide connections
+          log.debug components.to_yaml
+          
           #components may not be in groups yet 
           log.debug "load connections ...\n"
           connections = load_connections(components,descriptor_data)
@@ -110,7 +140,7 @@ module Openshift::SDK::Model
           #start forming groups based on group signature and colocation constraints
           proc_components = components.values.clone
           groups = {}
-          begin
+          while proc_components.size > 0
             cinst = proc_components.pop
             next if cinst.nil?
             comp_group = cinst.cartridge.descriptor.profiles[cinst.profile_name].groups[cinst.component_group_name]            
@@ -147,7 +177,7 @@ module Openshift::SDK::Model
               g.components[cinst.guid] = cinst
               cinst.group_name = g.guid
             end
-          end while proc_components.size > 0
+          end 
           
           #update connections based on new groups
           connections.each do |cname, conn|
@@ -225,6 +255,7 @@ module Openshift::SDK::Model
       components.each do |cname, cinst|
         return cinst if cinst.component.feature == name
       end
+      return nil
     end
 
     def create_connections(cinst1,cinst2)

@@ -25,6 +25,8 @@ require 'json'
 require 'active_model'
 require 'openshift-sdk/config'
 require 'openshift-sdk/utils/logger'
+require 'openshift-sdk/utils/shell_exec'
+require "openshift-sdk/utils/sqlite_ds"
 
 ActiveSupport::JSON.backend = "JSONGem" 
 module Openshift
@@ -72,16 +74,19 @@ module Openshift
         end
         
         def self.bucket
-          "app"
+          #app bucket is based on user group id
+          o,e,rc = Openshift::SDK::Utils::ShellExec::shellCmd('id -ng')
+          o.strip!
         end
         
         def self.find(id,bucket=nil)
           bucket ||= self.bucket
+          Openshift::SDK.log.debug("find #{self.name} id:#{id} bucket:#{bucket}")
+          binding.pry unless bucket
           
           type = self.name
           config = Openshift::SDK::Config.instance
           ds_type = config.get("datasource_type")
-          require "openshift-sdk/utils/#{ds_type}_ds"
           ds = eval("Utils::#{ds_type.capitalize}.instance")
           value = ds.find(type,id,bucket)
           return nil unless value
@@ -97,10 +102,11 @@ module Openshift
         
         def self.find_all(bucket=nil)
           bucket ||= self.bucket
+          Openshift::SDK.log.debug("find-all #{self.name} bucket:#{bucket}")
+
           type = self.name
           config = Openshift::SDK::Config.instance
           ds_type = config.get("datasource_type")
-          require "openshift-sdk/utils/#{ds_type}_ds"
           ds = eval("Utils::#{ds_type.capitalize}.instance")
           values = ds.find_all(type,bucket)
   
@@ -115,10 +121,10 @@ module Openshift
         
         def self.find_all_guids(bucket=nil)
           bucket ||= self.bucket
+          Openshift::SDK.log.debug("find-all-guid #{self.name} bucket:#{bucket}")
           type = self.name
           config = Openshift::SDK::Config.instance
           ds_type = config.get("datasource_type")
-          require "openshift-sdk/utils/#{ds_type}_ds"
           ds = eval("Utils::#{ds_type.capitalize}.instance")
           return ds.find_all_ids(type,bucket)
         end
@@ -158,7 +164,7 @@ module Openshift
           end
         end
         
-        def save!
+        def save!(bucket=nil)
           bucket ||= self.class.bucket
           
           unless self.changed?
@@ -173,13 +179,9 @@ module Openshift
           type = self.class.name
           id = self.guid
           value = self.to_yaml
-          log.debug "--save--"
-          log.debug type
-          log.debug id
-          log.debug "--x--"
+          log.debug "saving type: #{type}, id: #{id}, bucket: #{bucket}"
           config = Openshift::SDK::Config.instance
           ds_type = config.get("datasource_type")
-          require "openshift-sdk/utils/#{ds_type}_ds"
           ds = eval("Utils::#{ds_type.capitalize}.instance")
           yaml = ds.save(type,id,value,bucket)
           @changed_attributes.clear
@@ -197,7 +199,6 @@ module Openshift
           
           config = Openshift::SDK::Config.instance
           ds_type = config.get("datasource_type")
-          require "openshift-sdk/utils/#{ds_type}_ds"
           ds = eval("Utils::#{ds_type.capitalize}.instance")
           ds.delete(type,id,bucket)
           @changed_attributes.clear

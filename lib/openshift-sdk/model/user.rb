@@ -26,6 +26,7 @@ require 'rubygems'
 require 'active_model'
 require 'openshift-sdk/model/model'
 require 'openshift-sdk/utils/shell_exec'
+require 'openshift-sdk/config.rb'
 
 module Openshift::SDK::Model
   class UserCreationException < Exception
@@ -33,84 +34,174 @@ module Openshift::SDK::Model
 
   class UserDeletionException < Exception
   end
+  
+  # == Uid to User map
+  # 
+  # Reserves a UID for an application and provides capability to lookup an application
+  # based on user ID
+  class UidUserMap < OpenshiftModel
+    ds_attr_accessor :name, :user_guid, :app_guid
+    
+    def self.bucket
+      "admin"
+    end
+    
+    # Reserves a UID and returns a new user for the application.
+    # The min,max user id and group id for the created account can be
+    # configured using the min_user_id, max_user_id configuration
+    # entries.    
+    def self.reserve_application_user(app=nil)
+      #TODO: execute in distributed lock
+            
+      config = Openshift::SDK::Config.instance
+      min_uid = (config.get("min_user_id") || "100").to_i
+      max_uid = (config.get("max_user_id") || "1000").to_i
+      uids = UidUserMap.find_all_guids
+      uid = nil
+      (min_uid..max_uid).each do |id|
+        unless uids.include? id.to_s
+          uid = id 
+          break
+        end
+      end
+      user = User.new app,uid.to_s
+      user.gen_uuid
+      uum = UidUserMap.new uid,user.name,user.guid,app.guid
+      uum.save!
+      user.save!
+      
+      user.guid
+    end
+
+    private
+    
+    def initialize(uid=nil,uname=nil,user_guid=nil,app_guid=nil)
+      return unless uid
+      guid_will_change!
+      user_guid_will_change!
+      @guid,@name,@user_guid,@app_guid=uid,uname,user_guid,app_guid
+    end
+  end
+  
+  # == Gid to Application Map
+  #
+  # Reserves a group ID for an application
+  class GidApplicationMap < OpenshiftModel
+    ds_attr_accessor :name, :app_guid
+    
+    def self.bucket
+      "admin"
+    end
+    
+    # Reserves a group ID for an application    
+    # The min,max user id and group id for the created account can be
+    # configured using the min_group_id, max_group_id configuration
+    # entries.
+    def self.reserve_application_group(app)
+      #TODO: execute in distributed lock
+      
+      config = Openshift::SDK::Config.instance
+      min_gid = (config.get("min_group_id") || "550").to_i
+      max_gid = (config.get("max_group_id") || "1000").to_i
+      gids = GidApplicationMap.find_all_guids
+      gid = nil
+      (min_gid..max_gid).each do |id|
+        unless gids.include? id.to_s
+          gid = id 
+          break
+        end
+      end
+      map_obj = GidApplicationMap.new gid,app.guid,app.guid
+      map_obj.save!
+      map_obj.guid
+    end
+
+    private
+    
+    def initialize(gid=nil,gname=nil,app_guid=nil)
+      return unless gid
+      guid_will_change!
+      app_guid_will_change!
+      @guid,@name,@app_guid=gid,gname,app_guid
+    end
+  end
 
   # == System User
   #
   # Represents a user account on the system. This object will keep track of
   # name, home directory, user id.
   class User < OpenshiftModel
-    include Openshift::SDK::Utils::ShellExec
+    include Openshift::SDK::Utils::ShellExec    
     validates_presence_of :name, :basedir
-    ds_attr_accessor :name, :basedir, :uid, :homedir, :app
+    ds_attr_accessor :name, :basedir, :uid, :gid, :homedir, :app_guid
+    
+    def self.bucket
+      "admin"
+    end
 
     # Initializes the user object. app object must be provided for username to
     # be selected properly. uid is optional and will automatically select an
     # unused uid if not provided.
     def initialize(app=nil,uid=nil)
       config = Openshift::SDK::Config.instance
-      @app, @basedir = app,basedir
+      @app_guid, @basedir = app.guid,basedir
       @basedir ||= config.get("app_user_home")
       @guid = @name = "a#{app.guid[0..7]}"
       @uid = uid
+      @gid = app.user_group_id
+    end
+
+    def homedir
+      @homedir ||= "#{basedir}/#{name}"
     end
 
     # Creates the user account on the system or raises a UserCreationException.
-    # The min,max user id and group id for the created account can be
-    # configured using the min_user_id, max_user_id, group_id configuration
-    # entries.
     def create!
-      config = Openshift::SDK::Config.instance
-      min_uid = config.get("min_user_id") || "100"
-      max_uid = config.get("max_user_id") || "1000"
-      uid_str = "-u #{self.uid}" if self.uid
+      cmd = "groupadd -f -g #{self.gid} g#{self.app_guid[0..7]}"
+      out,err,ret = shellCmd(cmd)
+      unless ret == 0
+        raise UserCreationException.new("Unable to create group for user. Error: #{err}")
+      end
+            
+      uid_str = ""
       FileUtils.mkdir_p self.basedir
-      cmd = "useradd --base-dir #{self.basedir} #{uid_str} -m -K UID_MIN=#{min_uid} -K UID_MAX=#{max_uid} #{self.name}"
+      cmd = "useradd --base-dir #{self.basedir} -u #{self.uid} -g #{self.gid} -m #{self.name}"
       out,err,ret = shellCmd(cmd)
       if ret == 0
-        self.uid ||= get_uid
         self.homedir = "#{self.basedir}/#{self.name}"
       else
         raise UserCreationException.new("Unable to create user. Error: #{err}")
       end
     end
-
-    def setup_app_territory 
-        config = Openshift::SDK::Config.instance
-        prod_dir ||= config.get("app_prod_dir")
-        shared_dir ||= config.get("app_shared_dir")
-        prod_dir = prod_dir + "/" + self.name
-        shared_dir = shared_dir + "/" + self.name
-        FileUtils.mkdir_p prod_dir
-        FileUtils.mkdir_p shared_dir
-
-        FileUtils.chown_R self.name, get_group, prod_dir
-        FileUtils.chown_R self.name, get_group, shared_dir
-
-        FileUtils.chmod 1760,prod_dir
-        FileUtils.chmod 1760,shared_dir
-    end
-
-    def get_uid
-      `id -u #{self.name}`
-    end
-
-    def get_group
-        g = `id -g #{self.name}`
-        Integer(g)
-    end
-
-    def switch_privileges
-        Process::GID.change_privilege(Integer(`id -g #{self.name}`))
-        Process::UID.change_privilege(Integer(`id -u #{self.name}`))
-    end
-
+    
     # Deleted the user account on the system.
-    def delete!
+    def remove!
       cmd = "userdel -f -r #{self.name}"
       out,err,ret = shellCmd(cmd)
       unless ret == 0
         raise UserDeletionException.new("Unable to delete user. Error: #{err}")
       end
+      
+      cmd = "groupdel #{self.gid}"
+      out,err,ret = shellCmd(cmd)
+    end    
+
+    def run_as(&block)
+      old_gid = Process::GID.eid
+      old_uid = Process::UID.eid
+      fork{
+        fork{
+          Process::GID.change_privilege(@gid.to_i)
+          Process::UID.change_privilege(@uid.to_i)      
+          yield block          
+        }
+      }
+    end
+    
+    def delete!
+      uumap = UidUserMap.find(self.uid)
+      uumap.delete!
+      super
     end
   end
 end
