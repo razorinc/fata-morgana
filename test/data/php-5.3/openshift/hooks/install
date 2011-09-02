@@ -30,22 +30,11 @@ set -e
 
 
 #
-# _main()
+# _main():  Install hook does nothing right now for the php cartridge.
 #
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/common.sh
 [ $# -ge 1 ]  ||  os_print_hook_usage
 
-comp_guid=${OPENSHIFT_COMPONENT_GUID:-""}
-cfgdir=${OPENSHIFT_APP_PROD_DIR:-"."}/$app_config_subdir/$comp_guid
-cfgfile="$cfgdir/php.ini"
-
-#  Ensure configuration exists for the component.
-if ! test -f "$cfgfile"; then
-   die 2 "Missing configuration file - $cfgfile"
-fi
-
-
-#  To do setup php env for www-dynamic and start it.
-
-os_log_notice "$@ - php"
+os_log_debug "install application $application_name"
+exit 0
 
