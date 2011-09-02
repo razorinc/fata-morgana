@@ -38,22 +38,36 @@ module Openshift::SDK::Model
   # Defines a component group. All components within the group are run on the 
   # all nodes within a group. Scaling parameters also only apply to this level. 
   #
-  # == Overall location within descriptor
-  #
+  # == Overall descriptor
+  #   Descriptor
+  #      |
+  #      +-Reserviations
   #      |
   #      +-Profile
   #           |
-  #           +-Group
+  #           +-Provides
+  #           |
+  #           +-Reserviations
+  #           |
+  #           +-ComponentDefs
+  #           |    |
+  #           |    +-Connector
+  #           |    |
+  #           |    +-Dependencies
+  #           |
+  #           +-Groups
+  #           |   |
+  #           |   +-Reserviations
   #           |   |
   #           |   +-Scaling
   #           |   |
-  #           |   +-Component
-  #           |         |
-  #           |         +-Connector
+  #           |   +-ComponentInstances
   #           |
-  #           +-Connection
-  #               |
-  #               +-*ConnectionEndpoint*
+  #           +-Connections
+  #           |   |
+  #           |   +-Endpoints
+  #           |
+  #           +-PropertyOverrides
   #
   # == Properties
   # 
@@ -62,62 +76,22 @@ module Openshift::SDK::Model
   # [nodes] A list of nodes that are part of the group
   # [scaling] Scaling parameters set for the group
   class Group < OpenshiftModel
-    validates_presence_of :components
-    ds_attr_accessor :components, :nodes, :scaling
+    ds_attr_accessor :name,:components, :scaling, :reservations
     
-    def initialize(guid=nil, descriptor_data={},cartridge=nil)
-      self.guid = guid
-      self.components = {}
-      self.scaling = ScalingParameters.new(descriptor_data["scaling"] || {})
-      self.nodes = []
-      return unless descriptor_data.keys.size > 0
-        
-      if cartridge.class == Cartridge
-        if descriptor_data["components"]
-          descriptor_data["components"].each{|feature,comp_hash|
-            @components[feature] = Component.new(feature,comp_hash)
-          }
-        else
-          unless cartridge.nil?
-            cart_features = cartridge.provides_feature
-            cart_features.each do |feature|
-              feature = feature[/[^ =(]*/]
-              @components[feature] = Component.new(feature,descriptor_data)
-            end
-          end
-        end
-      else
-        descriptor_data["components"].each{|comp_name,comp_hash|
-          @components[comp_name] = ComponentInstance.new(comp_name,comp_hash)
-        }
-      end 
+    def initialize(name)
+      self.name = name
+      self.components = []
+      self.scaling = ScalingParameters.new
+      self.reservations = []
     end
     
-    def components=(vals)
-      @components = {}
-      return if vals.class != Hash
-      vals.keys.each do |name|
-        next if name.nil?
-        if vals[name].class == Hash
-          @components[name] = ComponentInstance.new
-          @components[name].attributes=vals[name]
-        else
-          @components[name] = vals[name]
-        end
+    def from_descriptor_hash(hash)
+      self.components = hash["Components"]
+      self.reservations = hash["Reservations"] if hash["Reservations"]
+      if hash["Scaling"]
+        scaling_will_change!
+        self.scaling.from_descriptor_hash(hash["Scaling"])
       end
-    end
-    
-    def scaling=(val)
-      if val.class == Hash
-        @scaling=ScalingParameters.new
-        @scaling.attributes=val
-      else
-        @scaling = val        
-      end
-    end
-    
-    def signature
-      @signature ||= @scaling.generate_signature
     end
   end
 end

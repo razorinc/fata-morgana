@@ -33,18 +33,36 @@ module Openshift::SDK::Model
   # Defines a cartirdge component. Each component provides a feature and
   # exposes one or more publishing or subscribing connectors
   #
-  # == Overall location within descriptor
-  #
+  # == Overall descriptor
+  #   Descriptor
+  #      |
+  #      +-Reserviations
   #      |
   #      +-Profile
   #           |
-  #           +-Group
-  #               |
-  #               +-Scaling
-  #               |
-  #               +-*Component*
-  #                     |
-  #                     +-Connector
+  #           +-Provides
+  #           |
+  #           +-Reserviations
+  #           |
+  #           +-ComponentDefs
+  #           |    |
+  #           |    +-Connector
+  #           |    |
+  #           |    +-Dependencies
+  #           |
+  #           +-Groups
+  #           |   |
+  #           |   +-Reserviations
+  #           |   |
+  #           |   +-Scaling
+  #           |   |
+  #           |   +-ComponentInstances
+  #           |
+  #           +-Connections
+  #           |   |
+  #           |   +-Endpoints
+  #           |
+  #           +-PropertyOverrides
   #
   # == Properties
   # 
@@ -52,58 +70,32 @@ module Openshift::SDK::Model
   # [publishes] Hash of connectors that publish information
   # [subscribes] Hash of connectors that subscribe to information
   class Component < OpenshiftModel
-    validates_presence_of :feature
-    ds_attr_accessor :feature, :publishes, :subscribes
-   
-    def initialize(feature=nil,desriptor_hash={})
-      @feature = feature
-      @publishes = {}
-      @subscribes = {}
-      if desriptor_hash["connectors"]
-        publishes = desriptor_hash["connectors"]["publishes"]
-        subscribes = desriptor_hash["connectors"]["subscribes"]
-        @publishes = {}
-        if publishes
-          publishes.each{|name,conn_hash|
-            @publishes[name] = Connector.new(name,:publisher,conn_hash)
-          }
-        end
-
-        @subscribes = {}
-        if subscribes
-          subscribes.each{|name,conn_hash|
-            @subscribes[name] = Connector.new(name,:subscriber,conn_hash)
-          }
-        end
-      end
+    validates_presence_of :name
+    ds_attr_accessor :name, :publishes, :subscribes, :dependencies
+    
+    def initialize(name)
+      self.name = name
+      self.publishes = {}
+      self.subscribes = {}
+      self.dependencies = []
     end
     
-    def publishes=(vals)
-      @publishes = {}
-      return if vals.class != Hash
-      vals.keys.each do |name|
-        next if name.nil?
-        if vals[name].class == Hash
-          @publishes[name] = Connector.new
-          @publishes[name].attributes=vals[name]
-        else
-          @publishes[name] = vals[name]
+    def from_descriptor_hash(hash)
+      if hash["Publishes"]
+        publishes_will_change!
+        hash["Publishes"].each do |conn_name, conn_hash|
+          c = @publishes[conn_name] = Connector.new(conn_name)
+          c.from_descriptor_hash(conn_hash)
         end
       end
-    end
-   
-    def subscribes=(vals)
-      @subscribes = {}
-      return if vals.class != Hash
-      vals.keys.each do |name|
-        next if name.nil?
-        if vals[name].class == Hash
-          @subscribes[name] = Connector.new
-          @subscribes[name].attributes=vals[name]
-        else
-          @subscribes[name] = vals[name]
+      if hash["Subscribes"]
+        publishes_will_change!
+        hash["Subscribes"].each do |conn_name, conn_hash|
+          c = @subscribes[conn_name] = Connector.new(conn_name)
+          c.from_descriptor_hash(conn_hash)
         end
       end
+      self.dependencies = hash["Dependencies"] if hash["Dependencies"]
     end
   end
 end

@@ -32,18 +32,36 @@ module Openshift::SDK::Model
   # Defines a connector endpoint definition for a component. Connectors can be
   # either publishers or subscribers of information.
   #
-  # == Overall location within descriptor
-  #
+  # == Overall descriptor
+  #   Descriptor
+  #      |
+  #      +-Reserviations
   #      |
   #      +-Profile
   #           |
-  #           +-Group
-  #               |
-  #               +-Scaling
-  #               |
-  #               +-Component
-  #                     |
-  #                     +-*Connector*
+  #           +-Provides
+  #           |
+  #           +-Reserviations
+  #           |
+  #           +-ComponentDefs
+  #           |    |
+  #           |    +-Connector
+  #           |    |
+  #           |    +-Dependencies
+  #           |
+  #           +-Groups
+  #           |   |
+  #           |   +-Reserviations
+  #           |   |
+  #           |   +-Scaling
+  #           |   |
+  #           |   +-ComponentInstances
+  #           |
+  #           +-Connections
+  #           |   |
+  #           |   +-Endpoints
+  #           |
+  #           +-PropertyOverrides
   #
   # == Properties
   # 
@@ -52,22 +70,17 @@ module Openshift::SDK::Model
   # [name] The name of this connector. This is what the hook names are based off.
   # [required] true|false. Applicable only to subscribers
   class Connector < OpenshiftModel
-    validates_presence_of :type, :pubsub, :name, :required
-    ds_attr_accessor :type, :pubsub, :name, :required
+    validates_presence_of :type, :name, :required
+    ds_attr_accessor :type, :name, :required
     
-    def initialize(name=nil,pubsub=nil,descriptor_hash={})
-      @name = name
-      @type = descriptor_hash['type'] || descriptor_hash['required-type']
-      @pubsub = pubsub
-      @required = descriptor_hash['required'].to_s.downcase == "true"
+    def initialize(name)
+      self.name = name
+      self.required = false
     end
-
-    def required?
-      return @required
-    end
-
-    def pubsub
-      @pubsub.to_sym
+    
+    def from_descriptor_hash(hash)
+      self.type = hash["Type"]
+      self.required = hash["Required"].downcase == "true" if hash["Required"]
     end
   end
 end  

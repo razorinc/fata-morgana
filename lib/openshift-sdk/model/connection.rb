@@ -31,22 +31,37 @@ module Openshift::SDK::Model
   # 
   # Defines a connection between two component connectors
   #
-  # == Overall location within descriptor
+  # == Overall descriptor
   #
+  #   Descriptor
+  #      |
+  #      +-Reserviations
   #      |
   #      +-Profile
   #           |
-  #           +-Group
+  #           +-Provides
+  #           |
+  #           +-Reserviations
+  #           |
+  #           +-ComponentDefs
+  #           |    |
+  #           |    +-Connector
+  #           |    |
+  #           |    +-Dependencies
+  #           |
+  #           +-Groups
+  #           |   |
+  #           |   +-Reserviations
   #           |   |
   #           |   +-Scaling
   #           |   |
-  #           |   +-Component
-  #           |         |
-  #           |         +-Connector
+  #           |   +-ComponentInstances
   #           |
-  #           +-*Connection*
-  #               |
-  #               +-ConnectionEndpoint
+  #           +-Connections
+  #           |   |
+  #           |   +-Endpoints
+  #           |
+  #           +-PropertyOverrides
   #
   # == Properties
   # 
@@ -54,30 +69,16 @@ module Openshift::SDK::Model
   # [pub] The publishing connection endpoint
   # [sub] The subscribing connection endpoint
   class Connection < OpenshiftModel
-    validates_presence_of :pub, :sub, :type
-    ds_attr_accessor :pub, :sub, :type
+    ds_attr_accessor :name, :components, :endpoints
 
-    def initialize(guid=nil,pub=nil,sub=nil,type=nil)
-      @guid, @pub, @sub, @type = guid, pub, sub, type
+    def initialize(name)
+      self.components = []
+      self.name = name
+      self.endpoints = {}
     end
 
-    def pub=(val)
-      if val.class == Hash
-        @pub=ConnectionEndpoint.new
-        @pub.attributes=val
-      else
-        @pub = val        
-      end
-    end
-
-    def sub=(val)
-      if val.class == Hash
-        @sub=ConnectionEndpoint.new
-        @sub.attributes=val
-      else
-        @sub = val        
-      end
-    end
-
+    def from_descriptor_hash(hash)
+      self.components = hash["Components"]
+    end    
   end
 end

@@ -1,0 +1,43 @@
+Name: www-dynamic
+Version: 1.0.0
+Architecture: noarch
+Display Name: www-dynamic v1.0.0 (noarch)
+Description: Web server
+Version: Apache
+License: APL
+Provides: ww-dynamic
+Requires:
+Conflicts:
+Native Requires: https, mod_bw
+Descriptor:
+  Reservations: 
+  - MEM >= 500M
+  Profiles:
+    default:
+      Provides: www-dynamic-default
+      Reservations: 
+      - MEM >=500M
+      Property Overrides:
+      - www-dynamic.blah = 1
+      Components:
+        www-dyn:
+          Publishes:
+            vhost:
+              Type: FILESYSTEM:vhost
+              Required: false
+          Subscribes:
+            ext_url:
+              Type: NET_TCP:HTTP
+      Groups:
+        default:
+          Components:
+            www-dyn
+          Reservations: 
+          - MEM >= 500M
+          Scaling:
+            Min: 1
+            Max: -1
+      Connections:
+        foo:
+          Components: x,y
+              

@@ -29,43 +29,45 @@ require 'openshift-sdk/model/rpm'
 require 'openshift-sdk/model/descriptor'
 
 module Openshift::SDK::Model
+  class CartridgeNotInstalledException < Exception
+  end
+  
+  class InvalidDescriptorException < Exception
+  end
+  
   class Cartridge < OpenshiftModel
-    #validates_presence_of :name, :native_name, :package_root, :package_path, :summary, :version, :provides_feature
-    ds_attr_accessor :name, :native_name, :package_root, :package_path, :summary, :version, :license, :provides_feature, :requires_feature, :requires, :descriptor, :is_installed, :hooks 
+    ds_attr_accessor :name, :version, :architecture, :display_name, :summary, :vendor, :license
+    ds_attr_accessor :provides_feature, :requires_feature, :conflicts_feature, :requires
+    ds_attr_accessor :package_path, :descriptor, :is_installed, :hooks
+    
     def self.bucket
       "admin"
     end
   
-    def initialize(cart_name="", package_root=nil, package_path=nil,provides_feature=[],requires_feature=[],requires=[],is_installed=false,hooks=[])
+    def initialize(cart_name="",package_path=nil,provides_feature=[],requires_feature=[],requires=[],is_installed=false,hooks=[])
       @name = cart_name
-      @package_root = package_root || Openshift::SDK::Config.instance.get('package_root')
+      @version = "0.0"
+      @architecture = "noarch"
+      package_root = Openshift::SDK::Config.instance.get('package_root')
       @package_path = package_path
       if @name
-        @package_path = package_path || (@package_root + "/" + @name)
+        @package_path = package_path || (package_root + "/" + @name)
       end
       @provides_feature = provides_feature
       @requires_feature = requires_feature
+      @conflicts_feature = []
       @requires = requires
       @is_installed = is_installed
       @hooks = hooks
       @summary = ""
+      @descriptor = nil
     end
     
     def installed?
       @is_installed
     end
     
-    def reload_descriptor
-      descriptor_will_change!
-      @descriptor = nil
-      self.descriptor
-    end
-    
     def descriptor
-      return nil unless @is_installed
-      descriptor_changed = @descriptor.nil?
-      @descriptor ||= Descriptor.new(self)
-      descriptor_will_change! if descriptor_changed
       @descriptor
     end
   
@@ -86,28 +88,31 @@ module Openshift::SDK::Model
     end
   
     def self.from_rpm(rpm)
-      if rpm.control
-        package_path = File.dirname(File.dirname(rpm.control)) 
-        package_root = File.dirname package_path
+      cart = nil
+      if rpm.is_installed
+        cart = Cartridge.new.from_package_yaml(rpm.manifest)
+        cart.package_path = File.dirname(File.dirname(rpm.control)) 
+        cart.is_installed = true
+        cart.hooks = rpm.hooks
       else
-        package_root = package_path = nil
+        package_path = nil
+        
+        provides_feature = rpm.provides.delete_if{ |f| !f.match(/openshift-feature-*/) }
+        requires = rpm.dependencies.clone.delete_if{ |f| f.match(/openshift-feature-*/) }
+        requires_feature = rpm.dependencies - requires
+
+        provides_feature.map!{ |f| f[18..-1] }
+        requires_feature.map!{ |f| f[18..-1] }
+
+        cart_name = rpm.name.gsub(/-#{rpm.version}[0-9a-z\-\.]*/,"")
+        cart = Cartridge.new(cart_name,package_path,package_path,provides_feature,requires_feature,requires,rpm.is_installed,rpm.hooks)
+        cart.version = rpm.version
+        cart.summary = rpm.summary
       end
-      provides_feature = rpm.provides.delete_if{ |f| !f.match(/openshift-feature-*/) }
-      requires = rpm.dependencies.clone.delete_if{ |f| f.match(/openshift-feature-*/) }
-      requires_feature = rpm.dependencies - requires
-      
-      provides_feature.map!{ |f| f[18..-1] }
-      requires_feature.map!{ |f| f[18..-1] }
-      
-      cart_name = rpm.name.gsub(/-#{rpm.version}[0-9a-z\-\.]*/,"")
-      cart = Cartridge.new(cart_name,package_root,package_path,provides_feature,requires_feature,requires,rpm.is_installed,rpm.hooks)
-      cart.version = rpm.version
-      cart.summary = rpm.summary
-      cart.native_name = rpm.name
-      cart.guid="#{cart.name}-#{cart.version}"
+      cart.guid="#{cart.name}-#{cart.version}"      
                   
       #lookup from dds or create new entry
-      dds_cart = self.find("#{rpm.name}-#{rpm.version}")
+      dds_cart = self.find(cart.guid)
       if !dds_cart || (!dds_cart.installed? && cart.installed?)
         if cart.installed?
           cart.descriptor
@@ -118,58 +123,79 @@ module Openshift::SDK::Model
         
       dds_cart
     end
+    
+    def load_descriptor(desc_hash)
+      self.descriptor = Descriptor.new
+      self.descriptor.from_descriptor_hash(desc_hash, self.provides_feature)
+    end
   
-    def from_opm_spec(control_spec=nil)
-      new_file = control_spec.nil?
-      if new_file
-        control_spec = File.open(self.package_path + "/openshift/control.spec")
+    def from_manifest_yaml(yaml=nil)
+      unless yaml
+        #create a new control spec
+        control_spec = File.open(self.package_path + "/openshift/package.yml", "w")
+        control_spec.write(to_package_yaml)
+        control_spec.close
       end
-      contents = control_spec.read
-      spec_objects  = YAML::load(contents)
-      self.summary = spec_objects["Summary"]
+      
+      spec_objects = {}
+      case yaml.class.name
+        when "Hash"
+          spec_objects = yaml
+        when "File"
+          spec_objects  = YAML::load(yaml)
+        else
+          spec_objects  = YAML::load(File.open(yaml, "r").read)
+      end
+      
       self.name = spec_objects["Name"]
-      self.version = spec_objects["Version"]
-      self.license = spec_objects["License"]
+      self.version = spec_objects["Version"] || "0.0"
+      self.architecture = spec_objects["Architecture"] || "noarch"
+      self.display_name = spec_objects["Display Name"] || spec_objects["Name"]
+      self.summary = spec_objects["Description"]
+      self.vendor = spec_objects["Vendor"]
+      self.license = spec_objects["License"] || "unknown"
       self.provides_feature = spec_objects["Provides"] || []
       self.requires_feature = spec_objects["Requires"] || []
-      self.requires = spec_objects["Native-Requires"] || []
-      if new_file
-        control_spec.close
-      end 
+      self.conflicts_feature = spec_objects["Conflicts"] || []      
+      self.requires = spec_objects["Native Requires"] || []
+      self.load_descriptor(spec_objects["Descriptor"] || {})
+      
       self
     end
   
-    def update_control_file
-      control_spec_contents = self.to_s
-      cfile = File.new(self.package_path + "/openshift/control.spec", "w")
-      cfile.write(control_spec_contents)
-      cfile.close
+    def to_manifest_yaml
+      yaml_hash = {
+        "Name"    => self.name,
+        "Version" => self.version || "0.0",
+        "Architecture" => self.architecture || "noarch",
+        "Display Name" => self.display_name || "#{self.name}-#{self.version}-#{self.architecture}",
+        "Description" => self.summary || ".",
+        "Vendor"  => self.vendor,
+        "License" => self.license || "unknown",
+        "Provides"=> self.provides_feature || [],
+        "Requires"=> self.requires_feature || [],
+        "Conflicts"=> self.conflicts_feature || [],
+        "Native Requires" => self.requires
+      }
+      if @is_installed
+        yaml_hash['Descriptor'] = self.descriptor.to_descriptor_hash
+      else
+        yaml_hash['Descriptor'] = {}
+      end
+      
+      yaml_hash.to_yaml
     end
 
     def self.from_opm(package_path)
-      package_root = File.dirname(package_path)
-      cartridge = Cartridge.new(nil,package_root,package_path)
-      control_spec = File.open(package_path + "/openshift/control.spec")        
-      cartridge.from_opm_spec(control_spec)
+      cartridge = Cartridge.new(nil,package_path)
+      manifest = File.open(package_path + "/openshift/manifest.yml")
+      cartridge.from_manifest_yaml(manifest)
       cartridge.is_installed = true
       cartridge
     end
     
     def to_s
-      yaml_object = {}
-      yaml_object["Name"] = self.name
-      yaml_object["Native name"] = self.native_name
-      yaml_object["Package root"] = self.package_root
-      yaml_object["Package path"] = self.package_path
-      yaml_object["Summary"] = self.summary
-      yaml_object["Version"] = self.version
-      yaml_object["License"] = self.license
-      yaml_object["Provides"] = self.provides_feature
-      yaml_object["Requires"] = self.requires_feature
-      yaml_object["Native-Requires"] = self.requires
-
-      str = YAML::dump(yaml_object)
-      return str
+      to_package_yaml
     end
   end
 end

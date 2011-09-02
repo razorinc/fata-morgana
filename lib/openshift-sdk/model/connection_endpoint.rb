@@ -31,20 +31,37 @@ module Openshift::SDK::Model
   # 
   # Defines a connection between two component connectors
   #
-  # == Overall location within descriptor
+  # == Overall descriptor
   #
+  #   Descriptor
+  #      |
+  #      +-Reserviations
   #      |
   #      +-Profile
   #           |
-  #           +-Group
+  #           +-Provides
+  #           |
+  #           +-Reserviations
+  #           |
+  #           +-ComponentDefs
+  #           |    |
+  #           |    +-Connector
+  #           |    |
+  #           |    +-Dependencies
+  #           |
+  #           +-Groups
+  #           |   |
+  #           |   +-Reserviations
   #           |   |
   #           |   +-Scaling
   #           |   |
-  #           |   +-Component
-  #           |         |
-  #           |         +-Connector
+  #           |   +-ComponentInstances
   #           |
   #           +-Connections
+  #           |   |
+  #           |   +-Endpoints
+  #           |
+  #           +-PropertyOverrides
   #
   # == Properties
   # 
@@ -52,11 +69,10 @@ module Openshift::SDK::Model
   # [component_name] The name of the component instance
   # [connector_name] The connector name for the component
   class ConnectionEndpoint < OpenshiftModel
-    validates_presence_of :group_name, :component_name, :connector_name
-    ds_attr_accessor :group_name, :component_name, :connector_name
-    
-    def initialize(group_name, component_name, connector_name)
-      @group_name, @component_name, @connector_name= group_name, component_name, connector_name
+    ds_attr_accessor :component_path
+
+    def from_descriptor_hash(hash)
+      self.component_path = hash
     end
   end
 end
