@@ -1,8 +1,8 @@
 descriptor:
   profiles:
-    - *www_dynamic_default_profile
+    - *default_profile
 
-  - &www_dynamic_default_profile !openshift.cartridge.profile
+  - &default_profile !openshift.cartridge.profile
     components:
       httpd:
         publishes:
