@@ -1,1 +1,42 @@
-./set_vhost <connection id> <vhost file> (eg:file:///srv/webapps/132423423433423432/app/vostok/setup/vhost.conf)
+#!/bin/bash
+#
+# Copyright © 2010 Red Hat, Inc. All rights reserved
+#
+# This copyrighted material is made available to anyone wishing to use, modify,
+# copy, or redistribute it subject to the terms and conditions of the GNU
+# General Public License v.2.  This program is distributed in the hope that it
+# will be useful, but WITHOUT ANY WARRANTY expressed or implied, including the
+# implied warranties of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.  You should have
+# received a copy of the GNU General Public License along with this program;
+# if not, write to the Free Software Foundation, Inc., 51 Franklin Street,
+# Fifth Floor, Boston, MA 02110-1301, USA. Any Red Hat trademarks that are
+# incorporated in the source code or documentation are not subject to the GNU
+# General Public License and may only be used or replicated with the express
+# permission of Red Hat, Inc.
+#
+
+# Exit on errors.
+set -e
+
+
+#
+# _main()
+#
+source $(cd -P -- "$(dirname -- "$0")/../hooks/" && pwd -P)/common.sh
+params="<app-name> <app-guid> <connection-id> <vhost-file>"
+[ $# -ge 4 ]  ||  os_print_hook_usage "set VirtualHost" "$params"
+
+# ./set_vhost <app_name> <app_guid> <connection id> <vhost file>
+# (eg:file:///srv/webapps/132423423433423432/app/vostok/setup/vhost.conf)
+vhost_file=${4:-""}
+
+comp_guid=${OPENSHIFT_COMPONENT_GUID:-""}
+confd_dir="${OPENSHIFT_APP_PROD_DIR:-'.'}/$app_config_subdir/$comp_guid/conf.d"
+
+[ -n "$_DEBUG_HOOKS" ]  &&  os_log_debug "Setting vhost.conf from $vhost_file"
+cp -f  "$vhost_file"  "$confd_dir/vhost.conf"
+
+exit 0
+
+

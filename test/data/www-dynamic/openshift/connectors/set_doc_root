@@ -19,38 +19,28 @@
 # Exit on errors.
 set -e
 
-#
-# _initialize()
-#
-cartridge_name="www-dynamic"
-script=$(basename "$0")
-[ -n "$_TRACE_HOOKS" ] && set -x
-[ -n "$_TRACE_HOOKS" ] && echo "!TRACE! :$SHLVL: $cartridge_name->$script $@"
-parameter_info="<application-guid> <component-guid> <connection-id> <doc-root>"
-
 
 #
 # _main()
 #
-source ../hooks/common.sh
-os_initialize_hook_env "${_OPENSHIFT_APP_CONFIG_DIR}"
-[ $# -eq 4 ]  ||  die 1 "Usage: $cartridge_name->$script ${parameter_info}"
+source $(cd -P -- "$(dirname -- "$0")/../hooks/" && pwd -P)/common.sh
+params="<app-name> <app-guid> <connection-id> <doc-root>"
+[ $# -ge 4 ]  ||  os_print_hook_usage "set DocumentRoot" "$params"
 
-# ./set_doc_root <app_guid> <comp_guid> <connection id> <doc root>
+# ./set_doc_root <app_name> <app_guid> <connection id> <doc root>
 # (eg:file:///srv/webapps/132423423433423432/app)
+docroot=${4:-""}
 
-# Parameter values.
-app_guid=$1
-comp_guid=$2
+comp_guid=${OPENSHIFT_COMPONENT_GUID:-""}
+cfgdir=${OPENSHIFT_APP_PROD_DIR:-"."}/$app_config_subdir/$comp_guid
 
-cfgdir="${_OPENSHIFT_APP_CONFIG_DIR:-'.'}/$comp_guid"
+[ -n "$_DEBUG_HOOKS" ]  &&  os_log_debug "Setting DocumentRoot to '$docroot'"
 
 #  Replace document root in any/all config files.
-for d in conf conf.d; do
-   for f in `ls "${cfgdir}/$cartridge_name/$d"`; do
-      sed -i "s#\(\s*DocumentRoot[ \t]\)\(.*\)\$#\1 $3 #"   \
-                "${cfgdir}/$cartridge_name/$d/$f"
-   done
+for f in `ls "$cfgdir/conf/"`; do
+   cfile="$cfgdir/conf/$f"
+   [ -n "$_DEBUG_HOOKS" ]  &&  os_log_debug "Updating DocumentRoot in $cfile"
+   sed -i "s#\(\s*DocumentRoot[ \t]\)\(.*\)\$#\1 $docroot #" "$cfile"
 done
 
 exit 0

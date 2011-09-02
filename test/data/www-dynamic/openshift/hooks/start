@@ -24,7 +24,6 @@ set -e
 # _main()
 #
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/common.sh
-os_initialize_hook_env "$@"
 [ $# -ge 1 ]  ||  os_print_hook_usage
 
 comp_guid=${OPENSHIFT_COMPONENT_GUID:-""}
@@ -38,20 +37,18 @@ fi
 
 
 #  Setup command line options.
-httpd_opts="-C 'Include $cfgdir/conf.d/*.conf'"
-
-if [ "X$hook_name" = "Xstart" ]; then
-   user_name=`id -un`
-   group_name=`id -gn`
-   [ `id -u` -eq 0 ]  && user_name=apache  &&  group_name=apache
-
-   httpd_opts="${httpd_opts} -C 'User  $user_name"
-   httpd_opts="${httpd_opts} -C 'Group $group_name"
+user_name=`id -un`
+group_name=`id -gn`
+if [ "$user_name" = "root" ]; then
+   user_name="apache"
+   group_name="apache"
 fi
 
 rundir="${OPENSHIFT_APP_PROD_DIR:-"."}"
 [ -d "$rundir/var/run" ]  ||  mkdir -p "$rundir/var/run"
 
-(cd "$rundir"; /usr/sbin/httpd -f $cfgfile $httpd_opts -k $hook_name)
+cd "$rundir"
+/usr/sbin/httpd -f $cfgfile -C "User $user_name" -C "Group $group_name"  \
+                -k $hook_name
 os_log_notice "$@ + opts=${httpd_opts}"
 exit 0

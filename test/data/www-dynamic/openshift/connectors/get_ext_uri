@@ -21,32 +21,31 @@ set -e
 
 
 #
-# Functions.
-#
-function configure_app() {
-   os_log_debug "configure application $application_name"
-
-}  #  End of function  configure_app.
-
-
-function deconfigure_app() {
-   os_log_debug "deconfigure application $application_name"
-
-}  #  End of function  deconfigure_app.
-
-
-#
 # _main()
 #
-source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/common.sh
-[ $# -ge 1 ]  ||  os_print_hook_usage
+source $(cd -P -- "$(dirname -- "$0")/../hooks/" && pwd -P)/common.sh
+params="<app-name> <app-guid> <connection-id>"
+[ $# -ge 3 ]  ||  os_print_hook_usage "get external uri" "$params"
 
-case "$hook_name" in 
-   configure)    configure_app    ;;
-   deconfigure)  deconfigure_app  ;;
-esac
+# ./get_ext_uri <connection id>  => "http://ipaddr:8080"
+conn_id=${3:-""}
 
+[ -n "$_DEBUG_HOOKS" ]  &&  os_log_debug "Getting external uri for '$conn_id'"
 
-#  Not doing any more in setup right now. Everything else will be done via
-#  connectors (setup-connections).
+comp_guid=${OPENSHIFT_COMPONENT_GUID:-""}
+confd_dir=${OPENSHIFT_APP_PROD_DIR:-"."}/$app_config_subdir/$comp_guid/conf.d
+
+listen_directive=$(grep -e "^\s*Listen" "$confd_dir/listen.conf")
+protocol=$(echo "$listen_directive" | awk '{print $3}')
+if [ -z "$protocol" ]; then
+   [ -n "$_DEBUG_HOOKS" ]  &&  os_log_debug "Using default protocol - http"
+   protocol=${protocol:-"http"}
+fi
+
+host_n_port=$(echo "$listen_directive" | awk '{print $2}')
+[ -n "$_DEBUG_HOOKS" ]  &&  os_log_debug "host and port = $host_n_port"
+
+[ -n "$_DEBUG_HOOKS" ]  &&  os_log_debug "Returning $protocol://$host_n_port/"
+echo "$protocol://$host_n_port/"
+exit 0
 

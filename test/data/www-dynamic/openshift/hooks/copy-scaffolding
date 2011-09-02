@@ -35,7 +35,7 @@ function init_substitution_map() {
    done
 
    mapinfo="keys:[${!g_subst_map[@]}], values:[${g_subst_map[*]}]"
-   [ -n "$_DEBUG_HOOKS" ]  &&  os_debug_log "init_subst_map($1) = $mapinfo"
+   [ -n "$_DEBUG_HOOKS" ]  &&  os_log_debug "init_subst_map($1) = $mapinfo"
    return 0
 
 }  #  End of function  init_substitution_map.
@@ -81,7 +81,6 @@ function copy_scaffolding() {
 # _main()
 #
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/common.sh
-os_initialize_hook_env $@
 [ $# -ge 1 ]  ||  os_print_hook_usage
 
 comp_guid=${OPENSHIFT_COMPONENT_GUID:-""}

@@ -1,0 +1,20 @@
+descriptor:
+  profiles:
+    - *www_dynamic_default_profile
+
+  - &www_dynamic_default_profile !openshift.cartridge.profile
+    components:
+      httpd:
+        publishes:
+          ext_uri:
+            type: NET_TCP:HTTP
+            required: false
+        subscribes: 
+          doc_root:
+            type: FILESYSTEM:DOC_ROOT
+            required: false
+          vhost:
+            type: FILESYSTEM:vhost
+            required: false
+    connections: {}
+
