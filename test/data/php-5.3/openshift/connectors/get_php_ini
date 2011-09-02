@@ -34,17 +34,18 @@ set -e
 #
 source $(cd -P -- "$(dirname -- "$0")/../hooks/" && pwd -P)/common.sh
 params="<app-name> <app-guid> <connection-id>"
-[ $# -ge 3 ]  ||  os_print_hook_usage "get document root" "$params"
+[ $# -ge 3 ]  ||  os_print_hook_usage "get php ini" "$params"
 
-# ./get_doc_root <app-name> <app-guid> <connection_id> => string 
-#             (eg:file:///srv/webapps/132423423433423432/app)
+# ./get_php_ini <app-name> <app-guid> <connection_id> => string
+# (eg:file:///srv/webapps/132423423433423432/app/vostok/setup/php-5/php.ini)
 conn_id=${3:-""}
 
-[ -n "$_DEBUG_HOOKS" ]  &&  os_log_debug "Get document root for '$conn_id'"
+[ -n "$_DEBUG_HOOKS" ]  &&  os_log_debug "Get php ini for '$conn_id'"
 
-doc_root=${OPENSHIFT_APP_PROD_DIR:-"."}/$app_prod_subdir/
+comp_guid=${OPENSHIFT_COMPONENT_GUID:-""}
+php_ini=${OPENSHIFT_APP_PROD_DIR:-"."}/$app_config_subdir/$comp_guid/php.ini
 
-[ -n "$_DEBUG_HOOKS" ]  &&  os_log_debug "Returning document root '$doc_root'"
-echo "$doc_root"
+[ -n "$_DEBUG_HOOKS" ]  &&  os_log_debug "Returning php.ini '$php_ini'"
+echo "$php_ini"
 exit 0
 

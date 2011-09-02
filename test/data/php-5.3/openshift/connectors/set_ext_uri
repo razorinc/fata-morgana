@@ -33,18 +33,18 @@ set -e
 # _main()
 #
 source $(cd -P -- "$(dirname -- "$0")/../hooks/" && pwd -P)/common.sh
-params="<app-name> <app-guid> <connection-id>"
-[ $# -ge 3 ]  ||  os_print_hook_usage "get document root" "$params"
+params="<app-name> <app-guid> <connection-id> <ext-uri>"
+[ $# -ge 4 ]  ||  os_print_hook_usage "set external uri" "$params"
 
-# ./get_doc_root <app-name> <app-guid> <connection_id> => string 
-#             (eg:file:///srv/webapps/132423423433423432/app)
+# ./set_ext_uri <app-name> <app-guid> <connection_id> <json>
+#                                       (eg: {host,port,user,pass})
 conn_id=${3:-""}
 
-[ -n "$_DEBUG_HOOKS" ]  &&  os_log_debug "Get document root for '$conn_id'"
+[ -n "$_DEBUG_HOOKS" ]  &&  os_log_debug "Set external uri for '$conn_id'"
 
-doc_root=${OPENSHIFT_APP_PROD_DIR:-"."}/$app_prod_subdir/
+ext_uri=${4:-""}
 
-[ -n "$_DEBUG_HOOKS" ]  &&  os_log_debug "Returning document root '$doc_root'"
-echo "$doc_root"
+[ -n "$_DEBUG_HOOKS" ]  &&  os_log_debug "Setting external uri '$ext_uri'"
+# Do nothing -- this is just a test connector.
 exit 0
 
