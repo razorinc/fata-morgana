@@ -82,5 +82,12 @@ module Openshift::SDK::Model
       self.type = hash["Type"]
       self.required = hash["Required"].downcase == "true" if hash["Required"]
     end
+    
+    def to_descriptor_hash
+      {
+        "Type" => self.type,
+        "Required" => self.required.to_s
+      }
+    end
   end
 end  

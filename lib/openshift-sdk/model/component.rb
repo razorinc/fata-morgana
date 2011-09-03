@@ -89,7 +89,7 @@ module Openshift::SDK::Model
         end
       end
       if hash["Subscribes"]
-        publishes_will_change!
+        subscribes_will_change!
         hash["Subscribes"].each do |conn_name, conn_hash|
           c = @subscribes[conn_name] = Connector.new(conn_name)
           c.from_descriptor_hash(conn_hash)
@@ -97,5 +97,23 @@ module Openshift::SDK::Model
       end
       self.dependencies = hash["Dependencies"] if hash["Dependencies"]
     end
-  end
+
+    def to_descriptor_hash
+      p = {}
+      self.publishes.each do |name,conn|
+        p[name] = conn.to_descriptor_hash
+      end
+      
+      s = {}
+      self.subscribes.each do |name,conn|
+        s[name] = conn.to_descriptor_hash
+      end
+      
+      {
+        "Dependencies" => self.dependencies,
+        "Publishes" => p,
+        "Subscribes" => s
+      }
+    end
+  end    
 end

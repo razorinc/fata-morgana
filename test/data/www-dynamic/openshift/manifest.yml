@@ -5,7 +5,7 @@ Display Name: www-dynamic v1.0.0 (noarch)
 Description: Web server
 Version: Apache
 License: APL
-Provides: ww-dynamic
+Provides: www-dynamic
 Requires:
 Conflicts:
 Native Requires: https, mod_bw

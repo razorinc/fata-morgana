@@ -79,6 +79,12 @@ module Openshift::SDK::Model
 
     def from_descriptor_hash(hash)
       self.components = hash["Components"]
-    end    
+    end
+    
+    def to_descriptor_hash
+      {
+        "Components" => self.components
+      }
+    end
   end
 end

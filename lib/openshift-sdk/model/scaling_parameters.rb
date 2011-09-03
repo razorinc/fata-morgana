@@ -79,9 +79,17 @@ module Openshift::SDK::Model
     end
     
     def from_descriptor_hash(hash)
-      @min = hash["min"] || 1
-      @max = hash["max"] || -1
-      @default_scale_by = hash["default_scale_by"] || "+1"
+      @min = hash["Min"] || 1
+      @max = hash["Max"] || -1
+      @default_scale_by = hash["Default Scale By"] || "+1"
+    end
+    
+    def to_descriptor_hash
+      {
+        "Min" => self.min,
+        "Max" => self.max,
+        "Default Scale By" => self.default_scale_by
+      }
     end
     
     def generate_signature

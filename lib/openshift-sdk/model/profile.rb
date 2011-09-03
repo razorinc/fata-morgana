@@ -86,7 +86,13 @@ module Openshift::SDK::Model
     end
     
     def from_descriptor_hash(hash)
-      self.provides = hash["Provides"].split if hash["Provides"]
+      if hash["Provides"]
+        if hash["Provides"].class == Array
+          self.provides = hash["Provides"]
+        else
+          self.provides = hash["Provides"].split(",")
+        end
+      end
       self.reservations = hash["Reservations"] if hash["Reservations"]
       self.property_overrides = hash["Property Overrides"]
       components_will_change!
@@ -106,6 +112,32 @@ module Openshift::SDK::Model
           c.from_descriptor_hash(conn_hash)
         end
       end
+    end
+    
+    def to_descriptor_hash
+      c = {}
+      self.components.each do |comp_name, comp|
+        c[comp_name] = comp.to_descriptor_hash
+      end
+      
+      g = {}
+      self.groups.each do |group_name, group|
+        g[group_name] = group.to_descriptor_hash
+      end
+      
+      cn = {}
+      self.connections.each do |conn_name, conn|
+        cn[conn_name] = conn.to_descriptor_hash
+      end
+      
+      {
+        "Provides" => self.provides,
+        "Reservations" => self.reservations,
+        "Property Overrides" => self.property_overrides,
+        "Components" => c,
+        "Groups" => g,
+        "Connections" => cn
+      }
     end
   end
 end

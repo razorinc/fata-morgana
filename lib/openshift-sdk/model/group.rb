@@ -93,5 +93,13 @@ module Openshift::SDK::Model
         self.scaling.from_descriptor_hash(hash["Scaling"])
       end
     end
+    
+    def to_descriptor_hash
+      {
+        "Components" => self.components,
+        "Reservations" => self.reservations,
+        "Scaling" => self.scaling.to_descriptor_hash
+      }
+    end
   end
 end
