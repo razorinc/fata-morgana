@@ -90,9 +90,7 @@ module Openshift::SDK::Model
     def self.from_rpm(rpm)
       cart = nil
       if rpm.is_installed
-        cart = Cartridge.new.from_package_yaml(rpm.manifest)
-        cart.package_path = File.dirname(File.dirname(rpm.control)) 
-        cart.is_installed = true
+        cart = from_opm(File.dirname(File.dirname(rpm.manifest)))
         cart.hooks = rpm.hooks
       else
         package_path = nil
@@ -105,7 +103,7 @@ module Openshift::SDK::Model
         requires_feature.map!{ |f| f[18..-1] }
 
         cart_name = rpm.name.gsub(/-#{rpm.version}[0-9a-z\-\.]*/,"")
-        cart = Cartridge.new(cart_name,package_path,package_path,provides_feature,requires_feature,requires,rpm.is_installed,rpm.hooks)
+        cart = Cartridge.new(cart_name,package_path,provides_feature,requires_feature,requires,rpm.is_installed,rpm.hooks)
         cart.version = rpm.version
         cart.summary = rpm.summary
       end
@@ -151,7 +149,7 @@ module Openshift::SDK::Model
       self.version = spec_objects["Version"] || "0.0"
       self.architecture = spec_objects["Architecture"] || "noarch"
       self.display_name = spec_objects["Display Name"] || spec_objects["Name"]
-      self.summary = spec_objects["Description"]
+      self.summary = spec_objects["Description"] || spec_objects["Name"]
       self.vendor = spec_objects["Vendor"]
       self.license = spec_objects["License"] || "unknown"
       self.provides_feature = spec_objects["Provides"] || []
@@ -195,7 +193,7 @@ module Openshift::SDK::Model
     end
     
     def to_s
-      to_package_yaml
+      to_manifest_yaml
     end
 
     def get_profile_from_feature(feature_name)
