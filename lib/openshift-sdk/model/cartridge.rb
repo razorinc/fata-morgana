@@ -164,19 +164,19 @@ module Openshift::SDK::Model
     end
   
     def to_manifest_yaml
-      yaml_hash = {
-        "Name"    => self.name,
-        "Version" => self.version || "0.0",
-        "Architecture" => self.architecture || "noarch",
-        "Display Name" => self.display_name || "#{self.name}-#{self.version}-#{self.architecture}",
-        "Description" => self.summary || ".",
-        "Vendor"  => self.vendor,
-        "License" => self.license || "unknown",
-        "Provides"=> self.provides_feature || [],
-        "Requires"=> self.requires_feature || [],
-        "Conflicts"=> self.conflicts_feature || [],
-        "Native Requires" => self.requires
-      }
+      yaml_hash = {}
+      yaml_hash["Name"]             = self.name
+      yaml_hash["Version"]          = self.version || "0.0"
+      yaml_hash["Architecture"]     = self.architecture || "noarch"
+      yaml_hash["Display Name"]     = self.display_name || "#{self.name}-#{self.version}-#{self.architecture}"
+      yaml_hash["Description"]      = self.summary || "."
+      yaml_hash["Vendor"]           = self.vendor
+      yaml_hash["License"]          = self.license || "unknown"
+      yaml_hash["Provides"]         = self.provides_feature || []
+      yaml_hash["Requires"]         = self.requires_feature || []
+      yaml_hash["Conflicts"]        = self.conflicts_feature || []
+      yaml_hash["Native Requires"]  = self.requires
+
       if @is_installed
         yaml_hash['Descriptor'] = self.descriptor.to_descriptor_hash
       else

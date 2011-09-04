@@ -10,34 +10,19 @@ Requires:
 Conflicts:
 Native Requires: https, mod_bw
 Descriptor:
-  Reservations: 
-  - MEM >= 500M
   Profiles:
     default:
       Provides: www-dynamic-default
-      Reservations: 
-      - MEM >=500M
-      Property Overrides:
-      - www-dynamic.blah = 1
       Components:
         www-dyn:
-          Publishes:
+          Subscribes:
             vhost:
               Type: FILESYSTEM:vhost
               Required: false
-          Subscribes:
+          Publishes:
             ext_url:
               Type: NET_TCP:HTTP
       Groups:
         default:
           Components:
-            www-dyn
-          Reservations: 
-          - MEM >= 500M
-          Scaling:
-            Min: 1
-            Max: -1
-      Connections:
-        foo:
-          Components: x,y
-              
+            www: www-dyn              

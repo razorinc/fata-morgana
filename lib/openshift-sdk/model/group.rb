@@ -102,15 +102,10 @@ module Openshift::SDK::Model
       }
     end
 
-    def add_component_instance(component_name, comp_hash = nil)
-      # TODO : create a component_instance object and
-      #         add the properties from comp_hash
-      if self.components
-        self.components << component_name
-      else
-        self.components = [component_name]
-      end
+    def add_component_instance(component_name,instance_name=nil)
+      self.components = {} if self.components
+      instance_name = component_name unless instance_name
+      self.components[instance_name] = component_name
     end
-
   end
 end

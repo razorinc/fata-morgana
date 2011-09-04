@@ -101,35 +101,34 @@ module Openshift::SDK::Model
           c = @components[component_name] = Component.new(component_name)
           c.from_descriptor_hash(component_hash)
         end
+      else
+        if hash["Dependencies"] or hash["Publishes"] or hash["Subscribes"]
+          c = @components["default"] = Component.new("default")
+          c.from_descriptor_hash(hash)
+        end
       end
+      
       groups_will_change!
       if hash["Groups"]
         hash["Groups"].each do |group_name, group_hash|
           g = @groups[group_name] = Group.new(group_name)
           g.from_descriptor_hash(group_hash)
         end
+      else
+        # create default group
+        g = @groups["default"] = Group.new("default")
+        g.from_descriptor_hash({})
+        self.components.keys.each do |cname|
+          g.add_component_instance(cname)
+        end
       end
+      
       if hash["Connections"]
         connections_will_change!
         hash["Connections"].each do |conn_name, conn_hash|
           c = @connections[conn_name] = Connection.new(conn_name)
           c.from_descriptor_hash(conn_hash)
         end
-      end
-
-      # if groups/components/connections are not provided
-      # then check for a default component/group
-      if not hash["Groups"]
-        # create default component and group
-        g = @groups["default"] = Group.new("default")
-        g.from_descriptor_hash(hash)
-      end
-      if hash["Dependencies"] or hash["Publishes"] or hash["Subscribes"]
-        c = @components["default"] = Component.new("default")
-        c.from_descriptor_hash(hash)
-        # create a default component instance in any group
-        g = @groups[@groups.keys[0]]
-        g.add_component_instance("default")
       end
     end
     
