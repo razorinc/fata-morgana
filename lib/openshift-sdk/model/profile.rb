@@ -85,7 +85,13 @@ module Openshift::SDK::Model
       @property_overrides = []
     end
     
-    def from_descriptor_hash(hash, cart_features = nil)
+    def resolve_references(cart_features)
+      self.components.each do |cname, comp|
+        comp.resolve_references(cart_features)
+      end
+    end
+    
+    def from_descriptor_hash(hash)
       if hash["Provides"]
         if hash["Provides"].class == Array
           self.provides = hash["Provides"]
@@ -93,25 +99,22 @@ module Openshift::SDK::Model
           self.provides = hash["Provides"].split(",")
         end
       end
-      self.reservations = hash["Reservations"] if hash["Reservations"]
-      self.property_overrides = hash["Property Overrides"]
+      self.reservations = hash["Reservations"] || []
+      self.property_overrides = hash["Property Overrides"] || []
       components_will_change!
       if hash["Components"]
         hash["Components"].each do |component_name, component_hash|
           c = @components[component_name] = Component.new(component_name)
           c.from_descriptor_hash(component_hash)
-          c.resolve_references(cart_features)
         end
       else
         deps = hash["Dependencies"]
         if hash["Dependencies"] or hash["Publishes"] or hash["Subscribes"]
           c = @components["default"] = Component.new("default")
           c.from_descriptor_hash(hash)
-          c.resolve_references(cart_features)
         else
           c = @components["default"] = Component.new("default")
           c.from_descriptor_hash({})
-          c.resolve_references(cart_features)
         end
       end
       

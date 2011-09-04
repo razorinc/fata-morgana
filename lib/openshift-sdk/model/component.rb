@@ -132,7 +132,7 @@ module Openshift::SDK::Model
             end
           }
         else
-          cartridge = Cartridge.what_provides(feature)
+          cartridge = Cartridge.what_provides(feature)[0]
           profile_name = cartridge.get_profile_from_feature(feature)
           self.resolved_dependencies[cartridge.name + ":" + profile_name] = cartridge
         end

@@ -8,7 +8,7 @@ License: APL
 Provides: www-dynamic
 Requires:
 Conflicts:
-Native Requires: https, mod_bw
+Native Requires: httpd, mod_bw
 Descriptor:
   Profiles:
     default:

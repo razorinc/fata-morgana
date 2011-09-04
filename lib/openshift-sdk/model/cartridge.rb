@@ -122,9 +122,10 @@ module Openshift::SDK::Model
       dds_cart
     end
     
-    def load_descriptor(desc_hash)
+    def load_descriptor(desc_hash, resolve_references=false)
       self.descriptor = Descriptor.new
-      self.descriptor.from_descriptor_hash(desc_hash, self.requires_feature)
+      self.descriptor.from_descriptor_hash(desc_hash)
+      self.descriptor.resolve_references(self.requires_feature) if resolve_references
     end
   
     def from_manifest_yaml(yaml=nil)
@@ -150,12 +151,48 @@ module Openshift::SDK::Model
       self.architecture = spec_objects["Architecture"] || "noarch"
       self.display_name = spec_objects["Display Name"] || spec_objects["Name"]
       self.summary = spec_objects["Description"] || spec_objects["Name"]
-      self.vendor = spec_objects["Vendor"]
+      self.vendor = spec_objects["Vendor"] || "unknown"
       self.license = spec_objects["License"] || "unknown"
-      self.provides_feature = spec_objects["Provides"] || []
-      self.requires_feature = spec_objects["Requires"] || []
-      self.conflicts_feature = spec_objects["Conflicts"] || []      
-      self.requires = spec_objects["Native Requires"] || []
+      
+      case spec_objects["Provides"]
+      when Array
+        self.provides_feature = spec_objects["Provides"]
+      when String
+        self.provides_feature = spec_objects["Provides"].split(",")
+      else
+        self.provides_feature = []
+      end
+      
+      case spec_objects["Requires"]
+      when Array
+        self.requires_feature = spec_objects["Requires"]
+      when String
+        self.requires_feature = spec_objects["Requires"].split(",")
+        self.requires_feature.map!{ |e| e.strip }        
+        
+      else
+        self.requires_feature = []
+      end
+      
+      case spec_objects["Conflicts"]
+      when Array
+        self.conflicts_feature = spec_objects["Conflicts"]
+      when String
+        self.conflicts_feature = spec_objects["Conflicts"].split(",")
+        self.conflicts_feature.map!{ |e| e.strip }        
+      else
+        self.conflicts_feature = []
+      end
+      
+      case spec_objects["Native Requires"]
+      when Array
+        self.requires = spec_objects["Native Requires"]
+      when String
+        self.requires = spec_objects["Native Requires"].split(",")
+        self.requires.map!{ |e| e.strip }
+      else
+        self.requires = []
+      end
       self.load_descriptor(spec_objects["Descriptor"] || {})
       
       self
@@ -198,7 +235,7 @@ module Openshift::SDK::Model
 
     def get_profile_from_feature(feature_name)
       d = self.descriptor
-      return nil if d.nil?
+      raise "Cartridge #{self.name} is not installed" if d.nil?
       # FIXME
       return "default"
     end

@@ -87,18 +87,24 @@ module Openshift::SDK::Model
       @profiles[profile_name] = profile
     end
     
-    def from_descriptor_hash(hash, cart_features=nil)
+    def resolve_references(cart_features)
+      self.profiles.each do |pname, profile|
+        profile.resolve_references(cart_features)
+      end
+    end
+    
+    def from_descriptor_hash(hash)
       if hash["Reservations"]
         self.reservations = hash["Reservations"]
       end
       if hash["Profiles"]
         hash["Profiles"].each do |profile_name,profile_hash|
           p = self[profile_name] = Profile.new(profile_name)
-          p.from_descriptor_hash(profile_hash, cart_features)
+          p.from_descriptor_hash(profile_hash)
         end
       else
         p = self["default"] = Profile.new("default")
-        p.from_descriptor_hash(hash, cart_features)
+        p.from_descriptor_hash(hash)
       end
     end
     
