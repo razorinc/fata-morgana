@@ -135,7 +135,7 @@ module Openshift::SDK::Model
       self.components = {} if self.components
       instance_name = component_name unless instance_name
       self.components[instance_name] = component_name
-      local_hash = {}
+      local_resolution_hash = {}
       local_resolution_hash[instance_name] = component_name
       self.resolve_references(local_resolution_hash)
     end

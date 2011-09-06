@@ -197,5 +197,13 @@ module Openshift::SDK::Model
     def to_s
       to_package_yaml
     end
+
+    def get_profile_from_feature(feature_name)
+      d = self.descriptor
+      return nil if d.nil?
+      # FIXME
+      return "default"
+    end
+
   end
 end

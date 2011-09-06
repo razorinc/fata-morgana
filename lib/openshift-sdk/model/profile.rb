@@ -103,9 +103,14 @@ module Openshift::SDK::Model
           c.resolve_references(cart_features)
         end
       else
+        deps = hash["Dependencies"]
         if hash["Dependencies"] or hash["Publishes"] or hash["Subscribes"]
           c = @components["default"] = Component.new("default")
           c.from_descriptor_hash(hash)
+          c.resolve_references(cart_features)
+        else
+          c = @components["default"] = Component.new("default")
+          c.from_descriptor_hash({})
           c.resolve_references(cart_features)
         end
       end
