@@ -121,6 +121,7 @@ module Openshift::SDK::Model
         self.components.keys.each do |cname|
           g.add_component_instance(cname)
         end
+        g.scaling.from_descriptor_hash(hash["Scaling"]) if hash["Scaling"]
       end
       
       if hash["Connections"]

@@ -1,13 +1,13 @@
-Name: php-5.3.2
-Version: 5.3.2
-Architecture: noarch
-Display Name: php v5.3.2 (noarch)
-Description: PHP 5.3.2
-Version: Apache
-License: APL
-Provides: php=5.3.2
-Requires: www-dynamic
-Native Requires:
+Name:      php
+Display Name: php v1.0.0 (noarch)
+Version:   1.0.0
+License:   GPLv2
+Provides: 
+- "php"
+- "php(version) = 5.3.2"
+Requires: 
+- "www-dynamic"
+Native-Requires: 
 - "php >= 5.3.2"
 - "php < 5.4.0"
 - "php-pdo"
@@ -16,16 +16,23 @@ Native Requires:
 - "php-mysql"
 - "php-pgsql"
 - "php-pear"
+Conflicts:
+BuildArch: noarch
 
 Descriptor:
-  Profiles:
-    default:
-      Provides: php-default
-      Components:
-        php:
-          Publishes:
-            vhost:
-              Type: FILESYSTEM:vhost
-          Subscribes:
-            mysql_conn_info:
-              Type: NET_TCP:db:mysql
+  Reservations: 
+  - MEM >= 100M
+  Provides: php
+  Publishes:
+    doc_root:
+      Type: "FILESYSTEM:doc-root"
+    php_ini:
+      Type: "FILESYSTEM::php-ini"
+  Subscribes:
+    mysql_conn_info:
+      Type: "NET_TCP:db:mysql"
+      Required : false
+  Scaling:
+    Min: 1
+    Max: -1
+
