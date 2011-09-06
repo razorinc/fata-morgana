@@ -85,7 +85,7 @@ module Openshift::SDK::Model
       @property_overrides = []
     end
     
-    def from_descriptor_hash(hash)
+    def from_descriptor_hash(hash, cart_features = nil)
       if hash["Provides"]
         if hash["Provides"].class == Array
           self.provides = hash["Provides"]
@@ -100,11 +100,13 @@ module Openshift::SDK::Model
         hash["Components"].each do |component_name, component_hash|
           c = @components[component_name] = Component.new(component_name)
           c.from_descriptor_hash(component_hash)
+          c.resolve_references(cart_features)
         end
       else
         if hash["Dependencies"] or hash["Publishes"] or hash["Subscribes"]
           c = @components["default"] = Component.new("default")
           c.from_descriptor_hash(hash)
+          c.resolve_references(cart_features)
         end
       end
       
@@ -112,11 +114,13 @@ module Openshift::SDK::Model
       if hash["Groups"]
         hash["Groups"].each do |group_name, group_hash|
           g = @groups[group_name] = Group.new(group_name)
+          g.profile = self
           g.from_descriptor_hash(group_hash)
         end
       else
         # create default group
         g = @groups["default"] = Group.new("default")
+        g.profile = self
         g.from_descriptor_hash({})
         self.components.keys.each do |cname|
           g.add_component_instance(cname)

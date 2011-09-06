@@ -76,22 +76,31 @@ module Openshift::SDK::Model
   # [nodes] A list of nodes that are part of the group
   # [scaling] Scaling parameters set for the group
   class Group < OpenshiftModel
-    ds_attr_accessor :name,:components, :scaling, :reservations
+    ds_attr_accessor :name,:components, :scaling, :reservations, :resolved_components_hash, :profile
     
     def initialize(name)
       self.name = name
-      self.components = []
+      self.components = {}
       self.scaling = ScalingParameters.new
       self.reservations = []
+      self.resolved_components_hash = {}
+      self.profile = nil
     end
     
     def from_descriptor_hash(hash)
-      self.components = hash["Components"] if hash["Components"]
+      component_instances = hash["Components"] if hash["Components"]
+      case component_instances
+        when Array
+          component_instances.each { |comp| self.components[comp] = comp }
+        when Hash
+          self.components = component_instances
+      end
       self.reservations = hash["Reservations"] if hash["Reservations"]
       if hash["Scaling"]
         scaling_will_change!
         self.scaling.from_descriptor_hash(hash["Scaling"])
       end
+      self.resolve_references
     end
     
     def to_descriptor_hash
@@ -102,10 +111,33 @@ module Openshift::SDK::Model
       }
     end
 
-    def add_component_instance(component_name,instance_name=nil)
+    def resolve_references(component_hash=nil)
+      raise "Empty parent profile" if self.profile.nil?
+      component_defs_hash = self.profile.components
+
+      comphash = component_hash || self.components
+      comphash.keys.each { |inst_name|
+        comp_name = comphash[inst_name]
+        if component_defs_hash[comp_name]
+          self.resolved_components_hash[inst_name] = 
+                  ComponentInstance.new(inst_name, component_defs_hash[comp_name])
+        else
+          # FIXME : resolve this by treating the comp_name as a feature
+          #         .. add a component by that feature-cartridge pair
+          raise "Unresolved component #{comp_name}"
+        end
+      }
+      # unresolved_instances_count = 
+      #       self.resolved_components_hash.length - self.components.length
+    end
+
+    def add_component_instance(component_name, instance_name=nil)
       self.components = {} if self.components
       instance_name = component_name unless instance_name
       self.components[instance_name] = component_name
+      local_hash = {}
+      local_resolution_hash[instance_name] = component_name
+      self.resolve_references(local_resolution_hash)
     end
   end
 end

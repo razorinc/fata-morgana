@@ -126,7 +126,7 @@ module Openshift::SDK::Model
     
     def load_descriptor(desc_hash)
       self.descriptor = Descriptor.new
-      self.descriptor.from_descriptor_hash(desc_hash, self.provides_feature)
+      self.descriptor.from_descriptor_hash(desc_hash, self.requires_feature)
     end
   
     def from_manifest_yaml(yaml=nil)

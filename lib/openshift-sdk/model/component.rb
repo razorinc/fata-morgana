@@ -71,13 +71,14 @@ module Openshift::SDK::Model
   # [subscribes] Hash of connectors that subscribe to information
   class Component < OpenshiftModel
     validates_presence_of :name
-    ds_attr_accessor :name, :publishes, :subscribes, :dependencies
+    ds_attr_accessor :name, :publishes, :subscribes, :dependencies, :resolved_dependencies
     
     def initialize(name)
       self.name = name
       self.publishes = {}
       self.subscribes = {}
       self.dependencies = []
+      self.resolved_dependencies = []
     end
     
     def from_descriptor_hash(hash)
@@ -115,5 +116,29 @@ module Openshift::SDK::Model
         "Subscribes" => s
       }
     end
+
+    def resolve_references(default_dependencies = [])
+      depends = default_dependencies || []
+      depends += self.dependencies
+      depends.each { |dependency|
+        feature, profile_name = dependency.split(":")
+        if not profile_name.nil?
+          # feature is actually a cartridge name now, because profile is provided
+          cart_list = Cartridge.list_installed
+          cart_list.each { |cart|
+            if cart.name == feature
+              self.resolved_dependencies[dependency] = cart
+              break
+            end
+          }
+        else
+          cartridge = Cartridge.what_provides(feature)
+          profile_name = cartridge.get_profile_from_feature(feature)
+          self.resolved_dependencies[cartridge.name + ":" + profile_name] = cartridge
+        end
+      }
+    end
+
   end    
 end
+
