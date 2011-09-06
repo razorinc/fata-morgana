@@ -97,12 +97,8 @@ module Openshift::SDK::Model
           p.from_descriptor_hash(profile_hash)
         end
       else
-        if hash["Components"]
-          p = self["default"] = Component.new("default")
-          p.from_descriptor_hash(hash)
-        else
-          #base basic descriptor from cart provides info
-        end
+        p = self["default"] = Profile.new("default")
+        p.from_descriptor_hash(hash)
       end
     end
     
