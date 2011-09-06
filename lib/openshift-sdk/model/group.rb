@@ -86,7 +86,7 @@ module Openshift::SDK::Model
     end
     
     def from_descriptor_hash(hash)
-      self.components = hash["Components"]
+      self.components = hash["Components"] if hash["Components"]
       self.reservations = hash["Reservations"] if hash["Reservations"]
       if hash["Scaling"]
         scaling_will_change!
@@ -101,5 +101,16 @@ module Openshift::SDK::Model
         "Scaling" => self.scaling.to_descriptor_hash
       }
     end
+
+    def add_component_instance(component_name, comp_hash = nil)
+      # TODO : create a component_instance object and
+      #         add the properties from comp_hash
+      if self.components
+        self.components << component_name
+      else
+        self.components = [component_name]
+      end
+    end
+
   end
 end
