@@ -101,7 +101,7 @@ module Openshift::SDK::Model
       #TODO: execute in distributed lock
       
       config = Openshift::SDK::Config.instance
-      min_gid = (config.get("min_group_id") || "550").to_i
+      min_gid = (config.get("min_group_id") || "560").to_i
       max_gid = (config.get("max_group_id") || "1000").to_i
       gids = GidApplicationMap.find_all_guids
       gid = nil

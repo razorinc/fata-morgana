@@ -50,6 +50,7 @@ module Openshift
         end
         
         def after_transition(application, transition)
+          application.save!
         end
         
         def after_create(application, transition)
@@ -61,16 +62,17 @@ module Openshift
             #Reserve the first user for the app
             application.users.push(Model::UidUserMap.reserve_application_user(application))
             
-            #Load an empty descriptor and this node to the default group on the descriptor
-            group = Model::Group.new
-            group.gen_uuid
-            application.descriptor.profiles["default"].groups["default"] = group
-            application.active_profile = "default"
-            group.nodes.push(Model::Node.this_node.guid)
+            #load empty descriptor
+            application.gen_empty_descriptor
+            application.active_profile = application.descriptor.profiles.keys.first
+
+            paas_filter = Openshift::SDK.paas_filter
+            application.descriptor.profiles[application.active_profile].groups.each do |gname, group|
+              group.provisioning_group = paas_filter.map_application_group(group)
+            end
             application.save!
             
             NodeApplicationDelegate.instance.create(application)
-            application.reload_descriptor
             application.create_complete!            
           rescue Exception => e
             log.error(e.message)

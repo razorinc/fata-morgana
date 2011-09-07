@@ -1,3 +1,4 @@
+#--
 # Copyright 2010 Red Hat, Inc.
 #
 # Permission is hereby granted, free of charge, to any person
@@ -19,38 +20,34 @@
 # ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+#++
 
-require 'rubygems'
-require 'singleton'
-require 'openshift-sdk/config'
-require 'openshift-sdk/utils/logger'
-require 'openshift-sdk/model/node'
-require 'openshift-sdk/model/application'
-require 'openshift-sdk/model/node_application'
-
-module Openshift::SDK::Controller
-  class NodeApplicationDelegate
-    include Object::Singleton
+require 'openshift-sdk/model/model'
+module Openshift::SDK::Model
+  class Cluster < OpenshiftModel
+    ds_attr_accessor :provisioning_groups
     
-    def create(application)
-      profile = application.descriptor.profiles[application.active_profile]
-      profile.groups.each do |gname, group|
-        pgroup = Openshift::SDK::Model::ProvisioningGroup.find(group.provisioning_group)
-        pgroup.nodes.each do |nguid|
-          napp = Openshift::SDK::Model::NodeApplication.find(application.node_application_map[nguid], application.user_group_id)
-          unless napp
-            napp = Openshift::SDK::Model::NodeApplication.new(application.guid,application.user_group_id)
-            napp.gen_uuid
-            application.node_application_map[nguid] = napp.guid
-            napp.save!
-            application.save!
-          end
-          napp.create!          
-        end
+    def self.instance
+      cluster = Cluster.find("cluster")
+      unless cluster
+        cluster = Cluster.new
+        cluster.guid="cluster"
+        cluster.save!
       end
+      cluster
     end
     
-    def destroy(application)
+    def self.bucket
+      "admin"
+    end
+    
+    def initialize
+      self.provisioning_groups = []
+    end
+    
+    def add_provisioning_group(pgrp)
+      provisioning_groups_will_change!
+      @provisioning_groups += [pgrp]
     end
   end
 end

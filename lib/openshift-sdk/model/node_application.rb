@@ -123,7 +123,6 @@ module Openshift::SDK::Model
       prod_repo = Openshift::SDK::Utils::VersionControl.new(@app_prod_dir, @app_prod_repo_dir)
       prod_repo.create_from base_repo
       config = Openshift::SDK::Config.instance
-      app.package_root = "#{config.get("app_production_dir_prefix")}"
       app.package_path = @app_prod_dir
       app.save!
     end

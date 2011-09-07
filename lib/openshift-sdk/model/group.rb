@@ -73,10 +73,9 @@ module Openshift::SDK::Model
   # 
   # [name] The name of the group
   # [components] A hash map with all componnts that are part of the group
-  # [nodes] A list of nodes that are part of the group
   # [scaling] Scaling parameters set for the group
   class Group < OpenshiftModel
-    ds_attr_accessor :name,:components, :scaling, :reservations, :resolved_components_hash, :profile
+    ds_attr_accessor :name,:components, :scaling, :reservations, :resolved_components_hash, :profile, :provisioning_group
     
     def initialize(name=nil)
       self.name = name

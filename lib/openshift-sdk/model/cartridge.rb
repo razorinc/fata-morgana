@@ -36,9 +36,9 @@ module Openshift::SDK::Model
   end
   
   class Cartridge < OpenshiftModel
-    ds_attr_accessor :name, :version, :architecture, :display_name, :summary, :vendor, :license
-    ds_attr_accessor :provides_feature, :requires_feature, :conflicts_feature, :requires
-    ds_attr_accessor :package_path, :descriptor, :is_installed, :hooks
+    ds_attr_accessor :name, :version, :architecture, :display_name, :summary, :vendor, :license,
+                     :provides_feature, :requires_feature, :conflicts_feature, :requires,
+                     :package_path, :descriptor, :is_installed, :hooks
     
     def self.bucket
       "admin"
@@ -150,7 +150,11 @@ module Openshift::SDK::Model
         when "File"
           spec_objects  = YAML::load(yaml)
         else
-          spec_objects  = YAML::load(File.open(yaml, "r").read)
+          if File.exists?(yaml)
+            spec_objects  = YAML::load(File.open(yaml, "r").read)
+          else
+            spec_objects  = YAML::load(yaml)
+          end
       end
       
       self.name = spec_objects["Name"]

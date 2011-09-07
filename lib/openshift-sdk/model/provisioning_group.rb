@@ -1,3 +1,4 @@
+#--
 # Copyright 2010 Red Hat, Inc.
 #
 # Permission is hereby granted, free of charge, to any person
@@ -19,38 +20,42 @@
 # ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+#--
 
 require 'rubygems'
-require 'singleton'
+require 'json'
+require 'active_model'
 require 'openshift-sdk/config'
+require 'openshift-sdk/model/model'
+require 'openshift-sdk/model/scaling_parameters'
 require 'openshift-sdk/utils/logger'
-require 'openshift-sdk/model/node'
-require 'openshift-sdk/model/application'
-require 'openshift-sdk/model/node_application'
 
-module Openshift::SDK::Controller
-  class NodeApplicationDelegate
-    include Object::Singleton
+module Openshift::SDK::Model
+  class ProvisioningGroup < OpenshiftModel
+    ds_attr_accessor :nodes, :scaling, :arch, :memory, :disk_size
     
-    def create(application)
-      profile = application.descriptor.profiles[application.active_profile]
-      profile.groups.each do |gname, group|
-        pgroup = Openshift::SDK::Model::ProvisioningGroup.find(group.provisioning_group)
-        pgroup.nodes.each do |nguid|
-          napp = Openshift::SDK::Model::NodeApplication.find(application.node_application_map[nguid], application.user_group_id)
-          unless napp
-            napp = Openshift::SDK::Model::NodeApplication.new(application.guid,application.user_group_id)
-            napp.gen_uuid
-            application.node_application_map[nguid] = napp.guid
-            napp.save!
-            application.save!
-          end
-          napp.create!          
-        end
+    def self.bucket
+      "admin"
+    end
+    
+    def initialize()
+      self.nodes    = []
+      self.scaling  = ScalingParameters.new
+      self.arch     = "x86"
+      self.memory   = 512
+      self.disk_size= 10
+      self.gen_uuid
+    end
+    
+    def scaling=(hash)
+      scaling_will_change!
+      case hash
+      when Hash
+        @scaling = ScalingParameters.new
+        @scaling.attributes=hash
+      else
+        @scaling = hash
       end
-    end
-    
-    def destroy(application)
-    end
+    end    
   end
 end

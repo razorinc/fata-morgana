@@ -77,7 +77,7 @@ SQL
         
         def find_all_ids(type,bucket)
           rows = db(bucket).execute("select id from data where type=?", [type])
-          rows.flatten!
+          rows.flatten
         end
         
         def find(type, id, bucket)

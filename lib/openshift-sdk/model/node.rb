@@ -29,7 +29,7 @@ module Openshift
   module SDK
     module Model
       class Node < OpenshiftModel
-        ds_attr_accessor :group_guid, :state, :is_responding, :last_updated, :cluster, :node_application_map
+        ds_attr_accessor :group_guid, :state, :is_responding, :last_updated
         ds_attr_accessor :provate_ip, :public_ip
         
         def self.bucket
@@ -48,7 +48,6 @@ module Openshift
           end
         end
         
-        
         state_machine :state, :initial => :not_created, :action => :save! do
           event(:join) { transition :standalone => :joining }
           event(:join_complete) { transition :joining => :joined }
@@ -61,11 +60,6 @@ module Openshift
           event(:unjoin) { transition :joined => :unjoining }
           event(:unjoin_complete) { transition :unjoining => :standalone } 
           event(:unjoin_error) { transition :unjoining => :joined }
-        end
-        
-        def initialize
-          super()
-          self.node_application_map = {}
         end
       end
     end

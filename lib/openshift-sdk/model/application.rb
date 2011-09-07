@@ -30,7 +30,8 @@ require 'openshift-sdk/model/model'
 
 module Openshift::SDK::Model
   class Application < Cartridge
-    ds_attr_accessor :state, :deploy_state, :artifact_available, :active_profile, :deleted, :descriptor, :users, :user_group_id, :interfaces
+    ds_attr_accessor :state, :deploy_state, :artifact_available, :active_profile, :deleted, :descriptor, :users, :user_group_id, :interfaces,
+                     :node_application_map
     
     state_machine :state, :initial => :not_created do
       event(:create) { transition :not_created => :creating }
@@ -66,6 +67,11 @@ module Openshift::SDK::Model
       super(app_name,package_path)
       self.users = []
       self.deleted = "false"
+      self.node_application_map = {}
+    end
+    
+    def gen_empty_descriptor
+      from_manifest_yaml("Name: #{self.name}")
     end
     
     def attributes
@@ -73,12 +79,10 @@ module Openshift::SDK::Model
     end
     
     def self.from_opm(package_path)
-      package_root = File.dirname(package_path)
-      app = Application.new(nil,package_root,package_path)
-      control_spec = File.open(package_path + "/openshift/control.spec")        
-      app.from_opm_spec(control_spec)
-      app.native_name = app.name
-      app.provides_feature = [app.name]
+      app = Application.new(nil,package_path)
+      manifest = File.open(package_path + "/openshift/manifest.yml")
+      app.from_manifest_yaml(manifest)
+      app.is_installed = true
       app
     end
     
