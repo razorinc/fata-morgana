@@ -1,0 +1,15 @@
+Name: myapp
+Version: 1.0
+Architecture: noarch
+Display Name: My Hello World App
+Description: My Hello World App
+Version: Krishna
+License: APL
+Requires: 
+- "php"
+- "mysql"
+Descriptor:
+  Publishes:
+  Connections:
+    db-connections:
+      Components: ["php","mysql"]

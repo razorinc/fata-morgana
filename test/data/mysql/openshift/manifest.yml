@@ -1,0 +1,20 @@
+Name: mysql-5.1
+Version: 5.1
+Architecture: noarch
+Display Name: mysql v5.1 (x64)
+Description: MySQL DB Server
+Version: Oracle
+License: GPL
+Provides: mysql
+Native Requires: mysql-server
+Descriptor:
+  Profiles:
+    default:
+      Provides: single-master
+      Components:
+        mysql:
+          Publishes:
+            db-conn-info:
+              Type: NET_TCP:db:mysql
+            mysql-jdbc-info:
+              Type: NET_TCP:jdbc
