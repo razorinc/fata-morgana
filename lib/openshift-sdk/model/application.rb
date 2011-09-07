@@ -62,9 +62,8 @@ module Openshift::SDK::Model
       `id -g`.strip
     end
     
-    def initialize(app_name=nil,package_root=nil,package_path=nil)
-      super()
-      self.name,self.package_root,self.package_path = app_name,package_root,package_path
+    def initialize(app_name=nil,package_path=nil)
+      super(app_name,package_path)
       self.users = []
       self.deleted = "false"
     end
@@ -81,13 +80,6 @@ module Openshift::SDK::Model
       app.native_name = app.name
       app.provides_feature = [app.name]
       app
-    end
-    
-    def descriptor
-      descriptor_changed = @descriptor.nil?
-      @descriptor ||= Descriptor.new(self)
-      descriptor_will_change! if descriptor_changed
-      @descriptor
     end
     
     def delete!

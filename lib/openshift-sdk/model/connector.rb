@@ -73,7 +73,7 @@ module Openshift::SDK::Model
     validates_presence_of :type, :name, :required
     ds_attr_accessor :type, :name, :required
     
-    def initialize(name)
+    def initialize(name=nil)
       self.name = name
       self.required = false
     end

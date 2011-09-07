@@ -12,4 +12,6 @@ Descriptor:
   Publishes:
   Connections:
     db-connections:
-      Components: ["php","mysql"]
+      Components:
+      - "php"
+      - "mysql"
