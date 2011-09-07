@@ -31,7 +31,7 @@ require 'openshift-sdk/model/model'
 module Openshift::SDK::Model
   class Application < Cartridge
     ds_attr_accessor :state, :deploy_state, :artifact_available, :active_profile, :descriptor, :users, :user_group_id, :interfaces,
-                     :node_application_map
+                     :node_application_map, :component_instance_map
     
     state_machine :state, :initial => :not_created do
       event(:create) { transition :not_created => :creating }
@@ -67,6 +67,7 @@ module Openshift::SDK::Model
       super(app_name,package_path)
       self.users = []
       self.node_application_map = {}
+      self.component_instance_map = {}
     end
     
     def gen_empty_descriptor
@@ -77,12 +78,34 @@ module Openshift::SDK::Model
       {"state"=> @state, "deploy_state"=> @deploy_state, "descriptor" => self.descriptor}
     end
     
+    def build_component_instance_map(cart=self, prof=nil, prefix="")
+      cart.descriptor.profiles[prof].groups.each do |gname, group|
+        group.resolved_components.each do |comp_name, comp|
+          comp_prefix = cart.name + "." + comp_name
+          comp_prefix = prefix + "." + comp_prefix unless prefix.nil? or prefix == ""
+          
+          self.component_instance_map[comp_prefix] = comp
+          comp.cartridge_instances.each do |cpname,cpobj|
+            build_component_instance_map(cpobj.cartridge, cpobj.profile, comp_prefix)
+          end
+        end
+      end
+      
+      self.component_instance_map.keys
+    end
+    
     def self.from_opm(package_path)
       app = Application.new(nil,package_path)
       manifest = File.open(package_path + "/openshift/manifest.yml")
       app.from_manifest_yaml(manifest)
       app.is_installed = true
       app
+    end
+    
+    def resolve_references(profile_name = nil)
+      self.active_profile= profile_name || "default"
+      super
+      build_component_instance_map(self,self.active_profile,"")
     end
     
     def delete!

@@ -42,6 +42,7 @@ end
 require 'openshift-sdk'
 
 opts = GetoptLong.new(
+    ["--resolve",                GetoptLong::NO_ARGUMENT],
     ["--porcelin",               GetoptLong::NO_ARGUMENT],
     ["--debug",                  GetoptLong::NO_ARGUMENT],
     ["--help",             "-h", GetoptLong::NO_ARGUMENT]
@@ -65,4 +66,6 @@ if args['--help'] || app_path.nil?
 end
 
 a = Openshift::SDK::Model::Application.from_opm(app_path)
-print a.descriptor.to_yaml
+a.active_profile = "default"
+a.resolve_references if args["--resolve"]
+print a.to_yaml

@@ -75,14 +75,14 @@ module Openshift::SDK::Model
   # [components] A hash map with all componnts that are part of the group
   # [scaling] Scaling parameters set for the group
   class Group < OpenshiftModel
-    ds_attr_accessor :name,:components, :scaling, :reservations, :resolved_components_hash, :profile, :provisioning_group
+    ds_attr_accessor :name,:components, :scaling, :reservations, :resolved_components, :profile, :provisioning_group
     
     def initialize(name=nil)
       self.name = name
       self.components = {}
       self.scaling = ScalingParameters.new
       self.reservations = []
-      self.resolved_components_hash = {}
+      self.resolved_components = {}
       self.profile = nil
     end
     
@@ -123,12 +123,13 @@ module Openshift::SDK::Model
     def resolve_references(component_hash=nil)
       raise "Empty parent profile for component #{self.name}" if self.profile.nil?
       component_defs_hash = self.profile.components
+      self.resolved_components = {}
 
       comphash = component_hash || self.components
       comphash.keys.each { |inst_name|
         comp_name = comphash[inst_name]
         if component_defs_hash[comp_name]
-          self.resolved_components_hash[inst_name] = 
+          self.resolved_components[inst_name] = 
                   ComponentInstance.new(inst_name, component_defs_hash[comp_name])
         else
           # FIXME : resolve this by treating the comp_name as a feature
@@ -137,7 +138,7 @@ module Openshift::SDK::Model
         end
       }
       # unresolved_instances_count = 
-      #       self.resolved_components_hash.length - self.components.length
+      #       self.resolved_components.length - self.components.length
     end
 
     def add_component_instance(component_name, instance_name=nil, resolve_reference=false)

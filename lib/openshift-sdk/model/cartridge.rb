@@ -107,32 +107,21 @@ module Openshift::SDK::Model
         cart.version = rpm.version
         cart.summary = rpm.summary
       end
-      cart.guid="#{cart.name}-#{cart.version}"      
-                  
-      #lookup from dds or create new entry
-      dds_cart = self.find(cart.guid)
-      if !dds_cart || (!dds_cart.installed? && cart.installed?)
-        if cart.installed?
-          cart.descriptor
-        end
-        cart.save!
-        dds_cart = cart
-      end
-        
-      dds_cart
+      cart.guid="#{cart.name}-#{cart.version}"
+      cart
     end
     
     def load_descriptor(desc_hash, resolve_references=false)
       self.descriptor = Descriptor.new
-      self.descriptor.from_descriptor_hash(desc_hash)
-      self.descriptor.resolve_references(self.requires_feature) if resolve_references
+      self.descriptor.from_descriptor_hash(desc_hash,self.requires_feature)
+      self.descriptor.resolve_references if resolve_references
     end
 
     def resolve_references(profile_name = nil)
       if self.descriptor.nil?
         raise "Descriptor for cartridge #{self.name} not available. Cannot resolve references. Cartridge not installed?"
       end
-      self.descriptor.resolve_references(self.requires_feature, profile_name)
+      self.descriptor.resolve_references(profile_name)
     end
   
     def from_manifest_yaml(yaml=nil)

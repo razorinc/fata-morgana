@@ -101,7 +101,7 @@ module Openshift::SDK::Model
       # search for comp1 and comp2 in profile
       # assume that the profile has its components resolved
       profile.groups.each { |group_name, group|
-        group.resolved_components_hash.each { |comp_inst_name, comp_inst|
+        group.resolved_components.each { |comp_inst_name, comp_inst|
           if comp_inst_name==comp1 or comp_inst.component.name == comp1
             res_comp1 = comp_inst
           end
@@ -120,7 +120,7 @@ module Openshift::SDK::Model
       # by looking at component/instance names, we need to look into
       # dependencies of each component
       profile.groups.each { |group_name, group|
-        group.resolved_components_hash.each { |comp_inst_name, comp_inst|
+        group.resolved_components.each { |comp_inst_name, comp_inst|
           comp_inst.cartridge_instances.each { |cart_profile_name, cart_inst|
             cart_name, profile_name = cart_profile_name.split(":")
             if cart_name == comp1 or cart_profile_name == comp1

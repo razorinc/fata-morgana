@@ -85,10 +85,7 @@ module Openshift::SDK::Model
       @property_overrides = []
     end
     
-    def resolve_references(cart_features)
-      self.components.each do |cname, comp|
-        comp.resolve_references(cart_features)
-      end
+    def resolve_references
       self.groups.each do |group_name, group|
         group.resolve_references
       end
@@ -97,7 +94,7 @@ module Openshift::SDK::Model
       end
     end
     
-    def from_descriptor_hash(hash)
+    def from_descriptor_hash(hash,inherited_dependencies=nil)
       if hash["Provides"]
         if hash["Provides"].class == Array
           self.provides = hash["Provides"]
@@ -111,16 +108,16 @@ module Openshift::SDK::Model
       if hash["Components"]
         hash["Components"].each do |component_name, component_hash|
           c = @components[component_name] = Component.new(component_name)
-          c.from_descriptor_hash(component_hash)
+          c.from_descriptor_hash(component_hash,inherited_dependencies)
         end
       else
         deps = hash["Dependencies"]
         if hash["Dependencies"] or hash["Publishes"] or hash["Subscribes"]
           c = @components["default"] = Component.new("default")
-          c.from_descriptor_hash(hash)
+          c.from_descriptor_hash(hash,inherited_dependencies)
         else
           c = @components["default"] = Component.new("default")
-          c.from_descriptor_hash({})
+          c.from_descriptor_hash({},inherited_dependencies)
         end
       end
       
@@ -181,7 +178,7 @@ module Openshift::SDK::Model
     def get_all_component_instances
       return_list = []
       self.groups.each { |gname, group|
-        group.resolved_components_hash.each { |comp_name, comp|
+        group.resolved_components.each { |comp_name, comp|
           return_list.push(comp)
         }
       }

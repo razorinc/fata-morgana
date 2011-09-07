@@ -46,20 +46,38 @@ module Openshift::SDK::Model
       {"name"=> @name, "component" => self.component}
     end
 
+    def resolve_dependency(dependency)
+      feature, profile_name = dependency.split(":")
+      if profile_name
+        # feature is actually a cartridge name now, because profile is provided
+        cart_list = Cartridge.list_installed
+        cart_list.each { |cart|
+          return [cart,profile_name] if cart.name == feature
+        }
+        raise "Cartridge dependency #{dependency} not resolved. Cartridge not installed?"
+      else
+        cart_list = Cartridge.what_provides(feature)
+        if cart_list.nil? or cart_list.length==0
+          raise "Cartridge dependency #{dependency} not resolved. Cartridge not installed?"
+        end
+        cartridge = cart_list[0]
+        profile_name = cartridge.get_profile_from_feature(feature)
+        return [cartridge,profile_name]
+      end
+    end
+
     def resolve_references
       if self.component.nil? 
         raise "Component not defined for instance #{name}"
       end
 
-      cartridges = self.component.resolved_dependencies
-      cartridges.each { |cart_profile, cartridge|
-        cart_name, profile_name = cart_profile.split(":")
-        cart = Cartridge.from_opm(cartridge.package_path)
-        cart.resolve_references(profile_name)
-        cart_instance = CartridgeInstance.new(self, profile_name, cart)
-        self.cartridge_instances[cart_profile] = cart_instance
-      }
+      dependencies = self.component.dependencies
+      dependencies.each do |dependency|
+        cartridge, profile_name = resolve_dependency(dependency)
+        cart_instance = CartridgeInstance.new(self, profile_name, cartridge)
+        self.cartridge_instances[cartridge.name + ":" + profile_name] = cart_instance
+        cart_instance.cartridge.descriptor.resolve_references
+      end
     end
-
   end
 end
