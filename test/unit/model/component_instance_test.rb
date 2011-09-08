@@ -5,6 +5,7 @@ module Openshift::SDK::Model
     include ActiveModel::Lint::Tests
 
     def model
+      ComponentInstance.any_instance.stubs(:resolve_references).returns(nil)
       ComponentInstance.new
     end
 
