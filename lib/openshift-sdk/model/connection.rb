@@ -195,7 +195,7 @@ module Openshift::SDK::Model
       comp2_list.each { |comp_inst|
         comp_inst.component.subscribes.each { |conn_name, connector|
           if pub_hash[connector.type]
-            pub_connector, pub_inst = pub_hash
+            pub_connector, pub_inst = pub_hash[connector.type]
             self.endpoints.push(ConnectionEndpoint.new(pub_inst, pub_connector, comp_inst, connector))
           end
         }
@@ -212,7 +212,7 @@ module Openshift::SDK::Model
       comp1_list.each { |comp_inst|
         comp_inst.component.subscribes.each { |conn_name, connector|
           if pub_hash[connector.type]
-            pub_connector, pub_inst = pub_hash
+            pub_connector, pub_inst = pub_hash[connector.type]
             self.endpoints.push(ConnectionEndpoint.new(pub_inst, pub_connector, comp_inst, connector))
           end
         }
