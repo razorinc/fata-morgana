@@ -78,13 +78,24 @@ module Openshift::SDK::Model
   class Group < OpenshiftModel
     ds_attr_accessor :name,:components, :scaling, :reservations, :resolved_components_hash, :profile
     
-    def initialize(name)
+    def initialize(name=nil)
       self.name = name
       self.components = {}
       self.scaling = ScalingParameters.new
       self.reservations = []
       self.resolved_components_hash = {}
       self.profile = nil
+    end
+    
+    def scaling=(hash)
+      scaling_will_change!
+      case hash
+      when Hash
+        @scaling = ScalingParameters.new
+        @scaling.attributes=hash
+      else
+        @scaling = hash
+      end
     end
     
     def from_descriptor_hash(hash)
@@ -100,7 +111,6 @@ module Openshift::SDK::Model
         scaling_will_change!
         self.scaling.from_descriptor_hash(hash["Scaling"])
       end
-      self.resolve_references
     end
     
     def to_descriptor_hash

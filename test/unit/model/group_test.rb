@@ -6,68 +6,59 @@ module Openshift::SDK::Model
   class GroupTest < Test::Unit::TestCase
     include ActiveModel::Lint::Tests
 
-    def setup()
-      FeatureCartridgeCache.expects(:instance).at_least_once.returns(FeatureCartridgeCache.new)
-      ComponentInstance.any_instance.expects(:initialize).at_least_once.returns(nil)
-    end
-    
     def model
       Group.new
     end
 
     def test_init_without_scaling
-      g = Group.new("group1",{ "components" => { "feat1" => {} }})
+      g = Group.new("group1")
+      g.from_descriptor_hash({"Components" => ["comp1"], "Reservations" => "MEM >= 500M"})
       assert_not_nil g
       assert_equal 1,g.scaling.min
       assert_equal -1,g.scaling.max
       assert_equal "+1",g.scaling.default_scale_by
-      assert_equal false,g.scaling.requires_dedicated
-      assert_equal 1,g.components.keys.size
-      assert_equal "1--1-false", g.signature
+      assert_equal 1,g.components.size
+      assert_equal "MEM >= 500M", g.reservations
     end
 
     def test_init
-      Time.any_instance.expects(:nsec).returns(12345)
-      g = Group.new("group1",{ "components" => { "feat1" => {} }, "scaling" => { "min" => 2, "max" => 7, "requires_dedicated" => "true"}})
+      g = Group.new("group1")
+      g.from_descriptor_hash({"Components" => ["comp1"], "Reservations" => "MEM >= 500M", "Scaling" => {"Min" => 2}})
       assert_not_nil g
       assert_equal 2,g.scaling.min
-      assert_equal 7,g.scaling.max
+      assert_equal -1,g.scaling.max
       assert_equal "+1",g.scaling.default_scale_by
-      assert_equal true,g.scaling.requires_dedicated
-      assert_equal 1,g.components.keys.size
-      assert_equal "2-7-12345", g.signature
-      Time.any_instance.expects(:nsec).returns(12346)
-      assert_equal "2-7-12345", g.signature
+      assert_equal 1,g.components.size
+      assert_equal "MEM >= 500M", g.reservations
     end
 
     def test_json
-      File.expects(:join).at_least_once
-      g = Group.new("group1",{ "components" => { "feat1" => {} }})
+      g = Group.new("group1")
+      g.from_descriptor_hash({"Components" => ["comp1"], "Reservations" => "MEM >= 500M"})
+      
       data = g.to_json
+      #print "#{data}\n"
       g = Group.new.from_json data
       assert_not_nil g
-      assert_equal ScalingParameters,g.scaling.class
-      assert_equal ComponentInstance,g.components["feat1"].class
+      assert_equal "+1",g.scaling.default_scale_by
+      assert_equal 1,g.scaling.min
+      assert_equal -1,g.scaling.max
+      assert_equal 1,g.components.size
+      assert_equal "MEM >= 500M", g.reservations
     end
 
     def test_xml
-      File.expects(:join).at_least_once
-      g = Group.new("group1",{ "components" => { "feat1" => {} }})
+      g = Group.new("group1")
+      g.from_descriptor_hash({"Components" => ["comp1"], "Reservations" => "MEM >= 500M"})      
       data = g.to_xml
+      #print "#{data}\n"
       g = Group.new.from_xml data
       assert_not_nil g
-      assert_equal ScalingParameters,g.scaling.class
-      assert_equal ComponentInstance,g.components["feat1"].class
-    end
-
-    def test_yaml
-      File.expects(:join).at_least_once
-      g = Group.new("group1",{ "components" => { "feat1" => {} }})
-      data = g.to_yaml
-      g = YAML.load(data)
-      assert_not_nil g
-      assert_equal ScalingParameters,g.scaling.class
-      assert_equal ComponentInstance,g.components["feat1"].class
+      assert_equal 1,g.scaling.min
+      assert_equal -1,g.scaling.max
+      assert_equal "+1",g.scaling.default_scale_by
+      assert_equal 1,g.components.size
+      assert_equal "MEM >= 500M", g.reservations
     end
   end
 end

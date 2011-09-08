@@ -75,7 +75,7 @@ module Openshift::SDK::Model
     validates_presence_of :name, :groups
     ds_attr_accessor :name, :provides, :reservations, :components, :groups, :connections, :property_overrides
     
-    def initialize(name)
+    def initialize(name=nil)
       self.name = name
       @provides = []
       @reservations = []

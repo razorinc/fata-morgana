@@ -73,15 +73,46 @@ module Openshift::SDK::Model
     validates_presence_of :name
     ds_attr_accessor :name, :publishes, :subscribes, :dependencies, :resolved_dependencies
     
-    def initialize(name)
+    def initialize(name=nil)
       self.name = name
       self.publishes = {}
       self.subscribes = {}
       self.dependencies = []
       self.resolved_dependencies = {}
     end
+
+    def publishes=(hash)
+      return unless hash.class == Hash
+      publishes_will_change!
+      @publishes = {}      
+      hash.each do |conn_name,conn_hash|
+        case conn_hash
+        when Hash
+          @publishes[conn_name] = Connector.new(conn_name)
+          @publishes[conn_name].attributes=conn_hash
+        when Connector
+          @publishes[conn_name] = conn_hash
+        end
+      end
+    end
+    
+    def subscribes=(hash)
+      return unless hash.class == Hash
+      subscribes_will_change!
+      @subscribes = {}
+      hash.each do |conn_name,conn_hash|
+        case conn_hash
+        when Hash
+          @subscribes[conn_name] = Connector.new(conn_name)
+          @subscribes[conn_name].attributes=conn_hash
+        when Connector
+          @subscribes[conn_name] = conn_hash
+        end
+      end
+    end
     
     def from_descriptor_hash(hash)
+      @publishes = {}
       if hash["Publishes"]
         publishes_will_change!
         hash["Publishes"].each do |conn_name, conn_hash|
@@ -89,8 +120,11 @@ module Openshift::SDK::Model
           c.from_descriptor_hash(conn_hash)
         end
       end
+      
+      @subscribes = {}
       if hash["Subscribes"]
         subscribes_will_change!
+        @subscribes = {}
         hash["Subscribes"].each do |conn_name, conn_hash|
           c = @subscribes[conn_name] = Connector.new(conn_name)
           c.from_descriptor_hash(conn_hash)

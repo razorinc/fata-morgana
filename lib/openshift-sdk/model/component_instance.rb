@@ -34,7 +34,7 @@ module Openshift::SDK::Model
     validates_presence_of :component
     ds_attr_accessor :name, :component, :cartridge_instances
     
-    def initialize(name, component_def)
+    def initialize(name=nil, component_def=nil)
       self.name = name
       self.component = component_def
       self.cartridge_instances = {}
