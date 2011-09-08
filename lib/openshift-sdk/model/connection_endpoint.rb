@@ -69,7 +69,7 @@ module Openshift::SDK::Model
   # [component_name] The name of the component instance
   # [connector_name] The connector name for the component
   class ConnectionEndpoint < OpenshiftModel
-    ds_attr_accessor :pub_connector, :sub_connector
+    ds_attr_accessor :pub_connector, :sub_connector, :pub_inst, :sub_inst
 
     def initialize(pub_inst, pub_connector, sub_inst, sub_connector)
       self.pub_inst = pub_inst

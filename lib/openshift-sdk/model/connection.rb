@@ -130,15 +130,15 @@ module Openshift::SDK::Model
               res_comp2 = cart_inst
             end
             if res_comp1 and res_comp2
-              return endpoints_from_cartridges(res_comp1, res_comp2)
+              return endpoints_from_cart_instances(res_comp1, res_comp2)
             end
           }
           if res_comp1 and res_comp2
-            return endpoints_from_cartridges(res_comp1, res_comp2)
+            return endpoints_from_cart_instances(res_comp1, res_comp2)
           end
         }
         if res_comp1 and res_comp2
-          return endpoints_from_cartridges(res_comp1, res_comp2)
+          return endpoints_from_cart_instances(res_comp1, res_comp2)
         end
       }
       # if the flow reaches here, endpoints were not resolved
@@ -154,22 +154,22 @@ module Openshift::SDK::Model
       # get all published from comp1 and match to subscribed of comp2
       # then vice versa
       pub_hash = {}
-      comp1.publishes.each { |conn_name, connector|
+      comp1.component.publishes.each { |conn_name, connector|
         pub_hash[connector.type] = connector
       }
-      comp2.subscribes.each { |conn_name, connector|
+      comp2.component.subscribes.each { |conn_name, connector|
         if pub_hash[connector.type] 
-          self.endpoints.push(connection_endpoint(comp1, pub_hash[connector.type], comp2, connector))
+          self.endpoints.push(ConnectionEndpoint.new(comp1, pub_hash[connector.type], comp2, connector))
         end
       }
 
       pub_hash = {}
-      comp2.publishes.each { |conn_name, connector|
+      comp2.component.publishes.each { |conn_name, connector|
         pub_hash[connector.type] = connector
       }
-      comp1.subscribes.each { |conn_name, connector|
+      comp1.component.subscribes.each { |conn_name, connector|
         if pub_hash[connector.type] 
-          self.endpoints.push(connection_endpoint(comp2, pub_hash[connector.type], comp1, connector))
+          self.endpoints.push(ConnectionEndpoint.new(comp2, pub_hash[connector.type], comp1, connector))
         end
       }
     end
@@ -187,16 +187,16 @@ module Openshift::SDK::Model
       # get cart1's publishers and cart2's subscribers and match up
       pub_hash = {}
       comp1_list.each { |comp_inst|
-        comp_inst.publishes.each { |conn_name, connector|
+        comp_inst.component.publishes.each { |conn_name, connector|
           pub_hash[connector.type] = connector, comp_inst
         }
       }
 
       comp2_list.each { |comp_inst|
-        comp_inst.subscribes.each { |conn_name, connector|
+        comp_inst.component.subscribes.each { |conn_name, connector|
           if pub_hash[connector.type]
             pub_connector, pub_inst = pub_hash
-            self.endpoints.push(connection_endpoint(pub_inst, pub_connector, comp_inst, connector))
+            self.endpoints.push(ConnectionEndpoint.new(pub_inst, pub_connector, comp_inst, connector))
           end
         }
       }
@@ -204,16 +204,16 @@ module Openshift::SDK::Model
       # now repeat the reverse way.. get cart2 publishers and cart1's subscribers
       pub_hash = {}
       comp2_list.each { |comp_inst|
-        comp_inst.publishes.each { |conn_name, connector|
+        comp_inst.component.publishes.each { |conn_name, connector|
           pub_hash[connector.type] = connector, comp_inst
         }
       }
 
       comp1_list.each { |comp_inst|
-        comp_inst.subscribes.each { |conn_name, connector|
+        comp_inst.component.subscribes.each { |conn_name, connector|
           if pub_hash[connector.type]
             pub_connector, pub_inst = pub_hash
-            self.endpoints.push(connection_endpoint(pub_inst, pub_connector, comp_inst, connector))
+            self.endpoints.push(ConnectionEndpoint.new(pub_inst, pub_connector, comp_inst, connector))
           end
         }
       }
