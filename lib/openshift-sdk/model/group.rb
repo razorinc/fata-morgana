@@ -112,7 +112,7 @@ module Openshift::SDK::Model
     end
 
     def resolve_references(component_hash=nil)
-      raise "Empty parent profile" if self.profile.nil?
+      raise "Empty parent profile for component #{self.name}" if self.profile.nil?
       component_defs_hash = self.profile.components
 
       comphash = component_hash || self.components
@@ -131,13 +131,15 @@ module Openshift::SDK::Model
       #       self.resolved_components_hash.length - self.components.length
     end
 
-    def add_component_instance(component_name, instance_name=nil)
+    def add_component_instance(component_name, instance_name=nil, resolve_reference=false)
       self.components = {} if self.components
       instance_name = component_name unless instance_name
       self.components[instance_name] = component_name
-      local_resolution_hash = {}
-      local_resolution_hash[instance_name] = component_name
-      self.resolve_references(local_resolution_hash)
+      if resolve_reference
+        local_resolution_hash = {}
+        local_resolution_hash[instance_name] = component_name
+        self.resolve_references(local_resolution_hash)
+      end
     end
   end
 end

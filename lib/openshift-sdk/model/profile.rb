@@ -89,6 +89,12 @@ module Openshift::SDK::Model
       self.components.each do |cname, comp|
         comp.resolve_references(cart_features)
       end
+      self.groups.each do |group_name, group|
+        group.resolve_references
+      end
+      self.connections.each do |conn_name, conn|
+        conn.resolve_references
+      end
     end
     
     def from_descriptor_hash(hash)
@@ -140,6 +146,7 @@ module Openshift::SDK::Model
         connections_will_change!
         hash["Connections"].each do |conn_name, conn_hash|
           c = @connections[conn_name] = Connection.new(conn_name)
+          c.profile = self
           c.from_descriptor_hash(conn_hash)
         end
       end
@@ -170,5 +177,16 @@ module Openshift::SDK::Model
         "Connections" => cn
       }
     end
+
+    def get_all_component_instances
+      return_list = []
+      self.groups.each { |gname, group|
+        group.resolved_components_hash.each { |comp_name, comp|
+          return_list.push(comp)
+        }
+      }
+      return_list
+    end
+
   end
 end

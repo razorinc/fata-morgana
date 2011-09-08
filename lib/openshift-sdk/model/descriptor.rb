@@ -87,9 +87,12 @@ module Openshift::SDK::Model
       @profiles[profile_name] = profile
     end
     
-    def resolve_references(cart_features)
+    def resolve_references(cart_features, profile_name=nil)
       self.profiles.each do |pname, profile|
-        profile.resolve_references(cart_features)
+        if profile_name.nil? or profile_name == pname 
+          profile.resolve_references(cart_features)
+          break
+        end
       end
     end
     

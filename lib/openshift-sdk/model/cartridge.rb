@@ -127,6 +127,13 @@ module Openshift::SDK::Model
       self.descriptor.from_descriptor_hash(desc_hash)
       self.descriptor.resolve_references(self.requires_feature) if resolve_references
     end
+
+    def resolve_references(profile_name = nil)
+      if self.descriptor.nil?
+        raise "Descriptor for cartridge #{self.name} not available. Cannot resolve references. Cartridge not installed?"
+      end
+      self.descriptor.resolve_references(self.requires_feature, profile_name)
+    end
   
     def from_manifest_yaml(yaml=nil)
       unless yaml
@@ -236,8 +243,17 @@ module Openshift::SDK::Model
     def get_profile_from_feature(feature_name)
       d = self.descriptor
       raise "Cartridge #{self.name} is not installed" if d.nil?
-      # FIXME
-      return "default"
+      # FIXME - find the correct profile for given feature_name
+      case d.profiles
+        when NilClass
+          raise "Cartridge #{self.name} is not installed" if d.nil?
+        when Array
+          return d.profiles[0].name
+        when Hash
+          return d.profiles.keys[0]
+        else
+          raise "Cartridge #{self.name} cannot find a profile for #{feature_name}"
+      end
     end
 
   end

@@ -26,23 +26,40 @@ require 'openshift-sdk/model/model'
 require 'openshift-sdk/model/descriptor'
 require 'openshift-sdk/model/cartridge'
 require 'openshift-sdk/model/component_instance'
+require 'openshift-sdk/model/cartridge_instance'
 require 'openshift-sdk/model/feature_cartridge_cache'
 
 module Openshift::SDK::Model
   class ComponentInstance < OpenshiftModel
     validates_presence_of :component
-    ds_attr_accessor :name, :component
+    ds_attr_accessor :name, :component, :cartridge_instances
     
     def initialize(name, component_def)
       self.name = name
       self.component = component_def
-      self.gen_uuid
+      self.cartridge_instances = {}
+      self.resolve_references
     end
     
     #for XML, JSON serialization
     def attributes
       {"name"=> @name, "component" => self.component}
     end
-    
+
+    def resolve_references
+      if self.component.nil? 
+        raise "Component not defined for instance #{name}"
+      end
+
+      cartridges = self.component.resolved_dependencies
+      cartridges.each { |cart_profile, cartridge|
+        cart_name, profile_name = cart_profile.split(":")
+        cart = Cartridge.from_opm(cartridge.package_path)
+        cart.resolve_references(profile_name)
+        cart_instance = CartridgeInstance.new(self, profile_name, cart)
+        self.cartridge_instances[cart_profile] = cart_instance
+      }
+    end
+
   end
 end

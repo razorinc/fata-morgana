@@ -78,7 +78,7 @@ module Openshift::SDK::Model
       self.publishes = {}
       self.subscribes = {}
       self.dependencies = []
-      self.resolved_dependencies = []
+      self.resolved_dependencies = {}
     end
     
     def from_descriptor_hash(hash)
@@ -125,14 +125,23 @@ module Openshift::SDK::Model
         if not profile_name.nil?
           # feature is actually a cartridge name now, because profile is provided
           cart_list = Cartridge.list_installed
+          found = false
           cart_list.each { |cart|
             if cart.name == feature
               self.resolved_dependencies[dependency] = cart
+              found = true
               break
             end
           }
+          if not found
+            raise "Cartridge dependency #{dependency} not resolved. Cartridge not installed?"
+          end
         else
-          cartridge = Cartridge.what_provides(feature)[0]
+          cart_list = Cartridge.what_provides(feature)
+          if cart_list.nil? or cart_list.length==0
+            raise "Cartridge dependency #{dependency} not resolved. Cartridge not installed?"
+          end
+          cartridge = cart_list[0]
           profile_name = cartridge.get_profile_from_feature(feature)
           self.resolved_dependencies[cartridge.name + ":" + profile_name] = cartridge
         end
