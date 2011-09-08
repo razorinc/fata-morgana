@@ -14,4 +14,4 @@ Descriptor:
     db-connections:
       Components: 
       - "php"
-      - "mysql"
+      - "mysql-5.1"
