@@ -26,6 +26,6 @@ descriptor:
         scaling: 
           min: 1
           max: -1
-        start-order: php
+        start-order: php-service
     connections: {}
 

@@ -110,3 +110,11 @@ Environment passed to hooks includes:
                                     #  127.0.*.*  - 'n' (=64) per app.
 
 
+Hook invocation command:
+    opm run-hook  <app-or-component-name> <hook-name>  [<extra-params>]
+
+this causes the cartridge hook for the application or associated component 
+to be invoked w/ all the environment variables appropriately set and 
+the hook itself is passed the application name and guid as parameters.
+     ===> $cartridge/${hook_name} $APP_NAME [$APP_GUID]
+

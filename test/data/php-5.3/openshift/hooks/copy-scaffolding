@@ -36,8 +36,16 @@ declare -A  g_subst_map
 function init_substitution_map() {
    local cfg_dir mapinfo
    cfg_dir=${1:-'.'}
-   g_subst_map['www-dynamic:CONFIGURATION_DIR']="$cfg_dir"
+   g_subst_map['php:CONFIGURATION_DIR']="$cfg_dir"
+   g_subst_map['php:TEMPLATE_SESSION_SAVE_PATH']="$cfg_dir/sessions/"
+   g_subst_map['php:TEMPLATE_UPLOAD_TMP_DIR']="$cfg_dir/tmp/"
+   g_subst_map['php:APPLICATION_NAMESPACE']="$application_name"
+   g_subst_map['php:APPLICATION_DOMAIN']="$openshift_domain"
    g_subst_map['www-dynamic:BIND_ADDRESS']=`os_get_userifaddr`
+
+   for k in `env | egrep "^(php_www_(static|dynamic))" | cut -f1 -d '='`; do
+      g_subst_map["php:${k:4}"]="${!k}"
+   done
 
    for k in `env | grep "^OPENSHIFT_" | cut -f1 -d '='`; do
       g_subst_map[$k]="${!k}"
@@ -68,12 +76,27 @@ function copy_template() {
 }  #  End of function  copy_template.
 
 
-function copy_scaffolding() {
+function initialize_config_dir() {
+   app_config_dir=${1:-"."}
+
+   mkdir -p "${app_config_dir}/{etc,conf.d,sessions,tmp}"
+
+   for d in docs ext php cache cfg data download temp tests www; do
+      mkdir -p "${app_config_dir}/phplib/pear/$d"
+   done
+
+   ln -s /usr/lib64/httpd/modules "${app_config_dir}/modules"
+   ln -s /etc/httpd/conf/magic    "${app_config_dir}/conf/magic"
+
+}  #  End of function  initialize_config_dir.
+
+
+function copy_php_scaffolding() {
    app_config_dir=${1:-"."}
 
    #  Ensure configuration exists for the component.
-   if ! test -d "$app_config_dir/conf"; then
-      mkdir -p "$app_config_dir/conf" "$app_config_dir/conf.d/"
+   if ! test -d "$app_config_dir/etc/conf"; then
+      mkdir -p "$app_config_dir/etc/conf"
 
       local templates_dir
       templates_dir=$(cd -P "${hook_dir}/../templates" && pwd -P)
@@ -83,7 +106,7 @@ function copy_scaffolding() {
       done
    fi
 
-}  #  End of function  copy_scaffolding.
+}  #  End of function  copy_php_scaffolding.
 
 
 #
@@ -93,8 +116,19 @@ source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/common.sh
 [ $# -ge 1 ]  ||  os_print_hook_usage
 
 comp_guid=${OPENSHIFT_COMPONENT_GUID:-""}
-cfgdir=${OPENSHIFT_APP_HOME_DIR:-"."}/$app_config_subdir/$comp_guid
-init_substitution_map "$cfgdir"
-copy_scaffolding      "$cfgdir"
+php_app_home=${OPENSHIFT_APP_HOME_DIR:-"."}
+cfgdir=$php_app_home/$app_config_subdir/$comp_guid
 
+#  Initialize config dir and source php's www-{static,dynamic}-server env.
+intialize_config_dir  "$cfgdir"
+os_source_config      "$cfgdir/php-www-static-server.env"
+os_source_config      "$cfgdir/php-www-dynamic-server.env"
+
+#  Initialize substitution map and copy over scaffolding.
+init_substitution_map "$cfgdir"
+copy_php_scaffolding  "$cfgdir"
+
+#  Initialize pear.
+pear config-create "$cfgdir/phplib/pear" "$php_app_home/.pearrc"
+pear -c "$php_app_home/.pearrc" config-set php_ini "$cfgdir/etc/conf/php.ini"
 
