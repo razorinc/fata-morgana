@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby
+#--
 # Copyright 2010 Red Hat, Inc.
 #
 # Permission is hereby granted, free of charge, to any person
@@ -20,49 +20,42 @@
 # ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+#--
 
-def usage
-    puts <<USAGE
-== Synopsis
+require 'rubygems'
+require 'json'
+require 'active_model'
+require 'openshift-sdk/config'
+require 'openshift-sdk/model/model'
+require 'openshift-sdk/model/scaling_parameters'
+require 'openshift-sdk/utils/logger'
 
-opm create-rpm: Creates a RPM from a OPM package and spec file
-
-== Usage
-
-opm create-rpm OPM_DIR
-
-Options:
--h|--help:
-   Prints this message
-
-OPM_DIR Directory where OPM distribution is located
-USAGE
+module Openshift::SDK::Model
+  class ProvisioningGroup < OpenshiftModel
+    ds_attr_accessor :nodes, :scaling, :arch, :memory, :disk_size
+    
+    def self.bucket
+      "admin"
+    end
+    
+    def initialize()
+      self.nodes    = []
+      self.scaling  = ScalingParameters.new
+      self.arch     = "x86"
+      self.memory   = 512
+      self.disk_size= 10
+      self.gen_uuid
+    end
+    
+    def scaling=(hash)
+      scaling_will_change!
+      case hash
+      when Hash
+        @scaling = ScalingParameters.new
+        @scaling.attributes=hash
+      else
+        @scaling = hash
+      end
+    end    
+  end
 end
-
-require 'openshift-sdk'
-
-opts = GetoptLong.new(
-    ["--porcelin",               GetoptLong::NO_ARGUMENT],
-    ["--debug",                  GetoptLong::NO_ARGUMENT],
-    ["--help",             "-h", GetoptLong::NO_ARGUMENT]
-)
-
-args = {}
-begin
-    opts.each{ |k,v| args[k]=v }
-rescue GetoptLong::Error => e
-    usage
-    exit -100
-end
-
-$opm_debug = true if args['--debug']
-$porcelin = args['--porcelin'] ? true : false
-opm_dir = ARGV.shift
-
-if args['--help'] || opm_dir.nil? || (not File.exist?(opm_dir + "/openshift/manifest.yml"))
-  usage
-  exit -101
-end
-
-opm_file = Openshift::SDK::Utils::Rpm.create_rpm(opm_dir)
-system("cp #{opm_file} .")

@@ -32,6 +32,7 @@ module Openshift
       class Sqlite
         include Singleton
         include Openshift::SDK::Utils::Logger
+        include Openshift::SDK::Utils::ShellExec
 
         attr_reader :buckets
         def initialize
@@ -42,9 +43,13 @@ module Openshift
           config = Openshift::SDK::Config.instance
           datasource_location = config.get('datasource_location')
           file = "#{datasource_location}/#{bucket}_db.db"
-          `touch #{file}`
-          `chgrp #{bucket} #{file}`
-          `chmod 770 #{file}`
+          begin
+            shellCmd("touch #{file}")
+            shellCmd("chgrp #{bucket} #{file}")
+            shellCmd("chmod 770 #{file}")
+          rescue Exception => e
+            log.info e.message
+          end
           file
         end
         
@@ -77,7 +82,7 @@ SQL
         
         def find_all_ids(type,bucket)
           rows = db(bucket).execute("select id from data where type=?", [type])
-          rows.flatten!
+          rows.flatten
         end
         
         def find(type, id, bucket)

@@ -30,22 +30,37 @@ module Openshift::SDK::Model
   #
   # Defines group scaling limitations and parameters
   #
-  # == Overall location within descriptor
+  # == Overall descriptor
   #
+  #   Descriptor
+  #      |
+  #      +-Reserviations
   #      |
   #      +-Profile
   #           |
-  #           +-Group
-  #           |   |
-  #           |   +-*Scaling*
-  #           |   |
-  #           |   +-Component
-  #           |         |
-  #           |         +-Connector
+  #           +-Provides
   #           |
-  #           +-Connection
-  #               |
-  #               +-*ConnectionEndpoint*
+  #           +-Reserviations
+  #           |
+  #           +-ComponentDefs
+  #           |    |
+  #           |    +-Connector
+  #           |    |
+  #           |    +-Dependencies
+  #           |
+  #           +-Groups
+  #           |   |
+  #           |   +-Reserviations
+  #           |   |
+  #           |   +-Scaling
+  #           |   |
+  #           |   +-ComponentInstances
+  #           |
+  #           +-Connections
+  #           |   |
+  #           |   +-Endpoints
+  #           |
+  #           +-PropertyOverrides
   #
   # == Properties
   # 
@@ -54,20 +69,31 @@ module Openshift::SDK::Model
   # [default_scale_by] The name of this connector. This is what the hook names are based off.
   # [requires_dedicated]
   class ScalingParameters < OpenshiftModel
-    validates_presence_of :min, :max, :default_scale_by, :requires_dedicated
-    ds_attr_accessor :min, :max, :default_scale_by, :requires_dedicated
+    validates_presence_of :min, :max, :default_scale_by
+    ds_attr_accessor :min, :max, :default_scale_by
     
-    def initialize(descriptor_hash={})
-      @min = descriptor_hash["min"] || 1
-      @max = descriptor_hash["max"] || -1
-      @default_scale_by = descriptor_hash["default_scale_by"] || "+1"
-      @requires_dedicated = descriptor_hash['requires_dedicated'].to_s.downcase == "true" || false
+    def initialize
+      @min = 1
+      @max = -1
+      @default_scale_by = "+1"
+    end
+    
+    def from_descriptor_hash(hash)
+      @min = hash["Min"] || 1
+      @max = hash["Max"] || -1
+      @default_scale_by = hash["Default Scale By"] || "+1"
+    end
+    
+    def to_descriptor_hash
+      {
+        "Min" => self.min,
+        "Max" => self.max,
+        "Default Scale By" => self.default_scale_by
+      }
     end
     
     def generate_signature
-      sigd = "false"
-      sigd = Time.now.nsec.to_s if @requires_dedicated
-      "#{min}-#{max}-#{sigd}"
+      "#{@min}-#{@max}-#{@default_scale_by}"
     end
   end
 end  

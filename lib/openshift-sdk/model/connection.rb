@@ -31,22 +31,37 @@ module Openshift::SDK::Model
   # 
   # Defines a connection between two component connectors
   #
-  # == Overall location within descriptor
+  # == Overall descriptor
   #
+  #   Descriptor
+  #      |
+  #      +-Reserviations
   #      |
   #      +-Profile
   #           |
-  #           +-Group
+  #           +-Provides
+  #           |
+  #           +-Reserviations
+  #           |
+  #           +-ComponentDefs
+  #           |    |
+  #           |    +-Connector
+  #           |    |
+  #           |    +-Dependencies
+  #           |
+  #           +-Groups
+  #           |   |
+  #           |   +-Reserviations
   #           |   |
   #           |   +-Scaling
   #           |   |
-  #           |   +-Component
-  #           |         |
-  #           |         +-Connector
+  #           |   +-ComponentInstances
   #           |
-  #           +-*Connection*
-  #               |
-  #               +-ConnectionEndpoint
+  #           +-Connections
+  #           |   |
+  #           |   +-Endpoints
+  #           |
+  #           +-PropertyOverrides
   #
   # == Properties
   # 
@@ -54,30 +69,156 @@ module Openshift::SDK::Model
   # [pub] The publishing connection endpoint
   # [sub] The subscribing connection endpoint
   class Connection < OpenshiftModel
-    validates_presence_of :pub, :sub, :type
-    ds_attr_accessor :pub, :sub, :type
+    ds_attr_accessor :name, :components, :endpoints, :profile
 
-    def initialize(guid=nil,pub=nil,sub=nil,type=nil)
-      @guid, @pub, @sub, @type = guid, pub, sub, type
+    def initialize(name)
+      self.components = []
+      self.name = name
+      self.endpoints = []
+      self.profile = nil
     end
 
-    def pub=(val)
-      if val.class == Hash
-        @pub=ConnectionEndpoint.new
-        @pub.attributes=val
-      else
-        @pub = val        
+    def from_descriptor_hash(hash)
+      self.components = hash["Components"]
+    end
+    
+    def to_descriptor_hash
+      {
+        "Components" => self.components
+      }
+    end
+
+    def resolve_references
+      if self.components.class != Array or self.components.length != 2
+        raise "Malformed components in connection #{self.name}"
+      end
+      if self.profile.nil?
+        raise "No profile given to resolve connections against"
+      end
+      comp1, comp2 = self.components
+      res_comp1 = nil
+      res_comp2 = nil
+      # search for comp1 and comp2 in profile
+      # assume that the profile has its components resolved
+      profile.groups.each { |group_name, group|
+        group.resolved_components_hash.each { |comp_inst_name, comp_inst|
+          if comp_inst_name==comp1 or comp_inst.component.name == comp1
+            res_comp1 = comp_inst
+          end
+          if comp_inst_name==comp2 or comp_inst.component.name == comp2
+            res_comp2 = comp_inst
+          end
+          if res_comp1 and res_comp2
+            return endpoints_from_components(res_comp1, res_comp2)
+          end
+        }
+        if res_comp1 and res_comp2
+          return endpoints_from_components(res_comp1, res_comp2)
+        end
+      }
+      # if flow reaches here, it means comp1/2 did not get resolved
+      # by looking at component/instance names, we need to look into
+      # dependencies of each component
+      profile.groups.each { |group_name, group|
+        group.resolved_components_hash.each { |comp_inst_name, comp_inst|
+          comp_inst.cartridge_instances.each { |cart_profile_name, cart_inst|
+            cart_name, profile_name = cart_profile_name.split(":")
+            if cart_name == comp1 or cart_profile_name == comp1
+              res_comp1 = cart_inst
+            end
+            if cart_name == comp2 or cart_profile_name == comp2
+              res_comp2 = cart_inst
+            end
+            if res_comp1 and res_comp2
+              return endpoints_from_cart_instances(res_comp1, res_comp2)
+            end
+          }
+          if res_comp1 and res_comp2
+            return endpoints_from_cart_instances(res_comp1, res_comp2)
+          end
+        }
+        if res_comp1 and res_comp2
+          return endpoints_from_cart_instances(res_comp1, res_comp2)
+        end
+      }
+      # if the flow reaches here, endpoints were not resolved
+      if res_comp1.nil?
+        raise "Could not resolve connection component #{comp1} in profile #{self.profile.name}"
+      end
+      if res_comp2.nil?
+        raise "Could not resolve connection component #{comp2} in profile #{self.profile.name}"
       end
     end
 
-    def sub=(val)
-      if val.class == Hash
-        @sub=ConnectionEndpoint.new
-        @sub.attributes=val
-      else
-        @sub = val        
-      end
+    def endpoints_from_components(comp1, comp2)
+      # get all published from comp1 and match to subscribed of comp2
+      # then vice versa
+      pub_hash = {}
+      comp1.component.publishes.each { |conn_name, connector|
+        pub_hash[connector.type] = connector
+      }
+      comp2.component.subscribes.each { |conn_name, connector|
+        if pub_hash[connector.type] 
+          self.endpoints.push(ConnectionEndpoint.new(comp1, pub_hash[connector.type], comp2, connector))
+        end
+      }
+
+      pub_hash = {}
+      comp2.component.publishes.each { |conn_name, connector|
+        pub_hash[connector.type] = connector
+      }
+      comp1.component.subscribes.each { |conn_name, connector|
+        if pub_hash[connector.type] 
+          self.endpoints.push(ConnectionEndpoint.new(comp2, pub_hash[connector.type], comp1, connector))
+        end
+      }
+    end
+
+    def endpoints_from_cart_instances(cart1, cart2)
+      comp1_list = []
+      comp2_list = []
+      cart1.cartridge.descriptor.profiles.each { |profile_name, profile|
+        comp1_list += profile.get_all_component_instances
+      }
+      cart2.cartridge.descriptor.profiles.each { |profile_name, profile|
+        comp2_list = profile.get_all_component_instances
+      }
+
+      # get cart1's publishers and cart2's subscribers and match up
+      pub_hash = {}
+      comp1_list.each { |comp_inst|
+        comp_inst.component.publishes.each { |conn_name, connector|
+          pub_hash[connector.type] = connector, comp_inst
+        }
+      }
+
+      comp2_list.each { |comp_inst|
+        comp_inst.component.subscribes.each { |conn_name, connector|
+          if pub_hash[connector.type]
+            pub_connector, pub_inst = pub_hash[connector.type]
+            self.endpoints.push(ConnectionEndpoint.new(pub_inst, pub_connector, comp_inst, connector))
+          end
+        }
+      }
+
+      # now repeat the reverse way.. get cart2 publishers and cart1's subscribers
+      pub_hash = {}
+      comp2_list.each { |comp_inst|
+        comp_inst.component.publishes.each { |conn_name, connector|
+          pub_hash[connector.type] = connector, comp_inst
+        }
+      }
+
+      comp1_list.each { |comp_inst|
+        comp_inst.component.subscribes.each { |conn_name, connector|
+          if pub_hash[connector.type]
+            pub_connector, pub_inst = pub_hash[connector.type]
+            self.endpoints.push(ConnectionEndpoint.new(pub_inst, pub_connector, comp_inst, connector))
+          end
+        }
+      }
     end
 
   end
 end
+

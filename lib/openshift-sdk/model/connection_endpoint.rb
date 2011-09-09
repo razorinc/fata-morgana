@@ -31,20 +31,37 @@ module Openshift::SDK::Model
   # 
   # Defines a connection between two component connectors
   #
-  # == Overall location within descriptor
+  # == Overall descriptor
   #
+  #   Descriptor
+  #      |
+  #      +-Reserviations
   #      |
   #      +-Profile
   #           |
-  #           +-Group
+  #           +-Provides
+  #           |
+  #           +-Reserviations
+  #           |
+  #           +-ComponentDefs
+  #           |    |
+  #           |    +-Connector
+  #           |    |
+  #           |    +-Dependencies
+  #           |
+  #           +-Groups
+  #           |   |
+  #           |   +-Reserviations
   #           |   |
   #           |   +-Scaling
   #           |   |
-  #           |   +-Component
-  #           |         |
-  #           |         +-Connector
+  #           |   +-ComponentInstances
   #           |
   #           +-Connections
+  #           |   |
+  #           |   +-Endpoints
+  #           |
+  #           +-PropertyOverrides
   #
   # == Properties
   # 
@@ -52,11 +69,14 @@ module Openshift::SDK::Model
   # [component_name] The name of the component instance
   # [connector_name] The connector name for the component
   class ConnectionEndpoint < OpenshiftModel
-    validates_presence_of :group_name, :component_name, :connector_name
-    ds_attr_accessor :group_name, :component_name, :connector_name
-    
-    def initialize(group_name, component_name, connector_name)
-      @group_name, @component_name, @connector_name= group_name, component_name, connector_name
+    ds_attr_accessor :pub_connector, :sub_connector, :pub_inst, :sub_inst
+
+    def initialize(pub_inst, pub_connector, sub_inst, sub_connector)
+      self.pub_inst = pub_inst
+      self.sub_inst = sub_inst
+      self.pub_connector = pub_connector
+      self.sub_connector = sub_connector
     end
+
   end
 end

@@ -27,10 +27,11 @@ require 'state_machine'
 require 'openshift-sdk/config'
 require 'openshift-sdk/model/application'
 require 'openshift-sdk/model/model'
+require 'openshift-sdk/model/user'
 
 module Openshift::SDK::Model
   class NodeApplication  < OpenshiftModel
-    ds_attr_accessor :state, :primary_user_id, :user_group_id, :deleted, :app_guid, :app_name, :app_repo_dir, :app_prod_dir, :app_prod_repo_dir, :app_dev_dir
+    ds_attr_accessor :state, :primary_user_id, :user_group_id, :app_guid, :app_name, :app_repo_dir, :app_prod_dir, :app_prod_repo_dir, :app_dev_dir
     
     state_machine :state, :initial => :not_created, :action => :save! do
       event(:create) { transition :not_created => :creating }
@@ -55,7 +56,6 @@ module Openshift::SDK::Model
         app = Openshift::SDK::Model::Application.find(self.app_guid, app_user_group_id)
       end
       
-      self.deleted = "false"
       @app_name = app.name
       @primary_user_id = app.users.first
       config = Openshift::SDK::Config.instance
@@ -66,29 +66,24 @@ module Openshift::SDK::Model
       @app_dev_dir = "#{primary_user.homedir}/development/#{app_name}"
       @user_group_id = app_user_group_id
     end
-
-    def delete!
-      super
-    end
     
     def save!
-      super(self.user_group_id) unless self.deleted == "true"
+      super(self.user_group_id)
+      self
+    end
+    
+    def delete!
+      super(self.user_group_id)
+      self
     end
     
     def remove_app
-      self.deleted = "true"
       config = Openshift::SDK::Config.instance
       primary_user = Openshift::SDK::Model::User.find(@primary_user_id)      
       FileUtils.rm_rf @app_repo_dir
       FileUtils.rm_rf @app_prod_dir
       FileUtils.rm_rf "#{config.get("app_production_dir_prefix")}/#{@app_guid}"
       FileUtils.rm_rf @app_dev_dir
-      
-      app = Model::Application.find(@app_guid,@user_group_id)
-      app.users.each do |user_guid|
-        user = Model::User.find(user_guid)
-        user.remove!
-      end
     end
 
     def create_app_directories
@@ -105,10 +100,10 @@ module Openshift::SDK::Model
       FileUtils.chown_R user.name, @user_group_id, @app_prod_dir
       FileUtils.chown_R user.name, @user_group_id, @app_dev_dir
 
-      FileUtils.chmod 0o1760,@app_repo_dir, :verbose => true
-      FileUtils.chmod 0o1760,@app_prod_repo_dir, :verbose => true
-      FileUtils.chmod 0o1760,@app_prod_dir, :verbose => true
-      FileUtils.chmod 0o1760,@app_dev_dir, :verbose => true
+      FileUtils.chmod 0o1760,@app_repo_dir
+      FileUtils.chmod 0o1760,@app_prod_repo_dir
+      FileUtils.chmod 0o1760,@app_prod_dir
+      FileUtils.chmod 0o1760,@app_dev_dir
     end
 
     def setup_repo
@@ -123,7 +118,6 @@ module Openshift::SDK::Model
       prod_repo = Openshift::SDK::Utils::VersionControl.new(@app_prod_dir, @app_prod_repo_dir)
       prod_repo.create_from base_repo
       config = Openshift::SDK::Config.instance
-      app.package_root = "#{config.get("app_production_dir_prefix")}"
       app.package_path = @app_prod_dir
       app.save!
     end
@@ -133,7 +127,7 @@ module Openshift::SDK::Model
       base_repo = Openshift::SDK::Utils::VersionControl.new(@app_repo_dir)      
       dev_repo = Openshift::SDK::Utils::VersionControl.new(@app_dev_dir)
       dev_repo.create_from base_repo
-    end  
+    end
 
     def setup_app_scaffold
       #app = Openshift::SDK::Model::Application.find self.app_guid

@@ -33,18 +33,36 @@ module Openshift::SDK::Model
   # Defines a cartirdge component. Each component provides a feature and
   # exposes one or more publishing or subscribing connectors
   #
-  # == Overall location within descriptor
-  #
+  # == Overall descriptor
+  #   Descriptor
+  #      |
+  #      +-Reserviations
   #      |
   #      +-Profile
   #           |
-  #           +-Group
-  #               |
-  #               +-Scaling
-  #               |
-  #               +-*Component*
-  #                     |
-  #                     +-Connector
+  #           +-Provides
+  #           |
+  #           +-Reserviations
+  #           |
+  #           +-ComponentDefs
+  #           |    |
+  #           |    +-Connector
+  #           |    |
+  #           |    +-Dependencies
+  #           |
+  #           +-Groups
+  #           |   |
+  #           |   +-Reserviations
+  #           |   |
+  #           |   +-Scaling
+  #           |   |
+  #           |   +-ComponentInstances
+  #           |
+  #           +-Connections
+  #           |   |
+  #           |   +-Endpoints
+  #           |
+  #           +-PropertyOverrides
   #
   # == Properties
   # 
@@ -52,58 +70,118 @@ module Openshift::SDK::Model
   # [publishes] Hash of connectors that publish information
   # [subscribes] Hash of connectors that subscribe to information
   class Component < OpenshiftModel
-    validates_presence_of :feature
-    ds_attr_accessor :feature, :publishes, :subscribes
-   
-    def initialize(feature=nil,desriptor_hash={})
-      @feature = feature
-      @publishes = {}
-      @subscribes = {}
-      if desriptor_hash["connectors"]
-        publishes = desriptor_hash["connectors"]["publishes"]
-        subscribes = desriptor_hash["connectors"]["subscribes"]
-        @publishes = {}
-        if publishes
-          publishes.each{|name,conn_hash|
-            @publishes[name] = Connector.new(name,:publisher,conn_hash)
-          }
-        end
+    validates_presence_of :name
+    ds_attr_accessor :name, :publishes, :subscribes, :dependencies, :resolved_dependencies
+    
+    def initialize(name=nil)
+      self.name = name
+      self.publishes = {}
+      self.subscribes = {}
+      self.dependencies = []
+      self.resolved_dependencies = {}
+    end
 
-        @subscribes = {}
-        if subscribes
-          subscribes.each{|name,conn_hash|
-            @subscribes[name] = Connector.new(name,:subscriber,conn_hash)
-          }
+    def publishes=(hash)
+      return unless hash.class == Hash
+      publishes_will_change!
+      @publishes = {}      
+      hash.each do |conn_name,conn_hash|
+        case conn_hash
+        when Hash
+          @publishes[conn_name] = Connector.new(conn_name)
+          @publishes[conn_name].attributes=conn_hash
+        when Connector
+          @publishes[conn_name] = conn_hash
         end
       end
     end
     
-    def publishes=(vals)
-      @publishes = {}
-      return if vals.class != Hash
-      vals.keys.each do |name|
-        next if name.nil?
-        if vals[name].class == Hash
-          @publishes[name] = Connector.new
-          @publishes[name].attributes=vals[name]
-        else
-          @publishes[name] = vals[name]
-        end
-      end
-    end
-   
-    def subscribes=(vals)
+    def subscribes=(hash)
+      return unless hash.class == Hash
+      subscribes_will_change!
       @subscribes = {}
-      return if vals.class != Hash
-      vals.keys.each do |name|
-        next if name.nil?
-        if vals[name].class == Hash
-          @subscribes[name] = Connector.new
-          @subscribes[name].attributes=vals[name]
-        else
-          @subscribes[name] = vals[name]
+      hash.each do |conn_name,conn_hash|
+        case conn_hash
+        when Hash
+          @subscribes[conn_name] = Connector.new(conn_name)
+          @subscribes[conn_name].attributes=conn_hash
+        when Connector
+          @subscribes[conn_name] = conn_hash
         end
       end
     end
-  end
+    
+    def from_descriptor_hash(hash)
+      @publishes = {}
+      if hash["Publishes"]
+        publishes_will_change!
+        hash["Publishes"].each do |conn_name, conn_hash|
+          c = @publishes[conn_name] = Connector.new(conn_name)
+          c.from_descriptor_hash(conn_hash)
+        end
+      end
+      
+      @subscribes = {}
+      if hash["Subscribes"]
+        subscribes_will_change!
+        @subscribes = {}
+        hash["Subscribes"].each do |conn_name, conn_hash|
+          c = @subscribes[conn_name] = Connector.new(conn_name)
+          c.from_descriptor_hash(conn_hash)
+        end
+      end
+      self.dependencies = hash["Dependencies"] if hash["Dependencies"]
+    end
+
+    def to_descriptor_hash
+      p = {}
+      self.publishes.each do |name,conn|
+        p[name] = conn.to_descriptor_hash
+      end
+      
+      s = {}
+      self.subscribes.each do |name,conn|
+        s[name] = conn.to_descriptor_hash
+      end
+      
+      {
+        "Dependencies" => self.dependencies,
+        "Publishes" => p,
+        "Subscribes" => s
+      }
+    end
+
+    def resolve_references(default_dependencies = [])
+      depends = default_dependencies || []
+      depends += self.dependencies
+      depends.each { |dependency|
+        feature, profile_name = dependency.split(":")
+        if not profile_name.nil?
+          # feature is actually a cartridge name now, because profile is provided
+          cart_list = Cartridge.list_installed
+          found = false
+          cart_list.each { |cart|
+            if cart.name == feature
+              self.resolved_dependencies[dependency] = cart
+              found = true
+              break
+            end
+          }
+          if not found
+            raise "Cartridge dependency #{dependency} not resolved. Cartridge not installed?"
+          end
+        else
+          cart_list = Cartridge.what_provides(feature)
+          if cart_list.nil? or cart_list.length==0
+            raise "Cartridge dependency #{dependency} not resolved. Cartridge not installed?"
+          end
+          cartridge = cart_list[0]
+          profile_name = cartridge.get_profile_from_feature(feature)
+          self.resolved_dependencies[cartridge.name + ":" + profile_name] = cartridge
+        end
+      }
+    end
+
+  end    
 end
+

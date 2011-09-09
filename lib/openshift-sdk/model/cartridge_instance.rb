@@ -1,4 +1,3 @@
-#!/usr/bin/env ruby
 # Copyright 2010 Red Hat, Inc.
 #
 # Permission is hereby granted, free of charge, to any person
@@ -21,48 +20,24 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-def usage
-    puts <<USAGE
-== Synopsis
+require 'rubygems'
+require 'active_model'
+require 'json'
+require 'openshift-sdk/config'
+require 'openshift-sdk/model/model'
+require 'openshift-sdk/model/rpm'
+require 'openshift-sdk/model/descriptor'
 
-opm create-rpm: Creates a RPM from a OPM package and spec file
+module Openshift::SDK::Model
+  class CartridgeInstance < OpenshiftModel
+    ds_attr_accessor :profile, :cartridge, :component_instance, :cartridge_name
+    
+    def initialize(comp_inst, profile_name, cartridge)
+      self.component_instance = comp_inst
+      self.profile = profile_name
+      self.cartridge = cartridge
+      self.cartridge_name = self.cartridge.name
+    end
 
-== Usage
-
-opm create-rpm OPM_DIR
-
-Options:
--h|--help:
-   Prints this message
-
-OPM_DIR Directory where OPM distribution is located
-USAGE
+  end
 end
-
-require 'openshift-sdk'
-
-opts = GetoptLong.new(
-    ["--porcelin",               GetoptLong::NO_ARGUMENT],
-    ["--debug",                  GetoptLong::NO_ARGUMENT],
-    ["--help",             "-h", GetoptLong::NO_ARGUMENT]
-)
-
-args = {}
-begin
-    opts.each{ |k,v| args[k]=v }
-rescue GetoptLong::Error => e
-    usage
-    exit -100
-end
-
-$opm_debug = true if args['--debug']
-$porcelin = args['--porcelin'] ? true : false
-opm_dir = ARGV.shift
-
-if args['--help'] || opm_dir.nil? || (not File.exist?(opm_dir + "/openshift/manifest.yml"))
-  usage
-  exit -101
-end
-
-opm_file = Openshift::SDK::Utils::Rpm.create_rpm(opm_dir)
-system("cp #{opm_file} .")

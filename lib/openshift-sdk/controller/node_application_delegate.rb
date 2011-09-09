@@ -35,12 +35,17 @@ module Openshift::SDK::Controller
     def create(application)
       profile = application.descriptor.profiles[application.active_profile]
       profile.groups.each do |gname, group|
-        group.nodes.each do |node_guid|
-          node = Openshift::SDK::Model::Node.find(node_guid)
-          napp = node.node_application_map[application.guid] = Openshift::SDK::Model::NodeApplication.new(application.guid,application.user_group_id)
-          napp.gen_uuid
-          napp.save!          
-          napp.create!
+        pgroup = Openshift::SDK::Model::ProvisioningGroup.find(group.provisioning_group)
+        pgroup.nodes.each do |nguid|
+          napp = Openshift::SDK::Model::NodeApplication.find(application.node_application_map[nguid], application.user_group_id)
+          unless napp
+            napp = Openshift::SDK::Model::NodeApplication.new(application.guid,application.user_group_id)
+            napp.gen_uuid
+            application.node_application_map[nguid] = napp.guid
+            napp.save!
+            application.save!
+          end
+          napp.create!          
         end
       end
     end
@@ -48,13 +53,13 @@ module Openshift::SDK::Controller
     def destroy(application)
       profile = application.descriptor.profiles[application.active_profile]
       profile.groups.each do |gname, group|
-        group.nodes.each do |node_guid|
-          node = Openshift::SDK::Model::Node.find(node_guid)
-          napp_guid = node[application.guid]
-          napp = Model::NodeApplication.find(napp_guid)
-          napp.destroy!
-          node.delete(application.guid)
-          node.save!
+        pgroup = Openshift::SDK::Model::ProvisioningGroup.find(group.provisioning_group)
+        pgroup.nodes.each do |nguid|
+          napp = Openshift::SDK::Model::NodeApplication.find(application.node_application_map[nguid], application.user_group_id)
+          if napp
+            napp.destroy!
+            application.node_application_map.delete(napp.guid)
+          end
         end
       end
     end

@@ -29,10 +29,20 @@ require 'openshift-sdk/controller/application_observer'
 require 'openshift-sdk/controller/node_application_observer'
 require 'openshift-sdk/controller/audit_observer'
 
+require 'openshift-sdk/utils/express_paas_filter'
+
 module Openshift::SDK
   #instantiate observers
   Openshift::SDK::Controller::StateMachineObserver.instance
   Openshift::SDK::Controller::ApplicationObserver.instance
   Openshift::SDK::Controller::NodeApplicationObserver.instance
+  
+  #load cluster information
+  @@paas_filter = Openshift::SDK::Utils::ExpressPaasFilter.instance
+  @@paas_filter.setup_cluster
+  
+  def self.paas_filter
+    @@paas_filter
+  end
 end
     

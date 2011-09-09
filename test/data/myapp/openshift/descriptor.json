@@ -1,5 +1,0 @@
-{
-  "connections": {
-    "db-connection" : ["php","mysql"]
-  }
-}

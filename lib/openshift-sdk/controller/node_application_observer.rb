@@ -61,13 +61,13 @@ module Openshift
         def after_create(napp, transition)
           log.info "Creating application #{napp.app_guid} on node"
           begin
-            app = Model::Application.find(napp.app_guid,napp.user_group_id)
+            app = Openshift::SDK::Model::Application.find(napp.app_guid,napp.user_group_id)
             app.users.each do |user_guid|
               user = Model::User.find(user_guid)
               user.create!
             end
             
-            user = Model::User.find(napp.primary_user_id)
+            user = Openshift::SDK::Model::User.find(napp.primary_user_id)
             napp.create_app_directories
             user.run_as{
               napp.setup_repo
@@ -76,9 +76,8 @@ module Openshift
               napp.setup_app_scaffold              
               napp.save!
             }
-            napp.create_complete!            
+            napp.create_complete!          
           rescue Exception => e
-            binding.pry
             log.error(e.message)
             napp.create_error!
           end
@@ -95,7 +94,16 @@ module Openshift
         
         def after_destroy(napp, transition)
           log.info "Destroying application #{napp.app_guid} on node"
-          napp.remove_app
+          begin
+            app = Openshift::SDK::Model::Application.find(napp.app_guid,napp.user_group_id)
+            napp.remove_app
+            app.users.each do |user_guid|
+              user = Openshift::SDK::Model::User.find(user_guid)
+              user.remove!
+            end
+          rescue Exception => e
+            log.error(e.message)
+          end
           napp.destroy_complete!
         end
         

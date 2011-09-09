@@ -59,7 +59,7 @@ $opm_debug = true if args['--debug']
 $porcelin = args['--porcelin'] ? true : false
 opm_dir = ARGV.shift
 
-if args['--help'] || opm_dir.nil? || (not File.exist?(opm_dir + "/openshift/control.spec"))
+if args['--help'] || opm_dir.nil? || (not File.exist?(opm_dir + "/openshift/manifest.yml"))
   usage
   exit -101
 end

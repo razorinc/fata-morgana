@@ -22,7 +22,7 @@
 
 module Openshift::SDK::Model
   class RPM
-    attr_accessor :name, :summary, :version, :dependencies, :provides, :descriptor, :control, :hooks, :is_installed
+    attr_accessor :name, :summary, :version, :dependencies, :provides, :manifest, :hooks, :is_installed
 
     def initialize
       @dependencies = []
@@ -82,10 +82,8 @@ module Openshift::SDK::Model
 
     def parse_file_data
       query_file_data.each do |line|
-        if /\/descriptor.json$/ =~ line
-          @descriptor = line.strip
-        elsif /\/control.spec$/ =~ line
-          @control = line.strip
+        if /\/manifest.yml$/ =~ line
+          @manifest = line.strip
         elsif /\/hooks\// =~ line
           @hooks << line.strip
         end
