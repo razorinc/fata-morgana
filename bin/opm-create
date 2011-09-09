@@ -88,4 +88,4 @@ end
 app = Openshift::SDK::Model::Application.new(name)
 app.gen_uuid
 app.create!
-print app.guid
+print "Application #{name} had been created with GUID #{app.guid}\n"

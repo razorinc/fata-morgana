@@ -100,10 +100,10 @@ module Openshift::SDK::Model
       FileUtils.chown_R user.name, @user_group_id, @app_prod_dir
       FileUtils.chown_R user.name, @user_group_id, @app_dev_dir
 
-      FileUtils.chmod 0o1760,@app_repo_dir, :verbose => true
-      FileUtils.chmod 0o1760,@app_prod_repo_dir, :verbose => true
-      FileUtils.chmod 0o1760,@app_prod_dir, :verbose => true
-      FileUtils.chmod 0o1760,@app_dev_dir, :verbose => true
+      FileUtils.chmod 0o1760,@app_repo_dir
+      FileUtils.chmod 0o1760,@app_prod_repo_dir
+      FileUtils.chmod 0o1760,@app_prod_dir
+      FileUtils.chmod 0o1760,@app_dev_dir
     end
 
     def setup_repo
