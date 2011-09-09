@@ -15,11 +15,11 @@ Tentative:
           configuration/    symlinked to ->  ~uuid/app/configuration/ on flex
 	                    a "real" internal directory on express
                app.env            application environment settings
+               php1                     symlink to -> <php1-guid>
                <php1-guid>/       php1 component configuration
                     www-dynamic/        symlink to -> ../<www-dynamic-guid>
 
                <www-dynamic-guid> www-dynamic configuration
-               php1                     symlink to -> <php1-guid>
                <secondphp-guid>/  secondphp component configuration
                secondphp                symlink to -> <secondphp-guid>
 
@@ -47,26 +47,34 @@ Workflow
 ========
   Workflow (+events+connectors+hooks) and how they tie in together -- this
   is a 'scrappy' first attempt:
-  application-create*
-  add-feature|component-to-application  [optional - called 0-n times]
-     <install-dependencies-and-copy-scaffolding>
-        for each dependency:
-           if native:  yum install native
+  application-create <app-name>*
+
+  add-feature <f-name> [<component-name>|NATIVE]   # optional - called 0-n times
+     <install-dependency>
+        if native:  yum install native
         else:
-           run-hook(install)
-           for all sub-dependencies: install && build && copy-scaffolding
-           run-hook(build)
-           run-hook(copy-scaffolding-to-be-renamed-hook)
+           yum install <cartridge-providing-the-requested-feature>
+             for all resolved dependencies: run-hook(install) + run-hook(build)
+
+     <resolve-application-descriptor>
+
+  resolve-application-descriptor
+     for all dependencies: run-hook(copy-scaffolding)
   deploy-application*
-     <install-dependencies-and-copy-scaffolding>
-     for each cartridge:  run-hook(configure)
-     for each component:  establish-connections*  #  could be called 'n' times.
+     <resolve-application-descriptor>
+     for each component:
+        for each cartridge:
+           run-hook(configure)
+     recursively-establish-connections
+
   start-stop-application*
-     for cartridge in start-or-stop-order:  run-hook(start|stop)
+     for cartridge in start-or-stop-order:
+        run-hook(start|stop)
+
   delete-application*
-     for each cartridge: 
-        run-hook(deconfigure)
-        *remove (handle removal?? flex only likely)
+     for each component:
+        for each cartridge: 
+           run-hook(deconfigure)
 
 
 Calls to cartridge hooks
@@ -74,9 +82,14 @@ Calls to cartridge hooks
 
 Tentative:
 
-Calls to all cartridge hooks will take the following form:
+Interface:   opm run-hook <app|cartridge|component+cart}> <hook-name>  [<app>]
 
-$cartridge/$hook $APP_NAME [$APP_GUID]
+this causes the cartridge hook for the application or associated component 
+to be invoked w/ all the environment variables appropriately set and 
+the hook itself is passed the application name and guid as parameters.
+
+This will eventually call the application/cartridge hook as:
+   $cartridge/$hook $APP_NAME [$APP_GUID]
 
 cartridge = Cartridge we're working with (php, apache, mysql, etc)
 hook = Call to the hook we want (start, stop, deconfigure)
@@ -99,8 +112,7 @@ Environment passed to hooks includes:
 
    App/Cartridge specific:
       OPENSHIFT_APP_GUID
-      OPENSHIFT_COMPONENT_GUID
-      OPENSHIFT_APP_TYPE            #  php|tomcat|jboss ...
+      OPENSHIFT_HOOK_CONTEXT
       OPENSHIFT_APP_HOME_DIR        #  ${HOME}/
       OPENSHIFT_APP_REPO_DIR        #  ${HOME}/repository/
       OPENSHIFT_APP_PROD_DIR        #  ${HOME}/production/
@@ -109,12 +121,4 @@ Environment passed to hooks includes:
       OPENSHIFT_APP_BINDADDR        #  internal bind address
                                     #  127.0.*.*  - 'n' (=64) per app.
 
-
-Hook invocation command:
-    opm run-hook  <app-or-component-name> <hook-name>  [<extra-params>]
-
-this causes the cartridge hook for the application or associated component 
-to be invoked w/ all the environment variables appropriately set and 
-the hook itself is passed the application name and guid as parameters.
-     ===> $cartridge/${hook_name} $APP_NAME [$APP_GUID]
 
