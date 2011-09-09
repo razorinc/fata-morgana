@@ -53,6 +53,11 @@ module Openshift
           application.save!
         end
         
+        def after_failure_to_transition(application, transition)
+          application.save!          
+          print "#{transition} is not valid\n"
+        end
+        
         def after_create(application, transition)
           log.info "Creating application #{application.guid}"
           begin
@@ -73,7 +78,7 @@ module Openshift
             application.save!
             
             NodeApplicationDelegate.instance.create(application)
-            application.create_complete!            
+            application.create_complete!
           rescue Exception => e
             log.error(e.message)
             application.create_error!
@@ -82,7 +87,7 @@ module Openshift
         
         def after_create_error(application, transition)      
           log.info "Error occured while creating application #{application.guid}"
-          after_destroy(application,transition)
+          application.destroy!
         end
         
         def after_create_complete(application, transition)      
@@ -94,6 +99,14 @@ module Openshift
           begin
             napp_delegate = Controller::NodeApplicationDelegate.instance
             napp_delegate.destroy application
+            application.users.each do |uguid|
+              user = Model::User.find uguid
+              user.delete!
+            end
+            gamap = Model::GidApplicationMap.find application.user_group_id
+            gamap.delete!
+            agmap = Model::ApplicationGidMap.find application.guid
+            agmap.delete!
           rescue Exception => e
             raise e
             log.error(e.message)
@@ -114,10 +127,6 @@ module Openshift
         def after_deploy(application, transition)
           print "deploying application #{application.guid}\n"
           application.deploy_complete!        
-        end
-        
-        def after_failure_to_transition(vehicle, transition)
-          print "#{transition} is not valid\n"
         end
       end
     end

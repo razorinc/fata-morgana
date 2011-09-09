@@ -260,5 +260,8 @@ module Openshift::SDK::Model
       end
     end
 
+    def delete!(bucket=nil)
+      super(bucket)
+    end
   end
 end

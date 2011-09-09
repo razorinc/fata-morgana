@@ -83,6 +83,21 @@ module Openshift::SDK::Model
     end
   end
   
+  # == Application GUID to GID map
+  #
+  # Used to find which bucket an application object is stored in
+  class ApplicationGidMap < OpenshiftModel
+    ds_attr_accessor :name, :app_gid
+    
+    def self.bucket
+      "admin"
+    end
+    
+    def initialize(app_guid, app_name, app_gid)
+      @guid, self.name, self.app_gid = app_guid, app_name, app_gid
+    end
+  end
+  
   # == Gid to Application Map
   #
   # Reserves a group ID for an application
@@ -113,6 +128,8 @@ module Openshift::SDK::Model
       end
       map_obj = GidApplicationMap.new gid,app.guid,app.guid
       map_obj.save!
+      agmap = ApplicationGidMap.new(app.guid, app.name, gid)
+      agmap.save!
       map_obj.guid
     end
 
@@ -182,7 +199,7 @@ module Openshift::SDK::Model
         raise UserDeletionException.new("Unable to delete user. Error: #{err}")
       end
       
-      cmd = "groupdel #{self.gid}"
+      cmd = "groupdel g#{self.app_guid[0..7]}"
       out,err,ret = shellCmd(cmd)
     end    
 

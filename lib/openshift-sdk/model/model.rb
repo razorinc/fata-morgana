@@ -82,7 +82,6 @@ module Openshift
         def self.find(id,bucket=nil)
           bucket ||= self.bucket
           Openshift::SDK.log.debug("find #{self.name} id:#{id} bucket:#{bucket}")
-          binding.pry unless bucket
           
           type = self.name
           config = Openshift::SDK::Config.instance
@@ -189,13 +188,11 @@ module Openshift
           self
         end
         
-        def delete!
+        def delete!(bucket=nil)
           bucket ||= self.class.bucket
-                    
-          return nil unless self.changed?
-          log.debug "deleting\n"
           type = self.class.name
           id = self.guid
+          log.debug "saving type: #{type}, id: #{id}, bucket: #{bucket}"
           
           config = Openshift::SDK::Config.instance
           ds_type = config.get("datasource_type")

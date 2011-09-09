@@ -30,7 +30,7 @@ require 'openshift-sdk/model/model'
 
 module Openshift::SDK::Model
   class Application < Cartridge
-    ds_attr_accessor :state, :deploy_state, :artifact_available, :active_profile, :deleted, :descriptor, :users, :user_group_id, :interfaces,
+    ds_attr_accessor :state, :deploy_state, :artifact_available, :active_profile, :descriptor, :users, :user_group_id, :interfaces,
                      :node_application_map
     
     state_machine :state, :initial => :not_created do
@@ -66,7 +66,6 @@ module Openshift::SDK::Model
     def initialize(app_name=nil,package_path=nil)
       super(app_name,package_path)
       self.users = []
-      self.deleted = "false"
       self.node_application_map = {}
     end
     
@@ -75,7 +74,7 @@ module Openshift::SDK::Model
     end
     
     def attributes
-      {"state"=> @state, "deploy_state"=> @deploy_state, "deleted"=>@deleted, "descriptor" => self.descriptor}
+      {"state"=> @state, "deploy_state"=> @deploy_state, "descriptor" => self.descriptor}
     end
     
     def self.from_opm(package_path)
@@ -87,12 +86,12 @@ module Openshift::SDK::Model
     end
     
     def delete!
-      self.deleted = "true"
-      super
+      super(@user_group_id) unless @user_group_id.nil? 
+      self
     end
     
     def save!
-      super(@user_group_id) unless self.deleted == "true" or @user_group_id.nil? 
+      super(@user_group_id) unless @user_group_id.nil? 
       self
     end
   end

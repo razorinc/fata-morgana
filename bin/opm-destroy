@@ -64,6 +64,11 @@ if args['--help'] || guid.nil?
   exit -101
 end
 
-app = Openshift::SDK::Model::Application.find(guid)
-app.destroy!
-print "Application with GUID: #{app.guid} destroyed\n"
+bucket = Openshift::SDK::Model::ApplicationGidMap.find(guid)
+app = Openshift::SDK::Model::Application.find(guid,bucket.app_gid) if bucket
+if app
+  app.destroy!
+  print "Application with GUID #{app.guid} destroyed\n"
+else
+  print "Could not find application with GUID: #{guid}\n"
+end

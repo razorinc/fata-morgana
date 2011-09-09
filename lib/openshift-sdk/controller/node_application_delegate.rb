@@ -51,6 +51,17 @@ module Openshift::SDK::Controller
     end
     
     def destroy(application)
+      profile = application.descriptor.profiles[application.active_profile]
+      profile.groups.each do |gname, group|
+        pgroup = Openshift::SDK::Model::ProvisioningGroup.find(group.provisioning_group)
+        pgroup.nodes.each do |nguid|
+          napp = Openshift::SDK::Model::NodeApplication.find(application.node_application_map[nguid], application.user_group_id)
+          if napp
+            napp.destroy!
+            application.node_application_map.delete(napp.guid)
+          end
+        end
+      end
     end
   end
 end
