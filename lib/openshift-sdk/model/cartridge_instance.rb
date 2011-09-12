@@ -39,5 +39,14 @@ module Openshift::SDK::Model
       self.cartridge_name = self.cartridge.name
     end
 
+    def get_all_component_instances
+      # this function assumes that the cartridge has been elaborated (references resolved)
+      p_obj = self.cartridge.descriptor.profiles[self.profile]
+      if not p_obj
+        return []
+      end
+      p_obj.get_all_component_instances
+    end
+
   end
 end

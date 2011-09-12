@@ -19,6 +19,8 @@ Descriptor:
             vhost:
               Type: FILESYSTEM:vhost
               Required: false
+            doc_root:
+              Type: "FILESYSTEM:doc-root"
           Publishes:
             ext_url:
               Type: NET_TCP:HTTP

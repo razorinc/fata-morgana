@@ -89,7 +89,7 @@ module Openshift::SDK::Model
     
     def resolve_references(profile_name=nil)
       self.profiles.each do |pname, profile|
-        if profile_name.nil? or profile_name == pname 
+        if profile_name.nil? or profile_name == "" or profile_name == pname 
           profile.resolve_references
           break
         end
