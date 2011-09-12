@@ -68,34 +68,36 @@ if args['--help'] || app_id.nil? || feature.nil?
   exit -101
 end
 
-app = Openshift::SDK::Model::Application.find(app_id)
+bucket = Openshift::SDK::Model::ApplicationGidMap.find(app_id)
+app = Openshift::SDK::Model::Application.find(app_id,bucket.app_gid) if bucket
+
 if app.nil?
   print "Error: Application(#{app_id}) not found"
+  exit -404
 end
 
-# re-read the control file if something was hand-written
-app.from_opm_spec
+napp_guid = app.node_application_map[Openshift::SDK::Model::Node.this_node.guid]
+napp = Openshift::SDK::Model::NodeApplication.find(napp_guid)
+dapp = napp.get_app_from_development_space
 
 # add new feature
 if not native.nil? 
-  if app.requires.nil?
-    app.requires = [feature]
+  if dapp.requires.nil?
+    dapp.requires = [feature]
   else
-    if not app.requires.include? feature
-      app.requires << feature
+    if not dapp.requires.include? feature
+      dapp.requires << feature
     end
   end
 else
-  if app.requires_feature.nil?
-    app.requires_feature = [feature]
+  if dapp.requires_feature.nil?
+    dapp.requires_feature = [feature]
   else
-    if not app.requires.include? feature
-      app.requires_feature << feature
+    if not dapp.requires.include? feature
+      dapp.requires_feature << feature
     end
   end
 end
 
-app.update_control_file
-
-app.save!
+napp.save_app_to_development_space dapp
 

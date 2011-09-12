@@ -94,16 +94,21 @@ module Openshift::SDK::Model
       FileUtils.mkdir_p "#{@app_prod_repo_dir}"
       FileUtils.mkdir_p "#{@app_prod_dir}"
       FileUtils.mkdir_p "#{@app_dev_dir}"
+      FileUtils.mkdir_p "#{user.homedir}/production"
 
       FileUtils.chown_R user.name, @user_group_id, @app_repo_dir
       FileUtils.chown_R user.name, @user_group_id, @app_prod_repo_dir
       FileUtils.chown_R user.name, @user_group_id, @app_prod_dir
       FileUtils.chown_R user.name, @user_group_id, @app_dev_dir
+      FileUtils.chown_R user.name, @user_group_id, "#{user.homedir}/production"
 
       FileUtils.chmod 0o1760,@app_repo_dir
       FileUtils.chmod 0o1760,@app_prod_repo_dir
       FileUtils.chmod 0o1760,@app_prod_dir
       FileUtils.chmod 0o1760,@app_dev_dir
+      FileUtils.chmod 0o1760,"#{user.homedir}/production"
+      
+      FileUtils.ln_sf "#{@app_prod_dir}", "#{user.homedir}/production/#{app_name}"
     end
 
     def setup_repo
@@ -128,40 +133,28 @@ module Openshift::SDK::Model
       dev_repo = Openshift::SDK::Utils::VersionControl.new(@app_dev_dir)
       dev_repo.create_from base_repo
     end
-
-    def setup_app_scaffold
-      #app = Openshift::SDK::Model::Application.find self.app_guid
-      #primary_user = Openshift::SDK::Model::User.find(@primary_user_id)
-      #config = Openshift::SDK::Config.instance
-      #prod_repo = Openshift::SDK::Utils::VersionControl.new(@app_prod_dir, @app_prod_repo_dir)
-      #
-      #app.package_root = "#{config.get("app_production_dir_prefix")}"
-      #app.package_path = @app_prod_dir
-      #app.save!
-      #
-      #os_dir = "#{@app_prod_dir}/openshift"
-      #FileUtils.mkdir_p os_dir
-      #
-      ## check and create control file
-      #if not File.exist?("#{os_dir}/control.spec")
-      #    app.version = "0.0"
-      #    app.summary = "Placeholder control spec"
-      #    app.native_name = app.name
-      #    app.provides_feature = [app.name]
-      #    cfile = File.new(os_dir + "/control.spec", "w")
-      #    cfile.write(app.to_s)
-      #    cfile.close
-      #end
-      #prod_repo.add("#{os_dir}/control.spec")
-      #
-      ## check and create descriptor file
-      #if not File.exist?("#{os_dir}/descriptor.json")
-      #    des_file = File.new("#{os_dir}/descriptor.json", "w")
-      #    des_file.write("{}")
-      #    des_file.close
-      #end
-      #prod_repo.add("#{os_dir}/descriptor.json")
-      #prod_repo.commit
+    
+    def get_app_from_development_space
+      FileUtils.mkdir_p "#{@app_dev_dir}/openshift"
+      unless File.exists? "#{@app_dev_dir}/openshift/manifest.yml"
+        f = File.open("#{@app_dev_dir}/openshift/manifest.yml","w")
+        f.write "Name: #{app_name}"
+        f.close
+      end
+      app = Openshift::SDK::Model::Application.from_opm("#{@app_dev_dir}")
+      app.from_manifest_yaml("#{@app_dev_dir}/openshift/manifest.yml")
+      app
+    end
+    
+    def save_app_to_development_space(app)
+      primary_user = Openshift::SDK::Model::User.find(@primary_user_id)
+      manifest_file_path = "#{@app_dev_dir}/openshift/manifest.yml"
+      manifest = File.open(manifest_file_path, "w")
+      manifest.write(app.to_manifest_yaml)
+      manifest.close
+      dev_repo = Openshift::SDK::Utils::VersionControl.new(@app_dev_dir)  
+      dev_repo.add manifest_file_path
+      dev_repo.commit
     end
   end
 end
