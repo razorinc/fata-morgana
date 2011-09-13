@@ -75,11 +75,12 @@ module Openshift::SDK::Model
   # [components] A hash map with all componnts that are part of the group
   # [scaling] Scaling parameters set for the group
   class Group < OpenshiftModel
-    ds_attr_accessor :name,:components, :scaling, :reservations, :resolved_components, :profile, :provisioning_group
+    ds_attr_accessor :name,:components, :auto_components, :scaling, :reservations, :resolved_components, :profile, :provisioning_group
     
     def initialize(name=nil)
       self.name = name
       self.components = {}
+      self.auto_components = {}
       self.scaling = ScalingParameters.new
       self.reservations = []
       self.resolved_components = {}
@@ -109,15 +110,24 @@ module Openshift::SDK::Model
       if hash["Scaling"]
         scaling_will_change!
         self.scaling.from_descriptor_hash(hash["Scaling"])
+        self.scaling.user_defined = true
       end
     end
     
     def to_descriptor_hash
-      {
-        "Components" => self.components,
-        "Reservations" => self.reservations,
-        "Scaling" => self.scaling.to_descriptor_hash
-      }
+      h = {}
+
+      c = {}
+      self.components.each do |inst_name, comp_name|
+        if not self.auto_components[inst_name]
+          c[inst_name] = comp_name
+        end
+      end
+
+      h["Components"] = c if c.length>0
+      h["Reservations"] = self.reservations if self.reservations.length > 0
+      h["Scaling"] = self.scaling.to_descriptor_hash if self.scaling.user_defined
+      h
     end
 
     def resolve_references(component_hash=nil)
@@ -141,10 +151,14 @@ module Openshift::SDK::Model
       #       self.resolved_components.length - self.components.length
     end
 
-    def add_component_instance(component_name, instance_name=nil, resolve_reference=false)
-      self.components = {} if self.components
+    def add_component_instance(component_name, instance_name=nil, resolve_reference=false, auto_generated=false)
+      self.components = {} if self.components.nil?
       instance_name = component_name unless instance_name
       self.components[instance_name] = component_name
+      if auto_generated
+        self.auto_components = {} if self.auto_components.nil?
+        self.auto_components[instance_name] = component_name
+      end
       if resolve_reference
         local_resolution_hash = {}
         local_resolution_hash[instance_name] = component_name

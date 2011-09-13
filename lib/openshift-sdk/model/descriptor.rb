@@ -103,6 +103,7 @@ module Openshift::SDK::Model
       if hash["Profiles"]
         hash["Profiles"].each do |profile_name,profile_hash|
           p = self[profile_name] = Profile.new(profile_name)
+          p.user_defined = true
           p.from_descriptor_hash(profile_hash,inherited_dependencies)
         end
       else
@@ -112,20 +113,22 @@ module Openshift::SDK::Model
     end
     
     def to_descriptor_hash
-      h = {
-        "Reservations" => self.reservations,
-      }
+      h = {}
 
-      if self.profiles.keys.length > 1
-        p = {}
-        self.profiles.each do |name, profile|
+      h["Reservations"] = self.reservations if self.reservations.length > 0
+
+      p = {}
+      self.profiles.each do |name, profile|
+        if not profile.user_defined
+          h.merge! profile.to_descriptor_hash
+        else
           p[name] = profile.to_descriptor_hash
         end
-        h["Profiles"] = p
-      else
-        h.merge! self.profiles.values[0].to_descriptor_hash
       end
-      
+
+      if p.length > 0
+        h["Profiles"] = p
+      end
       h
     end
   end

@@ -108,6 +108,7 @@ module Openshift::SDK::Model
       if hash["Components"]
         hash["Components"].each do |component_name, component_hash|
           c = @components[component_name] = Component.new(component_name)
+          c.user_defined = true
           c.from_descriptor_hash(component_hash,inherited_dependencies)
         end
       else
@@ -125,6 +126,7 @@ module Openshift::SDK::Model
       if hash["Groups"]
         hash["Groups"].each do |group_name, group_hash|
           g = @groups[group_name] = Group.new(group_name)
+          g.user_defined = true
           g.profile = self
           g.from_descriptor_hash(group_hash)
         end
@@ -134,7 +136,7 @@ module Openshift::SDK::Model
         g.profile = self
         g.from_descriptor_hash({})
         self.components.keys.each do |cname|
-          g.add_component_instance(cname)
+          g.add_component_instance(component_name=cname, instance_name=cname, resolve_reference=false, auto_generated=true)
         end
         g.scaling.from_descriptor_hash(hash["Scaling"]) if hash["Scaling"]
       end
@@ -143,6 +145,7 @@ module Openshift::SDK::Model
         connections_will_change!
         hash["Connections"].each do |conn_name, conn_hash|
           c = @connections[conn_name] = Connection.new(conn_name)
+          c.user_defined = true
           c.profile = self
           c.from_descriptor_hash(conn_hash)
         end
@@ -150,29 +153,42 @@ module Openshift::SDK::Model
     end
     
     def to_descriptor_hash
+      h = {}
+
       c = {}
       self.components.each do |comp_name, comp|
-        c[comp_name] = comp.to_descriptor_hash
+        if comp.user_defined
+          c[comp_name] = comp.to_descriptor_hash
+        else
+          h.merge! comp.to_descriptor_hash
+        end
       end
       
       g = {}
       self.groups.each do |group_name, group|
-        g[group_name] = group.to_descriptor_hash
+        if group.user_defined
+          g[group_name] = group.to_descriptor_hash
+        else
+          h.merge! group.to_descriptor_hash
+        end
       end
       
       cn = {}
       self.connections.each do |conn_name, conn|
-        cn[conn_name] = conn.to_descriptor_hash
+        if conn.user_defined
+          cn[conn_name] = conn.to_descriptor_hash
+        else
+          h.merge! conn.to_descriptor_hash
+        end
       end
       
-      {
-        "Provides" => self.provides,
-        "Reservations" => self.reservations,
-        "Property Overrides" => self.property_overrides,
-        "Components" => c,
-        "Groups" => g,
-        "Connections" => cn
-      }
+      h["Provides"] = self.provides if self.provides.length > 0
+      h["Reservations"] = self.reservations if self.reservations.length > 0
+      h["Property Overrides"] = self.property_overrides if self.property_overrides.length > 0
+      h["Components"] = c if c.length > 0
+      h["Groups"] = g if g.length > 0
+      h["Connections"] = cn if cn.length > 0
+      h
     end
 
     def get_all_component_instances

@@ -136,6 +136,8 @@ module Openshift::SDK::Model
     end
 
     def to_descriptor_hash
+      h = {}
+
       p = {}
       self.publishes.each do |name,conn|
         p[name] = conn.to_descriptor_hash
@@ -146,11 +148,11 @@ module Openshift::SDK::Model
         s[name] = conn.to_descriptor_hash
       end
       
-      {
-        "Dependencies" => self.declared_dependencies,
-        "Publishes" => p,
-        "Subscribes" => s
-      }
+      h["Dependencies"] = self.declared_dependencies if self.declared_dependencies.length > 0
+      h["Publishes"] = p if p.length > 0
+      h["Subscribes"] = s if s.length > 0
+
+      h
     end
   end    
 end

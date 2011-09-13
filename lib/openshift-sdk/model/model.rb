@@ -143,6 +143,7 @@ module Openshift
             @attributes[name] = nil
           end
           @attributes["guid"] = nil
+          @attributes["user_defined"] = false
           @attributes
         end
         
@@ -205,7 +206,7 @@ module Openshift
           false
         end
         
-        ds_attr_accessor :guid
+        ds_attr_accessor :guid, :user_defined
         ds_attr_reader :bucket
         validates_presence_of :guid
       end
