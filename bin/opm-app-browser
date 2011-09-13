@@ -29,13 +29,13 @@ opm app-browser: Browses through a given application's architecture
 
 == Usage
 
-opm app-browser APPID 
+opm app-browser <app-path>
 
 Options:
 -h|--help:
    Prints this message
 
-APPID: The ID of the application to browse
+app-path: The path to the application to browse
 USAGE
 end
 
@@ -58,16 +58,16 @@ end
 
 $opm_debug = true if args['--debug']
 $porcelin = args['--porcelin'] ? true : false
-app_id = ARGV.shift
+app_path = ARGV.shift
 
-if args['--help'] || app_id.nil? 
+if args['--help'] || app_path.nil? 
   usage
   exit -101
 end
 
-app = Openshift::SDK::Model::Application.find(app_id)
+app = Openshift::SDK::Model::Application.from_opm(app_path)
 if app.nil?
-  print "Error: Application(#{app_id}) not found"
+  print "Error: Application(#{app_path}) not found"
 end
 
 def cmd_usage
@@ -181,7 +181,7 @@ def command(current_object, object_stack)
   user_choice_list = []
   bhash, operate_object = browse(current_object)
   if bhash['self']
-    print "Description:", current_object.class, "\n"
+    print "Description:\n\t<Object Class: ", current_object.class, ">\n"
     bhash['self'].each { |elem|
       print "\t", elem, "\n"
     }
@@ -214,6 +214,10 @@ def command(current_object, object_stack)
   print "\t#{counter}. Print YAML of the object\n"
   user_choice_list << "Yaml"
   counter += 1
+
+  print "\t#{counter}. Print stack of viewed objects' types\n"
+  user_choice_list << "Stack"
+  counter += 1
   
   print "\t#{counter}. Exit\n"
   user_choice_list << "Exit"
@@ -238,13 +242,31 @@ def command(current_object, object_stack)
       exit 0
   end
 
-  user_choice = user_choice_list[Integer(input)-1]
+  user_choice = nil
+  begin
+    user_choice = user_choice_list[Integer(input)-1]
+  rescue Exception=>e
+    print "Unknown input - retry\n"
+    return current_object, object_stack
+  end
 
   case user_choice
     when "Pop":
+      if object_stack.length == 0
+        print "Stack is empty.\n"
+        return current_object, object_stack
+      end
       current_object = object_stack.pop
       return current_object, object_stack
     when "Print":
+      return current_object, object_stack
+    when "Stack"
+      print "########################### Stack #####################\n"
+      object_stack.each { |obj|
+        print "\t#{obj.class}\n"
+      }
+      print "\t#{current_object.class}\n"
+      print "########################### ##### #####################\n"
       return current_object, object_stack
     when "Yaml" :
       print "############################ YAML #####################\n"
