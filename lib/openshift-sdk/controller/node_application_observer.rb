@@ -73,7 +73,6 @@ module Openshift
               napp.setup_repo
               napp.setup_app_production
               napp.setup_app_development
-              napp.setup_app_scaffold              
               napp.save!
             }
             napp.create_complete!          

@@ -41,11 +41,22 @@ module Openshift
           if @@this_node
             @@this_node 
           else
-            n = Node.new
-            n.gen_uuid
-            n.save!
-            @@this_node = n
+            if File.exists? "/var/tmp/node_id"
+              f = File.open("/var/tmp/node_id")
+              @@this_node = Node.find f.read
+              f.close
+            else
+              n = Node.new
+              n.gen_uuid
+              n.save!
+              f = File.open("/var/tmp/node_id","w")
+              f.write(n.guid)
+              f.close
+              @@this_node = n
+            end
           end
+          
+          @@this_node
         end
         
         state_machine :state, :initial => :not_created, :action => :save! do

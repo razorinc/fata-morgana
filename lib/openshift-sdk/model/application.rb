@@ -81,7 +81,8 @@ module Openshift::SDK::Model
     def build_component_instance_map(cart=self, prof=nil, prefix="")
       cart.descriptor.profiles[prof].groups.each do |gname, group|
         group.resolved_components.each do |comp_name, comp|
-          comp_prefix = cart.name + "." + comp_name
+          comp_prefix = cart.name
+          comp_prefix += "." + comp_name unless comp_name == "default"
           comp_prefix = prefix + "." + comp_prefix unless prefix.nil? or prefix == ""
           
           self.component_instance_map[comp_prefix] = comp

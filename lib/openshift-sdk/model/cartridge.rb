@@ -127,8 +127,8 @@ module Openshift::SDK::Model
     def from_manifest_yaml(yaml=nil)
       unless yaml
         #create a new control spec
-        control_spec = File.open(self.package_path + "/openshift/package.yml", "w")
-        control_spec.write(to_package_yaml)
+        control_spec = File.open(self.package_path + "/openshift/manifest.yml", "w")
+        control_spec.write(to_manifest_yaml)
         control_spec.close
       end
       
@@ -217,7 +217,7 @@ module Openshift::SDK::Model
       else
         yaml_hash['Descriptor'] = {}
       end
-      
+    
       yaml_hash.to_yaml
     end
 
