@@ -23,36 +23,71 @@
 require 'rubygems'
 require 'logger'
 require 'openshift-sdk/config'
+require 'syslog'
+require 'pry'
 
-module Openshift
-  module SDK
-    #create logger
-    unless @log
-      config = Openshift::SDK::Config.instance
-      log_location=config.get("log_location")
-      log_aging=config.get("log_aging") || "daily"
-      log_level=config.get("log_level") || "DEBUG"        
-      case log_location
-      when "STDERR"
-        @log = Object::Logger.new(STDERR)
-      when "STDOUT"
-        @log = Object::Logger.new(STDOUT)
-      else
-        @log = Object::Logger.new(log_location,log_aging)
+module Openshift::SDK
+  module Utils
+    class SysLog < Logger
+      LOGGER_SYSLOG_MAP = {:unknown => :alert, :fatal => :err, :error => :warning, :warn => :notice, :info => :info, :debug => :debug}
+      SEV_MAP = [:debug, :info, :notice, :warning, :err, :alert]
+      
+      def initialize
+        @syslog = Syslog.open('openshift-sdk')
+        @level = DEBUG
+        @default_formatter = Object::Logger::Formatter.new
       end
-      @log.level=Logger::SEV_LABEL.index(log_level)
-    end
-    
-    def self.log
-      @log
-    end
-    
-    module Utils
-      module Logger
-        def log
-          Openshift::SDK::log
+      
+      def <<(msg)
+        @syslog.info(msg)
+      end
+      
+      def map_sev(severity)
+      end
+        
+      def add(severity, message = nil, progname = nil, &block)
+        unless message
+          if block_given?
+            message = yield
+          else
+            message = progname || "--"
+          end
         end
+        @syslog.send(SEV_MAP[severity], "[#{format_severity(severity)}] #{message}")
+      end
+      
+      def close
+        @syslog.close
       end
     end
+    
+    module Logger
+      def log
+        Openshift::SDK::log
+      end
+    end
+  end
+  
+  #create logger
+  unless @log
+    config = Openshift::SDK::Config.instance
+    log_location=config.get("log_location")
+    log_aging=config.get("log_aging") || "daily"
+    log_level=config.get("log_level") || "DEBUG"        
+    case log_location
+    when "STDERR"
+      @log = Object::Logger.new(STDERR)
+    when "STDOUT"
+      @log = Object::Logger.new(STDOUT)
+    when "SYSLOG"
+      @log = Utils::SysLog.new
+    else
+      @log = Object::Logger.new(log_location,log_aging)
+    end
+    @log.level=Logger::SEV_LABEL.index(log_level)
+  end
+  
+  def self.log
+    @log
   end
 end
