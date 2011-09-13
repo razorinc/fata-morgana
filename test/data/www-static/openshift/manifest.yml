@@ -1,0 +1,20 @@
+Name: www-static
+Display-Name: www-static v1.0.0 (noarch)
+Version: 1.0.0
+License: APL
+Provides:
+  - "www-static"
+Requires:
+Native-Requires:
+  - "httpd >= 2.0"
+Conflicts:
+Build-Arch: noarch
+Descriptor:
+  Profiles:
+    Publishes:
+      external_uri:
+        Type: "NET_TCP:HTTP"
+    Subscribes:
+      vhost:
+        Type: "FILESYSTEM:vhost"
+

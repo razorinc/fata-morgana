@@ -1,0 +1,61 @@
+#!/bin/bash
+#
+#--
+# Copyright 2010 Red Hat, Inc.
+#
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation files
+# (the "Software"), to deal in the Software without restriction,
+# including without limitation the rights to use, copy, modify, merge,
+# publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so,
+# subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT.  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+# BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+# ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+# CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#++
+#
+
+# Exit on errors.
+set -e
+
+
+#
+# Functions.
+#
+function configure_app() {
+   os_log_debug "configure application $application_name"
+
+}  #  End of function  configure_app.
+
+
+function deconfigure_app() {
+   os_log_debug "deconfigure application $application_name"
+
+}  #  End of function  deconfigure_app.
+
+
+#
+# _main()
+#
+source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/common.sh
+[ $# -ge 1 ]  ||  os_print_hook_usage
+
+case "$hook_name" in 
+   configure)    configure_app    ;;
+   deconfigure)  deconfigure_app  ;;
+esac
+
+
+#  Not doing any more in setup right now. Everything else will be done via
+#  connectors (setup-connections).
+

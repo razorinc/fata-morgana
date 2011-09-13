@@ -86,6 +86,25 @@ function os_get_userifaddr() {
 }  #  End of function  os_get_userifaddr.
 
 
+function os_get_external_ipaddr() {
+   local ifaddr eth0_info
+
+   if test -f "/etc/libra/node_data.conf"; then
+      ifaddr=`sh -c "source /etc/libra/node_data.conf; echo \\\$public_ip"`
+   elif test -f "/var/spool/ec2/meta-data/public-ipv4"; then
+      ifaddr=`cat /var/spool/ec2/meta-data/public-ipv4`
+   fi
+
+   if test -z "$ifaddr"; then
+     eth0_info=`/sbin/ifconfig eth0 | grep 'inet addr:'`
+     ifaddr=`echo $eth0_info | sed "s#\s*inet addr:\([0-9\.]\+\)\(.*\)#\1#"`
+   fi
+
+   printf "%s" $ifaddr
+
+}  #  End of function  os_get_external_ipaddr.
+
+
 function os_print_hook_usage() {
    local hook_info hook_params 
    hook_info=${1:-"$cartridge_name->$hook_name"}
@@ -114,6 +133,9 @@ function os_initialize_env() {
    fi
 
    os_setup_environment "${OPENSHIFT_APP_HOME_DIR:-"."}/${app_config_subdir}"
+
+   # FIXME: Turn on debugging if env has it - too chatty right now ...
+   # [ "DEBUG" == "$log_level" ]  &&  _DEBUG_HOOKS=${_DEBUG_HOOKS:-"1"}
 
    application_name=$1
    application_guid=$2
@@ -145,10 +167,10 @@ function die() {
 #
 function _os_get_missing_vars() {
    missing_vars=""
-   for v in OPENSHIFT_CONFIG_DIR  OPENSHIFT_PROFILE                   \
-            OPENSHIFT_APP_GUID OPENSHIFT_COMPONENT_GUID               \
-            OPENSHIFT_APP_TYPE OPENSHIFT_APP_HOME_DIR                 \
-            OPENSHIFT_APP_REPO_DIR OPENSHIFT_APP_PROD_DIR; do
+   for v in OPENSHIFT_CONFIG_DIR  OPENSHIFT_PROFILE  OPENSHIFT_APP_GUID  \
+            OPENSHIFT_HOOK_CONTEXT  OPENSHIFT_APP_HOME_DIR               \
+            OPENSHIFT_APP_DEV_DIR  OPENSHIFT_APP_REPO_DIR                \
+            OPENSHIFT_APP_PROD_DIR; do
       [ -z "${!v}" ]  &&  missing_vars="$missing_vars $v"
    done
 
