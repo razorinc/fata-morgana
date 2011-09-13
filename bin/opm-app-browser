@@ -29,11 +29,13 @@ opm app-browser: Browses through a given application's architecture
 
 == Usage
 
-opm app-browser <app-path>
+opm app-browser <app-path> [--resolve]
 
 Options:
 -h|--help:
    Prints this message
+--resolve:
+   Resolve the references in app descriptor (cartridges/connections etc)
 
 app-path: The path to the application to browse
 USAGE
@@ -45,6 +47,7 @@ require 'yaml'
 opts = GetoptLong.new(
     ["--porcelin",               GetoptLong::NO_ARGUMENT],
     ["--debug",                  GetoptLong::NO_ARGUMENT],
+    ["--resolve",                  GetoptLong::NO_ARGUMENT],
     ["--help",             "-h", GetoptLong::NO_ARGUMENT]
 )
 
@@ -69,6 +72,8 @@ app = Openshift::SDK::Model::Application.from_opm(app_path)
 if app.nil?
   print "Error: Application(#{app_path}) not found"
 end
+
+app.resolve_references if args["--resolve"]
 
 def cmd_usage
   print "Command :\n"
@@ -162,7 +167,7 @@ def browse(obj, user_input = nil)
         case attr
           when Array
             attr.each { |item|
-              if String(item)==choice
+              if item==choice
                 return_obj = item
                 break
               end
@@ -173,7 +178,7 @@ def browse(obj, user_input = nil)
             return_obj = attr
         end
     end
-    return browse_hash, return_obj||self
+    return browse_hash, return_obj||obj
   end
 end
 
