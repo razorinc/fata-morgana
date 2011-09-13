@@ -82,14 +82,14 @@ Calls to cartridge hooks
 
 Tentative:
 
-Interface:   opm run-hook <app|cartridge|component+cart}> <hook-name>  [<app>]
+Interface:   opm run-hook <app|component> <hook-name> [<app>] [<additional-args>
 
 this causes the cartridge hook for the application or associated component 
 to be invoked w/ all the environment variables appropriately set and 
 the hook itself is passed the application name and guid as parameters.
 
 This will eventually call the application/cartridge hook as:
-   $cartridge/$hook $APP_NAME [$APP_GUID]
+   $cartridge/$hook $APP_NAME [$APP_GUID "$additional_args"]
 
 cartridge = Cartridge we're working with (php, apache, mysql, etc)
 hook = Call to the hook we want (start, stop, deconfigure)
@@ -100,6 +100,7 @@ app_guid = The unique identifier for the app (UUID). Optional.
            flex-only thingy). Ooh, we could also differentiate this based on
            the user name and really need the guid only when the user or the
            executing id is part of multiple groups w/ the same-named apps.
+additional_args = any additional args to the hook.
 
 Simplying this so that we can always get the hook "context" using the
 application name as the key -- allows for a "hook" to be run directly
@@ -114,6 +115,7 @@ Environment passed to hooks includes:
       OPENSHIFT_APP_GUID
       OPENSHIFT_HOOK_CONTEXT
       OPENSHIFT_APP_HOME_DIR        #  ${HOME}/
+      OPENSHIFT_APP_DEV_DIR         #  ${HOME}/development/
       OPENSHIFT_APP_REPO_DIR        #  ${HOME}/repository/
       OPENSHIFT_APP_PROD_DIR        #  ${HOME}/production/
 
