@@ -28,48 +28,25 @@
 # Exit on errors.
 set -e
 
-declare -A  g_subst_map
 
 #
 # Functions.
 #
 function init_substitution_map() {
-   local cfg_dir server_name mapinfo
-   cfg_dir=${1:-'.'}
+   local server_name mapinfo
+   [ -z "${!os_vars_map[@]}" ]  &&  os_init_var_map
 
    vhost_name="${application_name}.${openshift_domain}"
-   g_subst_map['www-static:VHOST_SERVER_NAME']="$vhost_name"
+   os_vars_map["$cartridge_name:VHOST_SERVER_NAME"]="$vhost_name"
 
    # The app-server still needs to substitute the 
    # app-server:BIND_ADDRESS and app-server:BIND_PORT variables.
 
-   for k in `env | grep "^OPENSHIFT_" | cut -f1 -d '='`; do
-      g_subst_map[$k]="${!k}"
-   done
-
-   mapinfo="keys:[${!g_subst_map[@]}], values:[${g_subst_map[*]}]"
-   os_log_debug "init_subst_map($1) = $mapinfo"
+   mapinfo="keys:[${!os_vars_map[@]}], values:[${os_vars_map[*]}]"
+   os_log_debug "$FUNCNAME(): $mapinfo"
    return 0
 
 }  #  End of function  init_substitution_map.
-
-
-function copy_template() {
-   local src dest
-   src=${1:-""}
-   dest=${2:-""}
- 
-   [ ! -f "$src" ]  &&  die 22 "copy_template - invalid source '$src'"
-   [ -z "$dest" ]   &&  die 22 "copy_template - invalid dest '$dest'"
-
-   substitutions=""
-   for k in ${!g_subst_map[@]}; do 
-      substitutions="$substitutions; s#\${$k}#${g_subst_map[$k]}#g;"
-   done
-
-   sed "${substitutions}" "$src" >  "$dest"
-
-}  #  End of function  copy_template.
 
 
 function copy_scaffolding() {
@@ -82,7 +59,7 @@ function copy_scaffolding() {
       templates_dir=$(cd -P "${hook_dir}/../templates" && pwd -P)
       for f in `(cd "$templates_dir"; find . -type f)`; do
          # Copy over the interpolated template to the app component space.
-         copy_template "$templates_dir/$f" "$app_config_dir/$f"
+         os_copy_from_template "$templates_dir/$f" "$app_config_dir/$f"
       done
    fi
 
@@ -95,8 +72,7 @@ function copy_scaffolding() {
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/common.sh
 [ $# -ge 1 ]  ||  os_print_hook_usage
 
-cfgdir=${OPENSHIFT_HOOK_CONTEXT:-"."}
-init_substitution_map "$cfgdir"
-copy_scaffolding      "$cfgdir"
+init_substitution_map
+copy_scaffolding "${OPENSHIFT_HOOK_CONTEXT:-'.'}"
 
 

@@ -40,6 +40,7 @@ os_log_debug "start application $application_name"
 src="${OPENSHIFT_HOOK_CONTEXT:-'.'}/conf.d/app.vhost.conf"
 dest="/etc/httpd/conf.d/openshift_apps/${application_name}.vhost.conf"
 
+# FIXME: need privileges to copy over to ${app}.vhost.conf
 case "$hook_name" in
    start|restart|reload) [ -f "$src" ]  &&  cp -f "$src" "$dest"  ;;
    stop) rm -f "$dest"                                            ;;
