@@ -10,11 +10,10 @@ Native-Requires:
 Conflicts:
 Build-Arch: noarch
 Descriptor:
-  Profiles:
-    Publishes:
-      external_uri:
-        Type: "NET_TCP:HTTP"
-    Subscribes:
-      vhost:
-        Type: "FILESYSTEM:vhost"
+  Publishes:
+    external_uri:
+      Type: "NET_TCP:HTTP"
+  Subscribes:
+    vhost:
+      Type: "FILESYSTEM:vhost"
 
