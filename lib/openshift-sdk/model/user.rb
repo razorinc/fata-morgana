@@ -182,7 +182,7 @@ module Openshift::SDK::Model
             
       uid_str = ""
       FileUtils.mkdir_p self.basedir
-      cmd = "useradd --base-dir #{self.basedir} -u #{self.uid} -g #{self.gid} -m #{self.name}"
+      cmd = "useradd --base-dir #{self.basedir} -u #{self.uid} -g #{self.gid} -m #{self.name} --comment \"#{@app_guid}\""
       out,err,ret = shellCmd(cmd)
       if ret == 0
         self.homedir = "#{self.basedir}/#{self.name}"

@@ -29,22 +29,23 @@ opm add-feature: Adds a feature (native or openshift) a deployed application
 
 == Usage
 
-opm add-feature APPID FEATURE-NAME ["native"]
+opm add-feature [--native] FEATURE-NAME
 
 Options:
+--native:
+   Adds the feature as a native (RPM) dependency
 -h|--help:
    Prints this message
 
-APPID: The ID of the application to add the feature to
 FEATURE-NAME : The name of the feature, e.g. php-zend
-"native" : keyword, conveys whether this is a native-system dependency (e.g. gcc)
 USAGE
 end
 
 require 'openshift-sdk'
 
 opts = GetoptLong.new(
-    ["--porcelin",               GetoptLong::NO_ARGUMENT],
+    ["--native",                 GetoptLong::NO_ARGUMENT],
+    ["--porcelin",               GetoptLong::NO_ARGUMENT],    
     ["--debug",                  GetoptLong::NO_ARGUMENT],
     ["--help",             "-h", GetoptLong::NO_ARGUMENT]
 )
@@ -59,45 +60,19 @@ end
 
 $opm_debug = true if args['--debug']
 $porcelin = args['--porcelin'] ? true : false
-app_id = ARGV.shift
 feature = ARGV.shift
-native = ARGV.shift
+is_native = args['--native'] ? true : false
 
-if args['--help'] || app_id.nil? || feature.nil?
+if args['--help'] || feature.nil?
   usage
   exit -101
 end
 
-bucket = Openshift::SDK::Model::ApplicationGidMap.find(app_id)
-app = Openshift::SDK::Model::Application.find(app_id,bucket.app_gid) if bucket
-
-if app.nil?
-  print "Error: Application(#{app_id}) not found"
-  exit -404
+gid = Process::GID.eid
+app_guid = Openshift::SDK::Model::GidApplicationMap.find(gid).app_guid
+unless app_guid
+  print "Unable to find application owned by this user.\n"
+  return -404
 end
-
-napp_guid = app.node_application_map[Openshift::SDK::Model::Node.this_node.guid]
-napp = Openshift::SDK::Model::NodeApplication.find(napp_guid)
-dapp = napp.get_app_from_development_space
-
-# add new feature
-if not native.nil? 
-  if dapp.requires.nil?
-    dapp.requires = [feature]
-  else
-    if not dapp.requires.include? feature
-      dapp.requires << feature
-    end
-  end
-else
-  if dapp.requires_feature.nil?
-    dapp.requires_feature = [feature]
-  else
-    if not dapp.requires.include? feature
-      dapp.requires_feature << feature
-    end
-  end
-end
-
-napp.save_app_to_development_space dapp
-
+app = Openshift::SDK::Model::Application.find(app_guid,gid.to_s)
+app.add_feature(feature, is_native)

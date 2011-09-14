@@ -50,6 +50,18 @@ module Openshift::SDK::Controller
       end
     end
     
+    def add_feature(application, feature, is_native)
+      #elect node to opeate on
+      elected_node = Openshift::SDK::Model::Node.this_node
+      
+      #get node application object
+      napp = Openshift::SDK::Model::NodeApplication.find(application.node_application_map[elected_node.guid])
+      napp.add_feature(feature, is_native)
+      napp.copy_scaffolding
+      
+      #TODO: inform other nodes to pull latest application code
+    end
+    
     def destroy(application)
       profile = application.descriptor.profiles[application.active_profile]
       profile.groups.each do |gname, group|

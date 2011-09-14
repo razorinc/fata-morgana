@@ -27,6 +27,7 @@ require 'state_machine'
 require 'openshift-sdk/config'
 require 'openshift-sdk/model/cartridge'
 require 'openshift-sdk/model/model'
+require 'openshift-sdk/controller/node_application_delegate'
 
 module Openshift::SDK::Model
   class Application < Cartridge
@@ -81,8 +82,7 @@ module Openshift::SDK::Model
     def build_component_instance_map(cart=self, prof=nil, prefix="")
       cart.descriptor.profiles[prof].groups.each do |gname, group|
         group.resolved_components.each do |comp_name, comp|
-          comp_prefix = cart.name
-          comp_prefix += "." + comp_name unless comp_name == "default"
+          comp_prefix = cart.name + "." + comp_name
           comp_prefix = prefix + "." + comp_prefix unless prefix.nil? or prefix == ""
           
           self.component_instance_map[comp_prefix] = comp
@@ -117,6 +117,10 @@ module Openshift::SDK::Model
     def save!
       super(@user_group_id) unless @user_group_id.nil? 
       self
+    end
+    
+    def add_feature(feature, is_native)
+      Openshift::SDK::Controller::NodeApplicationDelegate.instance.add_feature(self,feature, is_native)
     end
   end
 end

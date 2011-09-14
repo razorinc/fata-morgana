@@ -80,7 +80,8 @@ module Openshift
             NodeApplicationDelegate.instance.create(application)
             application.create_complete!
           rescue Exception => e
-            log.error(e.message)
+            log.error e.message
+            logger.error e.backtrace.join("\n")
             application.create_error!
           end
         end

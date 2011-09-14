@@ -31,7 +31,7 @@ require 'openshift-sdk/model/user'
 
 module Openshift::SDK::Model
   class NodeApplication  < OpenshiftModel
-    ds_attr_accessor :state, :primary_user_id, :user_group_id, :app_guid, :app_name, :app_repo_dir, :app_prod_dir, :app_prod_repo_dir, :app_dev_dir
+    ds_attr_accessor :state, :primary_user_id, :user_group_id, :app_guid, :app_name, :app_repo_dir, :app_prod_dir, :app_prod_repo_dir, :app_user_dev_dir, :app_user_prod_dir
     
     state_machine :state, :initial => :not_created, :action => :save! do
       event(:create) { transition :not_created => :creating }
@@ -63,7 +63,9 @@ module Openshift::SDK::Model
       @app_repo_dir = "#{config.get("app_repository_dir_prefix")}/#{@app_guid}"
       @app_prod_repo_dir = "#{config.get("app_production_dir_prefix")}/#{@app_guid}/repo"
       @app_prod_dir = "#{config.get("app_production_dir_prefix")}/#{@app_guid}/app"
-      @app_dev_dir = "#{primary_user.homedir}/development/#{app_name}"
+      
+      @app_user_dev_dir = "#{primary_user.homedir}/#{config.get("app_user_home_development_subdir")}"
+      @app_user_prod_dir = "#{primary_user.homedir}/#{config.get("app_user_home_production_subdir")}"
       @user_group_id = app_user_group_id
     end
     
@@ -83,7 +85,8 @@ module Openshift::SDK::Model
       FileUtils.rm_rf @app_repo_dir
       FileUtils.rm_rf @app_prod_dir
       FileUtils.rm_rf "#{config.get("app_production_dir_prefix")}/#{@app_guid}"
-      FileUtils.rm_rf @app_dev_dir
+      FileUtils.rm_rf @app_user_dev_dir
+      FileUtils.rm_rf @app_user_prod_dir
     end
 
     def create_app_directories
@@ -93,22 +96,19 @@ module Openshift::SDK::Model
       FileUtils.mkdir_p @app_repo_dir
       FileUtils.mkdir_p "#{@app_prod_repo_dir}"
       FileUtils.mkdir_p "#{@app_prod_dir}"
-      FileUtils.mkdir_p "#{@app_dev_dir}"
-      FileUtils.mkdir_p "#{user.homedir}/production"
+      FileUtils.mkdir_p "#{@app_user_dev_dir}"
 
       FileUtils.chown_R user.name, @user_group_id, @app_repo_dir
       FileUtils.chown_R user.name, @user_group_id, @app_prod_repo_dir
       FileUtils.chown_R user.name, @user_group_id, @app_prod_dir
-      FileUtils.chown_R user.name, @user_group_id, @app_dev_dir
-      FileUtils.chown_R user.name, @user_group_id, "#{user.homedir}/production"
+      FileUtils.chown_R user.name, @user_group_id, @app_user_dev_dir
 
       FileUtils.chmod 0o1760,@app_repo_dir
       FileUtils.chmod 0o1760,@app_prod_repo_dir
       FileUtils.chmod 0o1760,@app_prod_dir
-      FileUtils.chmod 0o1760,@app_dev_dir
-      FileUtils.chmod 0o1760,"#{user.homedir}/production"
+      FileUtils.chmod 0o1760,@app_user_dev_dir
       
-      FileUtils.ln_sf "#{@app_prod_dir}", "#{user.homedir}/production/#{app_name}"
+      FileUtils.ln_sf "#{@app_prod_dir}", "#{app_user_prod_dir}"
     end
 
     def setup_repo
@@ -130,31 +130,67 @@ module Openshift::SDK::Model
     def setup_app_development
       app = Openshift::SDK::Model::Application.find self.app_guid
       base_repo = Openshift::SDK::Utils::VersionControl.new(@app_repo_dir)      
-      dev_repo = Openshift::SDK::Utils::VersionControl.new(@app_dev_dir)
+      dev_repo = Openshift::SDK::Utils::VersionControl.new(@app_user_dev_dir)
       dev_repo.create_from base_repo
     end
     
-    def get_app_from_development_space
-      FileUtils.mkdir_p "#{@app_dev_dir}/openshift"
-      unless File.exists? "#{@app_dev_dir}/openshift/manifest.yml"
-        f = File.open("#{@app_dev_dir}/openshift/manifest.yml","w")
+    def add_feature(feature, is_native=false)
+      #load app descriptor from development space
+      FileUtils.mkdir_p "#{@app_user_dev_dir}/openshift"
+      manifest_file_path = "#{@app_user_dev_dir}/openshift/manifest.yml"  
+      unless File.exists? manifest_file_path
+        f = File.open(manifest_file_path,"w")
         f.write "Name: #{app_name}"
         f.close
       end
-      app = Openshift::SDK::Model::Application.from_opm("#{@app_dev_dir}")
-      app.from_manifest_yaml("#{@app_dev_dir}/openshift/manifest.yml")
-      app
-    end
-    
-    def save_app_to_development_space(app)
-      primary_user = Openshift::SDK::Model::User.find(@primary_user_id)
-      manifest_file_path = "#{@app_dev_dir}/openshift/manifest.yml"
+      app = Openshift::SDK::Model::Application.from_opm("#{@app_user_dev_dir}")
+      app.from_manifest_yaml(manifest_file_path)
+
+      app.requires = [] unless app.requires
+      app.requires_feature = [] unless app.requires_feature
+
+      #update with feature
+      if is_native
+        app.requires << feature unless app.requires.include? feature
+      else
+        app.requires_feature << feature unless app.requires_feature.include? feature
+      end
+
+      #save and commit manifest
       manifest = File.open(manifest_file_path, "w")
       manifest.write(app.to_manifest_yaml)
       manifest.close
-      dev_repo = Openshift::SDK::Utils::VersionControl.new(@app_dev_dir)  
+      dev_repo = Openshift::SDK::Utils::VersionControl.new(@app_user_dev_dir)  
       dev_repo.add manifest_file_path
-      dev_repo.commit
+      dev_repo.commit "Adding feature #{feature} #{"[native]" if is_native}"
+    end
+    
+    def create_scaffold_dirs(cart=self, prof="default")
+      cart.descriptor.profiles[prof].groups.each do |gname, group|
+        group.resolved_components.each do |comp_name, comp|
+          comp_prefix = cart.name
+          comp_prefix = comp_prefix + "/" + comp_name unless comp_name == "default"
+          FileUtils.mkdir_p "#{app_user_dev_dir}/openshift/#{comp_prefix}"
+      
+          comp.cartridge_instances.each do |cpname,cpobj|
+            FileUtils.ln_sf "#{app_user_dev_dir}/openshift/#{cpobj.cartridge_name}", "#{app_user_dev_dir}/openshift/#{comp_prefix}/#{cpobj.cartridge_name}"
+            create_scaffold_dirs(cpobj.cartridge, cpobj.profile)
+          end
+          
+          #TODO: call run_hook copy_scaffolding for cart 
+          #hooks are run in post-order. i.e. dependencies first
+        end
+      end
+    end
+    
+    def copy_scaffolding
+      app = Openshift::SDK::Model::Application.from_opm("#{@app_user_dev_dir}")
+      manifest_file_path = "#{@app_user_dev_dir}/openshift/manifest.yml"      
+      app.from_manifest_yaml(manifest_file_path)
+      app.resolve_references
+      
+      #create scaffolding directories and call the copy_scaffolding hooks
+      create_scaffold_dirs(app,"default")
     end
   end
 end
