@@ -68,11 +68,5 @@ if args['--help'] || feature.nil?
   exit -101
 end
 
-gid = Process::GID.eid
-app_guid = Openshift::SDK::Model::GidApplicationMap.find(gid).app_guid
-unless app_guid
-  print "Unable to find application owned by this user.\n"
-  return -404
-end
-app = Openshift::SDK::Model::Application.find(app_guid,gid.to_s)
+app = Openshift::SDK::Utils.get_application
 app.add_feature(feature, is_native)
