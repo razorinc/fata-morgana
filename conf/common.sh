@@ -1,5 +1,3 @@
-#!/bin/bash
-#
 #--
 # Copyright 2010 Red Hat, Inc.
 #
@@ -25,6 +23,7 @@
 #++
 #
 
+declare -A  os_vars_map
 os_cfgdir=${OPENSHIFT_CONFIG_DIR:-"/etc/openshift"}
 
 
@@ -105,6 +104,22 @@ function os_get_external_ipaddr() {
 }  #  End of function  os_get_external_ipaddr.
 
 
+function os_init_var_map() {
+   local cfg_dir mapinfo
+   cfg_dir=${OPENSHIFT_HOOK_CONTEXT:-"."}
+   os_vars_map["$cartridge_name:CONFIGURATION_DIR"]="$cfg_dir"
+
+   for k in `env | grep "^OPENSHIFT_" | cut -f1 -d '='`; do
+      os_vars_map[$k]="${!k}"
+   done
+
+   mapinfo="keys:[${!g_subst_map[@]}], values:[${g_subst_map[*]}]"
+   os_log_debug "os_init_var_map($1) = $mapinfo"
+   return 0
+
+}  #  End of function  os_init_var_map.
+
+
 function os_print_hook_usage() {
    local hook_info hook_params 
    hook_info=${1:-"$cartridge_name->$hook_name"}
@@ -145,7 +160,34 @@ function os_initialize_env() {
    #  Ensure enviornment is initialized.
    _os_ensure_env
 
+   #  And finally initialize variable hash.
+   os_init_var_map
+
 }  #  End of function  os_initialize_env.
+
+
+function os_copy_from_template() {
+   local src dest substitutions
+   src=${1:-""}
+   dest=${2:-""}
+
+   [ ! -f "$src" ]  &&  os_log_notice "$FUNCNAME - missing '$src'"  &&  return 1
+   [ -z "$dest" ]   &&  os_log_notice "$FUNCNAME - invalid dest"  &&  return 1
+
+   substitutions=""
+   for k in ${!os_vars_map[@]}; do
+      substitutions="$substitutions; s#\${$k}#${os_vars_map[$k]}#g;"
+   done
+
+   if test "$src" = "$dest"; then
+      sed -i "${substitutions}" "$dest"
+   else
+      sed "${substitutions}" "$src" >  "$dest"
+   fi
+
+   return $?
+
+}  #  End of function  os_copy_from_template.
 
 
 function die() {
