@@ -34,7 +34,7 @@ set -e
 #
 function init_substitution_map() {
    local server_name mapinfo
-   [ -z "${!os_vars_map[@]}" ]  &&  os_init_var_map
+   [ -z "${os_vars_map[*]}" ]  &&  os_init_var_map
 
    vhost_name="${application_name}.${openshift_domain}"
    os_vars_map["$cartridge_name:VHOST_SERVER_NAME"]="$vhost_name"
