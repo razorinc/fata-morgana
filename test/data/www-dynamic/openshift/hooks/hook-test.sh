@@ -11,7 +11,6 @@ echo "   app-name  = $application_name"
 echo "   app-guid  = $application_guid"
 echo "   profile   = $openshift_profile"
 
-init_substitution_map
 echo "Map variables: "
 for k in ${!os_vars_map[@]}; do
    echo "   $k = ${os_vars_map[$k]}"

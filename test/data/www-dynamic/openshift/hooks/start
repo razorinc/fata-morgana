@@ -80,7 +80,7 @@ os_log_notice "$@ + opts=${httpd_opts}"
 #  We need to update the app-server:BINDING in the vhost.
 listen_directive=$(grep -e "^\s*Listen" "$cfgdir/conf.d/listen.conf")
 binding=$(echo "$listen_directive" | awk '{print $2}')
-replace_app_server_binding "$binding" "$cfgdir/www-static/conf/app.vhost.conf"
+replace_app_server_binding "$binding" "$cfgdir/www-static/conf.d/app.vhost.conf"
 
 #  And give the www-static server a nudge.
 opm-run-hook www-static reload
