@@ -39,8 +39,7 @@ function init_substitution_map() {
    vhost_name="${application_name}.${openshift_domain}"
    os_vars_map["$cartridge_name:VHOST_SERVER_NAME"]="$vhost_name"
 
-   # The app-server still needs to substitute the 
-   # app-server:BIND_ADDRESS and app-server:BIND_PORT variables.
+   # The app-server still needs to substitute the app-server:BINDING variable.
 
    mapinfo="keys:[${!os_vars_map[@]}], values:[${os_vars_map[*]}]"
    os_log_debug "$FUNCNAME(): $mapinfo"
@@ -49,7 +48,7 @@ function init_substitution_map() {
 }  #  End of function  init_substitution_map.
 
 
-function copy_scaffolding() {
+function copy_templates() {
    app_config_dir=${1:-"."}
 
    #  Ensure configuration exists for the component.
@@ -63,7 +62,7 @@ function copy_scaffolding() {
       done
    fi
 
-}  #  End of function  copy_scaffolding.
+}  #  End of function  copy_templates.
 
 
 #
@@ -73,6 +72,6 @@ source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/common.sh
 [ $# -ge 1 ]  ||  os_print_hook_usage
 
 init_substitution_map
-copy_scaffolding "${OPENSHIFT_HOOK_CONTEXT:-'.'}"
+copy_templates "${OPENSHIFT_HOOK_CONTEXT:-'.'}"
 
 
