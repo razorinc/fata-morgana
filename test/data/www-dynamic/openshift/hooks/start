@@ -30,12 +30,31 @@ set -e
 
 
 #
+# Functions
+#
+function replace_app_server_binding() {
+   local asbinding app_vhost
+   asbinding=${1:-""}
+   app_vhost=${2:-""}
+   [ -z "${!os_vars_map[@]}" ]  &&  os_init_var_map
+   [ -z "$asbinding" ]  &&  return 0 
+
+   # The app-server needs to substitute the app-server:BINDING variable.
+   os_vars_map['app-server:BINDING']="$asbinding"
+   os_copy_from_template "$app_vhost" "$app_vhost"
+   return 0
+
+}  #  End of function  replace_app_server_binding.
+
+
+#
 # _main()
 #
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/common.sh
 [ $# -ge 1 ]  ||  os_print_hook_usage
 
-cfgfile="${OPENSHIFT_HOOK_CONTEXT:-'.'}/conf/httpd.conf"
+cfgdir=${OPENSHIFT_HOOK_CONTEXT:-"."}
+cfgfile="$cfgdir/conf/httpd.conf"
 
 #  Ensure configuration exists for the component.
 if ! test -f "$cfgfile"; then
@@ -57,5 +76,14 @@ cd "$rundir"
 /usr/sbin/httpd -f $cfgfile -C "User $user_name" -C "Group $group_name"  \
                 -k $hook_name
 os_log_notice "$@ + opts=${httpd_opts}"
+
+#  We need to update the app-server:BINDING in the vhost.
+listen_directive=$(grep -e "^\s*Listen" "$cfgdir/conf.d/listen.conf")
+binding=$(echo "$listen_directive" | awk '{print $2}')
+replace_app_server_binding "$binding" "$cfgdir/www-static/conf/app.vhost.conf"
+
+#  And give the www-static server a nudge.
+opm-run-hook www-static reload
+
 exit 0
 
