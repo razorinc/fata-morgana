@@ -53,15 +53,19 @@ module Openshift::SDK::Utils
       err = "ERROR : Component '#{component_path}' not found.\n"
       raise HookNotFoundException.new(err)
     end
-    ENV["OPENSHIFT_HOOK_CONTEXT"] = hook_context
-    ENV["OPENSHIFT_APP_HOME_DIR"] = app.package_root  #  ${HOME}/
-    ENV["OPENSHIFT_APP_DEV_DIR"] = app.package_root + "/development"        #  ${HOME}/development/
-    ENV["OPENSHIFT_APP_REPO_DIR"] = app.package_root + "/repository"        #  ${HOME}/repository/
-    ENV["OPENSHIFT_APP_PROD_DIR"] = app.package_root + "/production"        #  ${HOME}/production/
 
     hook_cmd = cartridge.package_path + "/openshift/hooks/" + hook_name
     if cartridge.hooks.include? hook_cmd
-      `hook_cmd #{app.name} #{args}`
+      fork do
+        ENV["OPENSHIFT_HOOK_CONTEXT"] = hook_context
+        ENV["OPENSHIFT_APP_HOME_DIR"] = app.package_root  #  ${HOME}/
+        ENV["OPENSHIFT_APP_DEV_DIR"] = app.package_root + "/development"        #  ${HOME}/development/
+        ENV["OPENSHIFT_APP_REPO_DIR"] = app.package_root + "/repository"        #  ${HOME}/repository/
+        ENV["OPENSHIFT_APP_PROD_DIR"] = app.package_root + "/production"        #  ${HOME}/production/
+        `hook_cmd #{app.name} #{args}`
+        exit
+      end
+      pid = Process.wait
     else
       err = "Hook '#{hook_name}' not found in component '#{component_path}' which resolves to '#{cartridge.name}', where available hooks are : \n"
       cartridge.hooks.each { |hook|
