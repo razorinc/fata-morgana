@@ -36,25 +36,20 @@ source $(cd -P -- "$(dirname -- "$0")/../hooks/" && pwd -P)/common.sh
 params="<app-name> <app-guid> <connection-id>"
 [ $# -ge 3 ]  ||  os_print_hook_usage "get external uri" "$params"
 
-# ./get_ext_uri <connection id>  => "http://ipaddr:8080"
 conn_id=${3:-""}
+os_log_debug "Getting internal service uri for '$conn_id'"
 
-[ -n "$_DEBUG_HOOKS" ]  &&  os_log_debug "Getting external uri for '$conn_id'"
-
-comp_guid=${OPENSHIFT_COMPONENT_GUID:-""}
-confd_dir=${OPENSHIFT_APP_PROD_DIR:-"."}/$app_config_subdir/$comp_guid/conf.d
+confd_dir=${OPENSHIFT_HOOK_CONTEXT:-"."}/www-dyn/conf.d
 
 listen_directive=$(grep -e "^\s*Listen" "$confd_dir/listen.conf")
 protocol=$(echo "$listen_directive" | awk '{print $3}')
-if [ -z "$protocol" ]; then
-   [ -n "$_DEBUG_HOOKS" ]  &&  os_log_debug "Using default protocol - http"
-   protocol=${protocol:-"http"}
-fi
+[ -z "$protocol" ]  &&  os_log_debug "Using default protocol - http"
+protocol=${protocol:-"http"}
 
 host_n_port=$(echo "$listen_directive" | awk '{print $2}')
-[ -n "$_DEBUG_HOOKS" ]  &&  os_log_debug "host and port = $host_n_port"
+os_log_debug "host and port = $host_n_port"
 
-[ -n "$_DEBUG_HOOKS" ]  &&  os_log_debug "Returning $protocol://$host_n_port/"
+os_log_debug "Returning $protocol://$host_n_port/"
 echo "$protocol://$host_n_port/"
 exit 0
 
