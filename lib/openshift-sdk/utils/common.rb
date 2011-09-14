@@ -71,7 +71,11 @@ module Openshift::SDK::Utils
   def self.resolve_component_context(app, hook_context, component_path)
     # remove the application path from hook_context
     if not hook_context
-      hook_context = app.package_path + "/openshift/" + app.name
+      if component_path.nil? or component_path==""
+        comp_dir_path = app.name
+      end
+      comp_dir_path = component_path.gsub!('.', '/')
+      hook_context = app.package_path + "/openshift/" + comp_dir_path
       return hook_context, app
     end
     base_path, current_component_path = hook_context.split("/openshift")
