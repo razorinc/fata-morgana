@@ -81,7 +81,7 @@ module Openshift
             application.create_complete!
           rescue Exception => e
             log.error e.message
-            logger.error e.backtrace.join("\n")
+            log.error e.backtrace.join("\n")
             application.create_error!
           end
         end
