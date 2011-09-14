@@ -81,10 +81,10 @@ module Openshift::SDK::Model
         cartridge, profile_name = resolve_dependency(dependency)
         cart_instance = self.cartridge_instances[cartridge.name + ":" + profile_name] 
         if cart_instance.nil?
-          cartridge_resolved = cartridge.from_opm(cartridge.package_path)
+          cartridge_resolved = Cartridge.from_opm(cartridge.package_path)
           cart_instance = CartridgeInstance.new(self, profile_name, cartridge_resolved)
           cartridge_resolved.parent_instance = cart_instance
-          cartridge_resolved.resolve_dependencies(profile_name)
+          cartridge_resolved.descriptor.resolve_references(profile_name)
           self.cartridge_instances[cartridge.name + ":" + profile_name] = cart_instance
         end
         self.feature_map[dependency] = cart_instance

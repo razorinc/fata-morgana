@@ -25,6 +25,10 @@ require 'openshift-sdk/model/user'
 require 'openshift-sdk/model/application'
 
 module Openshift::SDK::Utils
+  
+  class HookNotFoundException < Exception
+  end
+  
   def self.get_application
     gid = Process::GID.eid
     app_guid = Openshift::SDK::Model::GidApplicationMap.find(gid).app_guid
@@ -47,8 +51,7 @@ module Openshift::SDK::Utils
       hook_context, cartridge = resolve_component_context(app, hook_context, component_path)
     rescue Exception => ex
       err = "ERROR : Component '#{component_path}' not found.\n"
-      print err
-      raise err
+      raise HookNotFoundException.new(err)
     end
     ENV["OPENSHIFT_HOOK_CONTEXT"] = hook_context
     ENV["OPENSHIFT_APP_HOME_DIR"] = app.package_root  #  ${HOME}/
@@ -64,7 +67,7 @@ module Openshift::SDK::Utils
       cartridge.hooks.each { |hook|
         err += "\t#{hook}\n"
       }
-      raise err
+      raise HookNotFoundException.new(err)
     end
   end
 
@@ -80,7 +83,6 @@ module Openshift::SDK::Utils
     end
     base_path, current_component_path = hook_context.split("/openshift")
     
-
     full_path_s = current_component_path + "/" + component_path
     full_path_s.gsub!('/', '.')
 
@@ -99,6 +101,7 @@ module Openshift::SDK::Utils
       
       return cart_inst_list
     end
+    
     component_dir_path = component_path.gsub!('.', '/')
     hook_context = hook_context + "/" + component_dir_path
     cartridge_inst = app.component_instance_map[full_path_s]

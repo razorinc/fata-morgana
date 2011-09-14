@@ -34,23 +34,26 @@ declare -A  g_subst_map
 # Functions.
 #
 function init_substitution_map() {
-   local cfg_dir mapinfo
+   local cfg_dir mapinfo ifaddr
    cfg_dir=${1:-'.'}
+   ifaddr=`os_get_userifaddr`
    g_subst_map['www-dynamic:CONFIGURATION_DIR']="$cfg_dir"
-   g_subst_map['www-dynamic:BIND_ADDRESS']=`os_get_userifaddr`
+   g_subst_map['www-dynamic:BIND_ADDRESS']="$ifaddr"
+   g_subst_map['app-server:BIND_ADDRESS']="$ifaddr"
+   g_subst_map['app-server:BIND_PORT']="9100"
 
    for k in `env | grep "^OPENSHIFT_" | cut -f1 -d '='`; do
       g_subst_map[$k]="${!k}"
    done
 
    mapinfo="keys:[${!g_subst_map[@]}], values:[${g_subst_map[*]}]"
-   [ -n "$_DEBUG_HOOKS" ]  &&  os_log_debug "init_subst_map($1) = $mapinfo"
+   os_log_debug "init_subst_map($1) = $mapinfo"
    return 0
 
 }  #  End of function  init_substitution_map.
 
 
-function copy_template() {
+function copy_from_template() {
    local src dest
    src=${1:-""}
    dest=${2:-""}
@@ -63,9 +66,14 @@ function copy_template() {
       substitutions="$substitutions; s#\${$k}#${g_subst_map[$k]}#g;"
    done
 
+   if test "$src" = "$dest"; then
+      sed -i "${substitutions}" "$dest"
+      return $?
+   fi
+
    sed "${substitutions}" "$src" >  "$dest"
 
-}  #  End of function  copy_template.
+}  #  End of function  copy_from_template.
 
 
 function copy_scaffolding() {
@@ -79,7 +87,7 @@ function copy_scaffolding() {
       templates_dir=$(cd -P "${hook_dir}/../templates" && pwd -P)
       for f in `(cd "$templates_dir"; find . -type f)`; do
          # Copy over the interpolated template to the app component space.
-         copy_template "$templates_dir/$f" "$app_config_dir/$f"
+         copy_from_template "$templates_dir/$f" "$app_config_dir/$f"
       done
    fi
 
@@ -92,9 +100,13 @@ function copy_scaffolding() {
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/common.sh
 [ $# -ge 1 ]  ||  os_print_hook_usage
 
-comp_guid=${OPENSHIFT_COMPONENT_GUID:-""}
-cfgdir=${OPENSHIFT_APP_HOME_DIR:-"."}/$app_config_subdir/$comp_guid
+cfgdir=${OPENSHIFT_HOOK_CONTEXT:-"."}
 init_substitution_map "$cfgdir"
 copy_scaffolding      "$cfgdir"
 
+# We also need to do an in-place interpolation on the app.vhost.conf file.
+app_vhost="$cfgdir/www-static/conf/app.vhost.conf"
+copy_from_template "$app_vhost" "$app_vhost"
+
+exit 0
 

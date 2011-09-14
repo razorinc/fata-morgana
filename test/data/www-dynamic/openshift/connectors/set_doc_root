@@ -38,17 +38,16 @@ params="<app-name> <app-guid> <connection-id> <doc-root>"
 
 # ./set_doc_root <app_name> <app_guid> <connection id> <doc root>
 # (eg:file:///srv/webapps/132423423433423432/app)
+conn_id=${3:-""}
 docroot=${4:-""}
+os_log_debug "Setting DocumentRoot to '$docroot' for '$conn_id'"
 
-comp_guid=${OPENSHIFT_COMPONENT_GUID:-""}
-cfgdir=${OPENSHIFT_APP_PROD_DIR:-"."}/$app_config_subdir/$comp_guid
-
-[ -n "$_DEBUG_HOOKS" ]  &&  os_log_debug "Setting DocumentRoot to '$docroot'"
+cfgdir=${OPENSHIFT_HOOK_CONTEXT:-"."}
 
 #  Replace document root in any/all config files.
 for f in `ls "$cfgdir/conf/"`; do
    cfile="$cfgdir/conf/$f"
-   [ -n "$_DEBUG_HOOKS" ]  &&  os_log_debug "Updating DocumentRoot in $cfile"
+   os_log_debug "Updating DocumentRoot in $cfile"
    sed -i "s#\(\s*DocumentRoot[ \t]\)\(.*\)\$#\1 $docroot #" "$cfile"
 done
 

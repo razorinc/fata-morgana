@@ -1,5 +1,6 @@
 Name: www-static
 Display-Name: www-static v1.0.0 (noarch)
+Description: Static web server
 Version: 1.0.0
 License: APL
 Provides:

@@ -44,7 +44,8 @@ vhost_file=${4:-""}
 os_log_debug "Setting vhost to '$vhost_file' for '$conn_id'"
 
 confd_dir="${OPENSHIFT_HOOK_CONTEXT:-'.'}/conf.d"
-cp -f  "$vhost_file"  "$confd_dir/app.vhost.conf"
+[ "$vhost_file" = "$confd_dir/app.vhost.conf" ]  &&  exit 0
+cp -f "$vhost_file" "$confd_dir/app.vhost.conf"
 
 exit 0
 
