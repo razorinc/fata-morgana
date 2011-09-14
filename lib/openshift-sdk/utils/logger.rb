@@ -24,7 +24,6 @@ require 'rubygems'
 require 'logger'
 require 'openshift-sdk/config'
 require 'syslog'
-require 'pry'
 
 module Openshift::SDK
   module Utils
