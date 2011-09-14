@@ -38,7 +38,7 @@ module Openshift::SDK::Model
   class Cartridge < OpenshiftModel
     ds_attr_accessor :name, :version, :architecture, :display_name, :summary, :vendor, :license,
                      :provides_feature, :requires_feature, :conflicts_feature, :requires,
-                     :package_path, :descriptor, :is_installed, :hooks
+                     :package_path, :descriptor, :is_installed, :hooks, :parent_instance
     
     def self.bucket
       "admin"
@@ -61,6 +61,7 @@ module Openshift::SDK::Model
       @hooks = hooks
       @summary = ""
       @descriptor = nil
+      @parent_instance = nil
     end
     
     def installed?
