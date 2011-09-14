@@ -23,6 +23,8 @@
 require 'rubygems'
 require 'openshift-sdk/model/user'
 require 'openshift-sdk/model/application'
+require 'openshift-sdk/model/component_instance'
+require 'openshift-sdk/model/cartridge'
 
 module Openshift::SDK::Utils
   
@@ -50,6 +52,8 @@ module Openshift::SDK::Utils
     begin
       hook_context, cartridge = resolve_component_context(app, hook_context, component_path)
     rescue Exception => ex
+      Openshift::SDK.log.error ex.message
+      Openshift::SDK.log.error ex.backtrace.join("\n")
       err = "ERROR : Component '#{component_path}' not found.\n"
       raise HookNotFoundException.new(err)
     end
@@ -90,8 +94,7 @@ module Openshift::SDK::Utils
     else
       full_path_s = current_component_path + "/" + component_path
     end
-    full_path_s.gsub!('/', '.')
-
+    full_path_s = full_path_s.gsub('/', '.')
     if not app.component_instance_map[full_path_s]
       raise
       # FIXME : if component instance_map is broken (does not collapse auto-delimiters such as profile names)
@@ -102,17 +105,17 @@ module Openshift::SDK::Utils
     map_obj = app.component_instance_map[full_path_s]
     cartridge = nil
     case map_obj
-      when ComponentInstance
+      when Openshift::SDK::Model::ComponentInstance
         cartridge = map_obj.parent_group.profile.parent_descriptor.parent_cartridge
-      when Cartridge
+      when Openshift::SDK::Model::Cartridge
         cartridge = map_obj
-      when Application
+      when Openshift::SDK::Model::Application
         cartridge = map_obj
     end
-
+    
     component_dir_path = component_path.gsub('.', '/')
     hook_context = hook_context + "/" + component_dir_path
-    return hook_context, cartridge_inst.cartridge
+    return hook_context, cartridge
   end
 
 end

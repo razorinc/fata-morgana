@@ -29,6 +29,7 @@ require 'openshift-sdk/utils/common'
 require 'openshift-sdk/model/application'
 require 'openshift-sdk/model/model'
 require 'openshift-sdk/model/user'
+require 'openshift-sdk/model/cartridge'
 
 module Openshift::SDK::Model
   class NodeApplication  < OpenshiftModel
@@ -174,18 +175,15 @@ module Openshift::SDK::Model
       
       #create scaffolding directories
       #application components
-      FileUtils.mkdir_p "#{app_user_dev_dir}/openshift/#{app.name}"
       app.descriptor.profiles["default"].groups.each do |gname, group|
         group.resolved_components.each do |comp_name, comp|
-          unless File.exists? "#{app_user_dev_dir}/openshift/#{comp.mapped_name}"
-            FileUtils.mkdir_p "#{app_user_dev_dir}/openshift/#{app.name}/#{comp_name}"
-            FileUtils.ln_sf "#{app_user_dev_dir}/openshift/#{app.name}/#{comp_name}", "#{app_user_dev_dir}/openshift/#{comp.mapped_name}"
-          end
+          FileUtils.mkdir_p "#{app_user_dev_dir}/openshift/#{comp_name}"
         end
       end
       
       #sub components
       app.component_instance_map.each do |comp_map_key, comp|
+        next unless comp.class == ComponentInstance
         unless File.exists? "#{app_user_dev_dir}/openshift/#{comp_map_key}"
           FileUtils.mkdir_p "#{app_user_dev_dir}/openshift/#{comp_map_key}" 
         end
@@ -210,14 +208,22 @@ module Openshift::SDK::Model
       end
       
       #call scaffold hook in aprox. dependency order
-      keys = app.component_instance_map.keys.sort{ |x,y| x.size <=> y.size }
+      keys = app.component_instance_map.keys.sort{ |x,y| y.size <=> x.size }
       keys.each do |key|
-        log.info "Running copy scaffolding hook on component #{key}"
-        begin
-          Openshift::SDK::Utils.run_hook(app, key, "copy_scaffolding", [])
-        rescue Exception => e
-          log.info(e)
+        if app.component_instance_map[key].class == Cartridge
+          log.info "Running copy scaffolding hook on component #{key}"
+          begin
+            Openshift::SDK::Utils.run_hook(app, key, "copy-scaffolding", [])
+          rescue Exception => e
+            log.info(e)
+          end
         end
+      end
+      begin
+        log.info "Running copy scaffolding hook on application"        
+        Openshift::SDK::Utils.run_hook(app, nil, "copy-scaffolding", [])
+      rescue Exception => e
+        log.info(e)
       end
     end
   end
