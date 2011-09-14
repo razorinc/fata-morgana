@@ -253,5 +253,9 @@ module Openshift::SDK::Model
     def delete!(bucket=nil)
       super(bucket)
     end
+    
+    def package_root
+      File.dirname @package_path
+    end
   end
 end
