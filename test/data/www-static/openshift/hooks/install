@@ -44,6 +44,6 @@ cp -f "$vhosts_conf"  "$dest_dir/"
 mkdir -p "$dest_dir/openshift_apps/"
 chmod $perms "$dest_dir/openshift_apps/"
 
-os_log_debug "completed install of www-static cartridge"
+os_log_debug "completed cartridge installation"
 exit 0
 
