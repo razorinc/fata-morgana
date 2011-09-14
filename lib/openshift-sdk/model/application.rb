@@ -80,11 +80,18 @@ module Openshift::SDK::Model
     end
     
     def build_component_instance_map(cart=self, prof=nil, prefix="")
+      cart_prefix = ""
+      unless cart.class == Application
+        cart_prefix = cart.name
+        cart_prefix = prefix + "." + cart_prefix unless prefix.nil? or prefix == ""
+        self.component_instance_map[cart_prefix] = cart
+      end
+      
       cart.descriptor.profiles[prof].groups.each do |gname, group|
         group.resolved_components.each do |comp_name, comp|
-          comp_prefix = cart.name + "." + comp_name
-          comp_prefix = prefix + "." + comp_prefix unless prefix.nil? or prefix == ""
-          
+          comp_prefix = comp_name
+          comp_prefix = cart_prefix + "." + comp_prefix unless cart_prefix == "" or cart_prefix.nil?
+
           self.component_instance_map[comp_prefix] = comp
           comp.mapped_name = comp_prefix
           comp.cartridge_instances.each do |cpname,cpobj|
@@ -92,8 +99,6 @@ module Openshift::SDK::Model
           end
         end
       end
-      
-      self.component_instance_map.keys
     end
     
     def self.from_opm(package_path)

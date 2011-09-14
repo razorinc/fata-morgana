@@ -73,7 +73,7 @@ module Openshift::SDK::Model
   # [groups] A hash map with all groups for this profile
   class Profile < OpenshiftModel
     validates_presence_of :name, :groups
-    ds_attr_accessor :name, :provides, :reservations, :components, :groups, :connections, :property_overrides
+    ds_attr_accessor :name, :provides, :reservations, :components, :groups, :connections, :property_overrides, :parent_descriptor
     
     def initialize(name=nil)
       self.name = name
@@ -82,6 +82,7 @@ module Openshift::SDK::Model
       @components = {}
       @groups = {}
       @connections = {}
+      @parent_descriptor = nil
       @property_overrides = []
     end
     

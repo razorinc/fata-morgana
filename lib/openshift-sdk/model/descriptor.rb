@@ -70,11 +70,12 @@ module Openshift::SDK::Model
   # [profiles] Hash list of all profiles defined in the descriptor
   class Descriptor < OpenshiftModel
     validates_presence_of :profiles
-    ds_attr_accessor :profiles, :reservations
+    ds_attr_accessor :profiles, :reservations, :parent_cartridge
 
-    def initialize
+    def initialize(parent_cartridge = nil)
       self.profiles = {}
       self.reservations = []
+      self.parent_cartridge = parent_cartridge
     end
     
     def [](profile_name)
@@ -104,10 +105,12 @@ module Openshift::SDK::Model
         hash["Profiles"].each do |profile_name,profile_hash|
           p = self[profile_name] = Profile.new(profile_name)
           p.user_defined = true
+          p.parent_descriptor = self
           p.from_descriptor_hash(profile_hash,inherited_dependencies)
         end
       else
         p = self["default"] = Profile.new("default")
+        p.parent_descriptor = self
         p.from_descriptor_hash(hash,inherited_dependencies)
       end
     end
