@@ -86,6 +86,7 @@ module Openshift::SDK::Model
           comp_prefix = prefix + "." + comp_prefix unless prefix.nil? or prefix == ""
           
           self.component_instance_map[comp_prefix] = comp
+          comp.mapped_name = comp_prefix
           comp.cartridge_instances.each do |cpname,cpobj|
             build_component_instance_map(cpobj.cartridge, cpobj.profile, comp_prefix)
           end

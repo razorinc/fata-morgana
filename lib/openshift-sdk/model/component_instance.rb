@@ -32,13 +32,14 @@ require 'openshift-sdk/model/feature_cartridge_cache'
 module Openshift::SDK::Model
   class ComponentInstance < OpenshiftModel
     validates_presence_of :component
-    ds_attr_accessor :name, :component, :cartridge_instances, :connection_endpoints
+    ds_attr_accessor :name, :component, :cartridge_instances, :connection_endpoints, :mapped_name, :feature_map
     
     def initialize(name=nil, component_def=nil)
       self.name = name
       self.component = component_def
       self.cartridge_instances = {}
       self.connection_endpoints = {}
+      self.feature_map = {}
       self.resolve_references
     end
     
@@ -78,9 +79,15 @@ module Openshift::SDK::Model
       dependencies = self.component.dependencies
       dependencies.each do |dependency|
         cartridge, profile_name = resolve_dependency(dependency)
-        cart_instance = CartridgeInstance.new(self, profile_name, cartridge)
-        self.cartridge_instances[cartridge.name + ":" + profile_name] = cart_instance
-        cart_instance.cartridge.descriptor.resolve_references(profile_name)
+        cart_instance = self.cartridge_instances[cartridge.name + ":" + profile_name] 
+        if cart_instance.nil?
+          cartridge_resolved = cartridge.from_opm(cartridge.package_path)
+          cart_instance = CartridgeInstance.new(self, profile_name, cartridge_resolved)
+          cartridge_resolved.parent_instance = cart_instance
+          cartridge_resolved.resolve_dependencies(profile_name)
+          self.cartridge_instances[cartridge.name + ":" + profile_name] = cart_instance
+        end
+        self.feature_map[dependency] = cart_instance
       end
 
       # resolve connectors for dependencies of this component_instance

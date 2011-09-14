@@ -165,32 +165,39 @@ module Openshift::SDK::Model
       dev_repo.commit "Adding feature #{feature} #{"[native]" if is_native}"
     end
     
-    def create_scaffold_dirs(cart=self, prof="default")
-      cart.descriptor.profiles[prof].groups.each do |gname, group|
-        group.resolved_components.each do |comp_name, comp|
-          comp_prefix = cart.name
-          comp_prefix = comp_prefix + "/" + comp_name unless comp_name == "default"
-          FileUtils.mkdir_p "#{app_user_dev_dir}/openshift/#{comp_prefix}"
-      
-          comp.cartridge_instances.each do |cpname,cpobj|
-            FileUtils.ln_sf "#{app_user_dev_dir}/openshift/#{cpobj.cartridge_name}", "#{app_user_dev_dir}/openshift/#{comp_prefix}/#{cpobj.cartridge_name}"
-            create_scaffold_dirs(cpobj.cartridge, cpobj.profile)
-          end
-          
-          #TODO: call run_hook copy_scaffolding for cart 
-          #hooks are run in post-order. i.e. dependencies first
-        end
-      end
-    end
-    
     def copy_scaffolding
       app = Openshift::SDK::Model::Application.from_opm("#{@app_user_dev_dir}")
       manifest_file_path = "#{@app_user_dev_dir}/openshift/manifest.yml"      
       app.from_manifest_yaml(manifest_file_path)
       app.resolve_references
       
-      #create scaffolding directories and call the copy_scaffolding hooks
-      create_scaffold_dirs(app,"default")
+      #create scaffolding directories
+      app.component_instance_map.each do |comp_map_key, comp|
+        unless File.exists? "#{app_user_dev_dir}/openshift/#{comp_map_key}"
+          FileUtils.mkdir_p "#{app_user_dev_dir}/openshift/#{comp_map_key}" 
+        end
+        comp.cartridge_instances.each do |cpname,cpobj|
+          sub_comp_cart = cpobj.cartridge
+          unless File.exists? "#{app_user_dev_dir}/openshift/#{comp_map_key}.#{sub_comp_cart.name}" 
+            FileUtils.mkdir_p "#{app_user_dev_dir}/openshift/#{comp_map_key}.#{sub_comp_cart.name}" 
+          end
+          unless File.exists? "#{app_user_dev_dir}/openshift/#{comp_map_key}/#{sub_comp_cart.name}"
+            FileUtils.ln_sf "#{app_user_dev_dir}/openshift/#{comp_map_key}.#{sub_comp_cart.name}", "#{app_user_dev_dir}/openshift/#{comp_map_key}/#{sub_comp_cart.name}"
+          end
+          
+          sub_comp_cart.descriptor.profiles[cpobj.profile].groups.each do |gname, group|
+            group.resolved_components.each do |sub_comp_name, sub_comp|
+              unless File.exists? "#{app_user_dev_dir}/openshift/#{sub_comp.mapped_name}"
+                FileUtils.mkdir_p "#{app_user_dev_dir}/openshift/#{comp_map_key}.#{sub_comp_cart.name}/#{sub_comp_name}"
+                FileUtils.ln_sf "#{app_user_dev_dir}/openshift/#{comp_map_key}.#{sub_comp_cart.name}/#{sub_comp_name}", "#{app_user_dev_dir}/openshift/#{sub_comp.mapped_name}"
+              end
+            end
+          end
+        end
+      end
+      
+      #call scaffold hook in aprox. dependency order
+      
     end
   end
 end
