@@ -98,10 +98,10 @@ def browse(obj, user_input = nil)
     when String
       browse_hash['self'] = obj
     else
-      varlist = obj.attributes.keys
+      varlist = obj.instance_variables
       varlist.each { |var|
-        avar = var #[1..-1]
-        #next if avar=="attributes"
+        avar = var[1..-1]
+        next if avar == 'changed_attributes' or avar =='attributes' or avar == 'validation_context' or avar == 'errors'
         begin
           attr = eval "obj.#{avar}"
         rescue Exception =>e
