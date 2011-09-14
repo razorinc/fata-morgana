@@ -1,33 +1,33 @@
-Name:      php
-Display Name: php v1.0.0 (noarch)
-Version:   1.0.0
-License:   GPLv2
+Name: php
+Display-Name: php v1.0.0 (noarch)
+Description: Cartridge packaging PHP versions 5.3.2 upto 5.4.0
+Version: 1.0.0
+License: GPLv2
 Provides: 
-- "php"
-- "php(version) = 5.3.2"
+  - "php"
+  - "php(version) = 5.3.2"
 Requires: 
-- "www-dynamic"
-Native-Requires: 
-- "php >= 5.3.2"
-- "php < 5.4.0"
-- "php-pdo"
-- "php-gd"
-- "php-xml"
-- "php-mysql"
-- "php-pgsql"
-- "php-pear"
+  - "www-dynamic"
 Conflicts:
-BuildArch: noarch
-
+Native-Requires: 
+  - "php >= 5.3.2"
+  - "php < 5.4.0"
+  - "php-pdo"
+  - "php-gd"
+  - "php-xml"
+  - "php-mysql"
+  - "php-pgsql"
+  - "php-pear"
+Build-Arch: noarch
 Descriptor:
   Reservations: 
-  - MEM >= 100M
-  Provides: php
+    - MEM >= 100MB
+  Start-Order: php
   Publishes:
     doc_root:
       Type: "FILESYSTEM:doc-root"
     php_ini:
-      Type: "FILESYSTEM::php-ini"
+      Type: "FILESYSTEM:php-ini"
   Subscribes:
     mysql_conn_info:
       Type: "NET_TCP:db:mysql"

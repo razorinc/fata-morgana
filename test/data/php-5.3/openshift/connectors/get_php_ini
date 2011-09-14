@@ -39,13 +39,10 @@ params="<app-name> <app-guid> <connection-id>"
 # ./get_php_ini <app-name> <app-guid> <connection_id> => string
 # (eg:file:///srv/webapps/132423423433423432/app/vostok/setup/php-5/php.ini)
 conn_id=${3:-""}
+os_log_debug "Get php ini for '$conn_id'"
 
-[ -n "$_DEBUG_HOOKS" ]  &&  os_log_debug "Get php ini for '$conn_id'"
-
-comp_guid=${OPENSHIFT_COMPONENT_GUID:-""}
-php_ini=${OPENSHIFT_APP_PROD_DIR:-"."}/$app_config_subdir/$comp_guid/php.ini
-
-[ -n "$_DEBUG_HOOKS" ]  &&  os_log_debug "Returning php.ini '$php_ini'"
+php_ini=${OPENSHIFT_HOOK_CONTEXT:-"."}/etc/conf/php.ini
+os_log_debug "Returning php.ini '$php_ini'"
 echo "$php_ini"
 exit 0
 

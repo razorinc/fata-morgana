@@ -39,12 +39,10 @@ params="<app-name> <app-guid> <connection-id>"
 # ./get_doc_root <app-name> <app-guid> <connection_id> => string 
 #             (eg:file:///srv/webapps/132423423433423432/app)
 conn_id=${3:-""}
-
-[ -n "$_DEBUG_HOOKS" ]  &&  os_log_debug "Get document root for '$conn_id'"
+os_log_debug "Get document root for '$conn_id'"
 
 doc_root=${OPENSHIFT_APP_PROD_DIR:-"."}/$app_prod_subdir/
-
-[ -n "$_DEBUG_HOOKS" ]  &&  os_log_debug "Returning document root '$doc_root'"
+os_log_debug "Returning document root '$doc_root'"
 echo "$doc_root"
 exit 0
 
