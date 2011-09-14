@@ -39,7 +39,7 @@ params="<app-name> <app-guid> <connection-id>"
 conn_id=${3:-""}
 os_log_debug "Getting internal service uri for '$conn_id'"
 
-confd_dir=${OPENSHIFT_HOOK_CONTEXT:-"."}/www-dyn/conf.d
+confd_dir=${OPENSHIFT_HOOK_CONTEXT:-"."}/conf.d
 
 listen_directive=$(grep -e "^\s*Listen" "$confd_dir/listen.conf")
 protocol=$(echo "$listen_directive" | awk '{print $3}')

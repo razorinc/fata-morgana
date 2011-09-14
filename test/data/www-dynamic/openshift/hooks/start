@@ -35,9 +35,7 @@ set -e
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/common.sh
 [ $# -ge 1 ]  ||  os_print_hook_usage
 
-comp_guid=${OPENSHIFT_COMPONENT_GUID:-""}
-cfgdir=${OPENSHIFT_APP_PROD_DIR:-"."}/$app_config_subdir/$comp_guid
-cfgfile="$cfgdir/conf/httpd.conf"
+cfgfile="${OPENSHIFT_HOOK_CONTEXT:-'.'}/conf/httpd.conf"
 
 #  Ensure configuration exists for the component.
 if ! test -f "$cfgfile"; then
@@ -48,10 +46,9 @@ fi
 #  Setup command line options.
 user_name=`id -un`
 group_name=`id -gn`
-if [ "$user_name" = "root" ]; then
-   user_name="apache"
-   group_name="apache"
-fi
+
+# If user is root, use the apache user/group.
+[ "`id -u`" = "0" ]  &&  user_name="apache"  &&  group_name="apache"
 
 rundir="${OPENSHIFT_APP_PROD_DIR:-"."}"
 [ -d "$rundir/var/run" ]  ||  mkdir -p "$rundir/var/run"
@@ -61,3 +58,4 @@ cd "$rundir"
                 -k $hook_name
 os_log_notice "$@ + opts=${httpd_opts}"
 exit 0
+

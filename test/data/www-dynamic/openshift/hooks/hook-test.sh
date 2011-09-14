@@ -11,6 +11,8 @@ function init_substitution_map() {
 }  #  End of function  init_substitution_map.
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/common.sh
+[ $# -ge 1 ]  ||  os_print_hook_usage
+
 echo "General variables: "
 echo "   hook-name = $hook_name"
 echo "   hook-dir  = $hook_dir"

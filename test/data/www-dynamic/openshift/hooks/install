@@ -33,8 +33,7 @@ set -e
 # _main():  Install hook does nothing for the www-dynamic cartridge.
 #
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/common.sh
-[ $# -ge 1 ]  ||  os_print_hook_usage
 
-os_log_debug "install application $application_name"
+os_log_debug "completed cartridge installation"
 exit 0
 
