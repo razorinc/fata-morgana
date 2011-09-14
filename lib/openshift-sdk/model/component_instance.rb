@@ -32,7 +32,7 @@ require 'openshift-sdk/model/feature_cartridge_cache'
 module Openshift::SDK::Model
   class ComponentInstance < OpenshiftModel
     validates_presence_of :component
-    ds_attr_accessor :name, :component, :cartridge_instances, :connection_endpoints, :mapped_name, :feature_map
+    ds_attr_accessor :name, :component, :cartridge_instances, :connection_endpoints, :mapped_name, :feature_map, :parent_group
     
     def initialize(name=nil, component_def=nil)
       self.name = name
@@ -40,6 +40,7 @@ module Openshift::SDK::Model
       self.cartridge_instances = {}
       self.connection_endpoints = {}
       self.feature_map = {}
+      self.parent_group = nil
       self.resolve_references
     end
     

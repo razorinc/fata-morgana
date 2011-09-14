@@ -113,7 +113,7 @@ module Openshift::SDK::Model
     end
     
     def load_descriptor(desc_hash, resolve_references=false)
-      self.descriptor = Descriptor.new
+      self.descriptor = Descriptor.new(self)
       self.descriptor.from_descriptor_hash(desc_hash,self.requires_feature)
       self.descriptor.resolve_references if resolve_references
     end

@@ -78,16 +78,18 @@ module Openshift::SDK::Utils
   def self.resolve_component_context(app, hook_context, component_path)
     # remove the application path from hook_context
     if not hook_context
+      hook_context = app.package_path + "/openshift"
       if component_path.nil? or component_path==""
-        comp_dir_path = app.name
+        return hook_context, app
       end
-      comp_dir_path = component_path.gsub!('.', '/')
-      hook_context = app.package_path + "/openshift/" + comp_dir_path
-      return hook_context, app
     end
     base_path, current_component_path = hook_context.split("/openshift")
-    
-    full_path_s = current_component_path + "/" + component_path
+    if current_component_path.nil?
+      current_component_path = "" 
+      full_path_s = component_path
+    else
+      full_path_s = current_component_path + "/" + component_path
+    end
     full_path_s.gsub!('/', '.')
 
     if not app.component_instance_map[full_path_s]
@@ -95,20 +97,21 @@ module Openshift::SDK::Utils
       # FIXME : if component instance_map is broken (does not collapse auto-delimiters such as profile names)
       #  search the path in the application's resolved descriptor
       #  This could also result in multiple cartridges
-      full_path_arr = full_path_s.split(".")
-      cart_inst_list = app.get_cartridge_instance_path(full_path_arr)
-      return_list = []
-      hook_context_list = []
-      cart_inst_list.each do |cart_inst|
-        nil
-      end
-      
-      return cart_inst_list
     end
     
-    component_dir_path = component_path.gsub!('.', '/')
+    map_obj = app.component_instance_map[full_path_s]
+    cartridge = nil
+    case map_obj
+      when ComponentInstance
+        cartridge = map_obj.parent_group.profile.parent_descriptor.parent_cartridge
+      when Cartridge
+        cartridge = map_obj
+      when Application
+        cartridge = map_obj
+    end
+
+    component_dir_path = component_path.gsub('.', '/')
     hook_context = hook_context + "/" + component_dir_path
-    cartridge_inst = app.component_instance_map[full_path_s]
     return hook_context, cartridge_inst.cartridge
   end
 

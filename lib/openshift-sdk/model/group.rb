@@ -139,8 +139,10 @@ module Openshift::SDK::Model
       comphash.keys.each { |inst_name|
         comp_name = comphash[inst_name]
         if component_defs_hash[comp_name]
-          self.resolved_components[inst_name] = 
+          comp_inst =
                   ComponentInstance.new(inst_name, component_defs_hash[comp_name])
+          self.resolved_components[inst_name] = comp_inst
+          comp_inst.parent_group = self
         else
           # FIXME : resolve this by treating the comp_name as a feature
           #         .. add a component by that feature-cartridge pair
