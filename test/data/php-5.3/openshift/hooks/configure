@@ -36,16 +36,7 @@ function configure_app() {
    cfg_dir="${1:-"."}
    os_log_debug "configure application $application_name"
 
-   for dep in `cat "$cfgdir/php-dependencies`; do
-      if pear list "$dep" > /dev/null; then
-         [ -n "$_DEBUG_HOOKS" ]  &&  os_log_debug "Upgrading $dep ..."
-         pear upgrade "$dep"
-      else
-         [ -n "$_DEBUG_HOOKS" ]  &&  os_log_debug "Installing $dep ..."
-         pear install "$dep"
-      fi
-   done
-
+   php_resolve_dependencies "$cfg_dir"
    return 0
 
 }  #  End of function  configure_app.
@@ -63,8 +54,10 @@ function deconfigure_app() {
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/common.sh
 [ $# -ge 1 ]  ||  os_print_hook_usage
 
-comp_guid=${OPENSHIFT_COMPONENT_GUID:-""}
-cfgdir=${OPENSHIFT_APP_PROD_DIR:-"."}/$app_config_subdir/$comp_guid
+# Source in the utility functions.
+source "$hook_dir/utils.sh"
+
+cfgdir=${OPENSHIFT_HOOK_CONTEXT:-"."}
 
 case "$hook_name" in 
    configure)    configure_app   "$cfgdir"  ;;

@@ -35,9 +35,7 @@ set -e
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/common.sh
 [ $# -ge 1 ]  ||  os_print_hook_usage
 
-comp_guid=${OPENSHIFT_COMPONENT_GUID:-""}
-cfgdir=${OPENSHIFT_APP_PROD_DIR:-"."}/$app_config_subdir/$comp_guid
-cfgfile="$cfgdir/etc/conf/php.ini"
+cfgfile="${OPENSHIFT_HOOK_CONTEXT:-'.'}/etc/conf/php.ini"
 
 #  Ensure configuration exists for the component.
 if ! test -f "$cfgfile"; then
@@ -47,8 +45,7 @@ fi
 
 #  Setup php env for www-dynamic and start it.
 export PHPRC="$cfgfile"
+opm run-hook www-dynamic "$hook_name"
 
-#  Note: http-server is our component name for www-dynamic.
-opm run-hook http-server "$hook_name"
 os_log_notice "$@ - php $hook_name application $application_name"
 

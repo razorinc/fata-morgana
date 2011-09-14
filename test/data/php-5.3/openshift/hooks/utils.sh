@@ -67,5 +67,5 @@ function php_resolve_dependencies() {
 #
 # _on_load():
 #
-[ -n "`type -t os_log_debug`"]  && os_log_debug "completed sourcing in utils.sh"
+[ -n "`type -t os_log_debug`"]  &&  os_log_debug "completed sourcing utils.sh"
 

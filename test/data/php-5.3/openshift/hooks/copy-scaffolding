@@ -28,7 +28,6 @@
 # Exit on errors.
 set -e
 
-declare -A  g_subst_map
 
 #
 # Functions.
@@ -36,44 +35,21 @@ declare -A  g_subst_map
 function init_substitution_map() {
    local cfg_dir mapinfo
    cfg_dir=${1:-'.'}
-   g_subst_map['php:CONFIGURATION_DIR']="$cfg_dir"
-   g_subst_map['php:TEMPLATE_SESSION_SAVE_PATH']="$cfg_dir/sessions/"
-   g_subst_map['php:TEMPLATE_UPLOAD_TMP_DIR']="$cfg_dir/tmp/"
-   g_subst_map['php:APPLICATION_NAMESPACE']="$application_name"
-   g_subst_map['php:APPLICATION_DOMAIN']="$openshift_domain"
-   g_subst_map['www-dynamic:BIND_ADDRESS']=`os_get_userifaddr`
+   [ -z "${!os_vars_map[@]}" ]  &&  os_init_var_map
+   os_vars_map['php:CONFIGURATION_DIR']="$cfg_dir"
+   os_vars_map['php:TEMPLATE_SESSION_SAVE_PATH']="$cfg_dir/sessions/"
+   os_vars_map['php:TEMPLATE_UPLOAD_TMP_DIR']="$cfg_dir/tmp/"
+   os_vars_map['php:www-dynamic:BIND_ADDRESS']=`os_get_userifaddr`
 
-   for k in `env | egrep "^(php_www_(static|dynamic))" | cut -f1 -d '='`; do
-      g_subst_map["php:${k:4}"]="${!k}"
+   for k in `env | egrep "^(php_www_dynamic)" | cut -f1 -d '='`; do
+      os_vars_map["php:www-dynamic:${k:16}"]="${!k}"
    done
 
-   for k in `env | grep "^OPENSHIFT_" | cut -f1 -d '='`; do
-      g_subst_map[$k]="${!k}"
-   done
-
-   mapinfo="keys:[${!g_subst_map[@]}], values:[${g_subst_map[*]}]"
-   [ -n "$_DEBUG_HOOKS" ]  &&  os_log_debug "init_subst_map($1) = $mapinfo"
+   mapinfo="keys:[${!os_vars_map[@]}], values:[${os_vars_map[*]}]"
+   os_log_debug "$FUNCNAME(): $mapinfo"
    return 0
 
 }  #  End of function  init_substitution_map.
-
-
-function copy_template() {
-   local src dest
-   src=${1:-""}
-   dest=${2:-""}
- 
-   [ ! -f "$src" ]  &&  die 22 "copy_template - invalid source '$src'"
-   [ -z "$dest" ]   &&  die 22 "copy_template - invalid dest '$dest'"
-
-   substitutions=""
-   for k in ${!g_subst_map[@]}; do 
-      substitutions="$substitutions; s#\${$k}#${g_subst_map[$k]}#g;"
-   done
-
-   sed "${substitutions}" "$src" >  "$dest"
-
-}  #  End of function  copy_template.
 
 
 function initialize_config_dir() {
@@ -102,7 +78,7 @@ function copy_php_scaffolding() {
       templates_dir=$(cd -P "${hook_dir}/../templates" && pwd -P)
       for f in `(cd "$templates_dir"; find . -type f)`; do
          # Copy over the interpolated template to the app component space.
-         copy_template "$templates_dir/$f" "$app_config_dir/$f"
+         os_copy_from_template "$templates_dir/$f" "$app_config_dir/$f"
       done
    fi
 
@@ -115,20 +91,14 @@ function copy_php_scaffolding() {
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/common.sh
 [ $# -ge 1 ]  ||  os_print_hook_usage
 
-comp_guid=${OPENSHIFT_COMPONENT_GUID:-""}
-php_app_home=${OPENSHIFT_APP_HOME_DIR:-"."}
-cfgdir=$php_app_home/$app_config_subdir/$comp_guid
+#  Source php's www-dynamic-server env.
+source "$hook_dir/../templates/php-www-dynamic-server.env"
 
-#  Initialize config dir and source php's www-{static,dynamic}-server env.
+cfgdir=${OPENSHIFT_HOOK_CONTEXT:-"."}
+
+#  Initialize config dir, substitution map, copy over scaffolding and init pear.
 intialize_config_dir  "$cfgdir"
-os_source_config      "$cfgdir/php-www-static-server.env"
-os_source_config      "$cfgdir/php-www-dynamic-server.env"
-
-#  Initialize substitution map and copy over scaffolding.
 init_substitution_map "$cfgdir"
 copy_php_scaffolding  "$cfgdir"
-
-#  Initialize pear.
-pear config-create "$cfgdir/phplib/pear" "$php_app_home/.pearrc"
-pear -c "$php_app_home/.pearrc" config-set php_ini "$cfgdir/etc/conf/php.ini"
+php_ensure_pear_env   "$cfgdir"
 
