@@ -96,15 +96,28 @@ module Openshift::SDK::Model
     end
     
     def from_descriptor_hash(hash,inherited_dependencies=nil)
+      expected_keys = ["Provides", "Property Overrides", "Components", "Groups", "Connections", #from profile level
+                       "Dependencies", "Publishes", "Subscribes",  #from component level
+                       "Scaling", "Reservations"]  #from groups
+      unknown_keys = hash.keys.clone - expected_keys
+      if unknown_keys.size > 0      
+        log.error "Error parsing descriptor profile. Unexpected keys: [#{unknown_keys.join(",")}]. Allowed keys are [#{expected_keys.join(",")}]"
+        raise "Error parsing descriptor profile. Unexpected keys: [#{unknown_keys.join(",")}]. Allowed keys are [#{expected_keys.join(",")}]"
+      end
+      
       if hash["Provides"]
         if hash["Provides"].class == Array
           self.provides = hash["Provides"]
         else
           self.provides = hash["Provides"].split(",")
         end
+        hash.delete("Provides")
       end
       self.reservations = hash["Reservations"] || []
       self.property_overrides = hash["Property Overrides"] || []
+      hash.delete("Reservations")
+      hash.delete("Property Overrides")      
+      
       components_will_change!
       if hash["Components"]
         hash["Components"].each do |component_name, component_hash|
@@ -116,7 +129,11 @@ module Openshift::SDK::Model
         deps = hash["Dependencies"]
         if hash["Dependencies"] or hash["Publishes"] or hash["Subscribes"]
           c = @components["default"] = Component.new("default")
-          c.from_descriptor_hash(hash,inherited_dependencies)
+          comp_hash = hash.clone
+          comp_hash.delete("Groups")
+          comp_hash.delete("Scaling")
+          comp_hash.delete("Connections")          
+          c.from_descriptor_hash(comp_hash,inherited_dependencies)
         else
           c = @components["default"] = Component.new("default")
           c.from_descriptor_hash({},inherited_dependencies)

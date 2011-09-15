@@ -98,6 +98,16 @@ module Openshift::SDK::Model
     end
     
     def from_descriptor_hash(hash,inherited_dependencies=nil)
+      expected_keys = ["Reservations", "Profiles",    #from descriptor level
+                       "Provides", "Property Overrides", "Components", "Groups", "Connections", #from profile level
+                       "Dependencies", "Publishes", "Subscribes",  #from component level
+                       "Scaling"]  #from groups
+      unknown_keys = hash.keys.clone - expected_keys
+      if unknown_keys.size > 0
+        log.error "Error parsing descriptor. Unexpected keys: [#{unknown_keys.join(",")}]. Allowed keys are [#{expected_keys.join(",")}]"
+        raise "Error parsing descriptor. Unexpected keys: [#{unknown_keys.join(",")}]. Allowed keys are [#{expected_keys.join(",")}]"
+      end
+      
       if hash["Reservations"]
         self.reservations = hash["Reservations"]
       end
