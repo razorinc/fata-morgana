@@ -10,11 +10,23 @@ task :local_env do
     puts "PATH='#{pwd}/bin/:#{ENV['PATH']}'; export PATH"
 end
 
+desc "clean"
+task :clean => [:remove_openshift_cartridges, :remove_local_repo,
+                :clean_old_repo, :remove_generated_spec_files] do
+    sh "rm -f /var/tmp/*.db /var/tmp/node_id"
+    sh "gem uninstall openshift-sdk"
+    sh "rm -f openshift-sdk-*.gem"
+end
+
 desc "clean out old repo"
 task :clean_old_repo do
     sh "yum clean all"
 end
 
+desc "remove generated spec files"
+task :remove_generated_spec_files do
+    sh "rm -f test/data/*/openshift/*.spec"
+end
 desc "install openshift-cartridge-*"
 task :install_openshift_cartridges do
     sh "yum -y install openshift-cartridge-\*"
@@ -38,6 +50,31 @@ task :create_local_repo do
         sh "opm add-to-repo #{rpm}"
     end
     cd repo_dir
+end
+
+desc "remove local repo"
+task :remove_local_repo do
+    sh "rm -rf /var/tmp/rpms/"
+end
+
+desc "build gem"
+task :build_gem do
+    sh "gem build openshift-sdk.gemspec"
+end
+
+desc "install gem"
+task :install_gem do
+    sh "gem install openshift-sdk*.gem"
+end
+
+desc "install"
+task :install do
+    Rake::Task['clean'].execute
+    Rake::Task['create_local_repo'].execute
+    Rake::Task['clean_old_repo'].execute
+    Rake::Task['install_openshift_cartridges'].execute
+    Rake::Task['build_gem'].execute
+    Rake::Task['install_gem'].execute
 end
 
 desc "Unit tests"
