@@ -147,7 +147,7 @@ module Openshift::SDK::Model
           end
       end
       
-      expected_keys = ["Name", "Version", "Architecture", "Display Name", "Description",
+      expected_keys = ["Name", "Version", "Architecture", "Display-Name", "Description",
          "Vendor", "License", "Provides", "Requires", "Conflicts", "Native-Requires", "Descriptor"]
       unknown_keys = spec_objects.keys.clone - expected_keys
       if unknown_keys.size > 0

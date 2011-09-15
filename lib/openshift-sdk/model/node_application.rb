@@ -177,31 +177,31 @@ module Openshift::SDK::Model
       #application components
       app.descriptor.profiles["default"].groups.each do |gname, group|
         group.resolved_components.each do |comp_name, comp|
-          FileUtils.mkdir_p "#{app_user_dev_dir}/openshift/#{comp_name}"
+          if comp.component.user_defined
+            FileUtils.mkdir_p "#{app_user_dev_dir}/openshift/#{comp_name}"
+          else
+            FileUtils.ln_sf "#{app_user_dev_dir}/openshift", "#{app_user_dev_dir}/openshift/#{comp_name}"
+          end
         end
       end
       
       #sub components
       app.component_instance_map.each do |comp_map_key, comp|
         next unless comp.class == ComponentInstance
-        unless File.exists? "#{app_user_dev_dir}/openshift/#{comp_map_key}"
-          FileUtils.mkdir_p "#{app_user_dev_dir}/openshift/#{comp_map_key}" 
-        end
-        comp.cartridge_instances.each do |cpname,cpobj|
-          sub_comp_cart = cpobj.cartridge
-          unless File.exists? "#{app_user_dev_dir}/openshift/#{comp_map_key}.#{sub_comp_cart.name}" 
-            FileUtils.mkdir_p "#{app_user_dev_dir}/openshift/#{comp_map_key}.#{sub_comp_cart.name}" 
-          end
-          unless File.exists? "#{app_user_dev_dir}/openshift/#{comp_map_key}/#{sub_comp_cart.name}"
-            FileUtils.ln_sf "#{app_user_dev_dir}/openshift/#{comp_map_key}.#{sub_comp_cart.name}", "#{app_user_dev_dir}/openshift/#{comp_map_key}/#{sub_comp_cart.name}"
-          end
+        
+        comp.cartridge_instances.each do |sub_cart_inst_name,sub_cart_inst|
+          sub_cart = sub_cart_inst.cartridge
+          FileUtils.mkdir_p "#{app_user_dev_dir}/openshift/#{comp_map_key}.#{sub_cart.name}"
+          FileUtils.ln_sf   "#{app_user_dev_dir}/openshift/#{comp_map_key}.#{sub_cart.name}", "#{app_user_dev_dir}/openshift/#{comp_map_key}/#{sub_cart.name}"
           
-          sub_comp_cart.descriptor.profiles[cpobj.profile].groups.each do |gname, group|
+          sub_cart.descriptor.profiles[sub_cart_inst.profile].groups.each do |gname, group|
             group.resolved_components.each do |sub_comp_name, sub_comp|
-              unless File.exists? "#{app_user_dev_dir}/openshift/#{sub_comp.mapped_name}"
-                FileUtils.mkdir_p "#{app_user_dev_dir}/openshift/#{comp_map_key}.#{sub_comp_cart.name}/#{sub_comp_name}"
-                FileUtils.ln_sf "#{app_user_dev_dir}/openshift/#{comp_map_key}.#{sub_comp_cart.name}/#{sub_comp_name}", "#{app_user_dev_dir}/openshift/#{sub_comp.mapped_name}"
+              if sub_comp.component.user_defined
+                FileUtils.mkdir_p "#{app_user_dev_dir}/openshift/#{comp_map_key}.#{sub_cart.name}/#{sub_comp.name}"
+              else
+                FileUtils.ln_sf   "#{app_user_dev_dir}/openshift/#{comp_map_key}.#{sub_cart.name}", "#{app_user_dev_dir}/openshift/#{comp_map_key}.#{sub_cart.name}/#{sub_comp.name}"
               end
+              FileUtils.ln_sf   "#{app_user_dev_dir}/openshift/#{comp_map_key}.#{sub_cart.name}/#{sub_comp.name}", "#{app_user_dev_dir}/openshift/#{comp_map_key}.#{sub_cart.name}.#{sub_comp.name}"
             end
           end
         end
