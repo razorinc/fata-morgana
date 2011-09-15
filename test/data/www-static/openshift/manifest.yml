@@ -9,7 +9,7 @@ Requires:
 Native-Requires:
   - "httpd >= 2.0"
 Conflicts:
-Build-Arch: noarch
+Architecture: noarch
 Descriptor:
   Publishes:
     external_uri:

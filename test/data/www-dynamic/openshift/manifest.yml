@@ -9,7 +9,7 @@ Requires:
   - "www-static"
 Conflicts:
 Native-Requires: mod_bw
-Build-Arch: noarch
+Architecture: noarch
 Descriptor:
   Publishes:
     internal_uri:

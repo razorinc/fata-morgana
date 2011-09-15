@@ -122,7 +122,8 @@ module Openshift::SDK::Model
       self.reservations = hash["Reservations"] || []
       self.property_overrides = hash["Property Overrides"] || []
       hash.delete("Reservations")
-      hash.delete("Property Overrides")      
+      hash.delete("Property Overrides")
+      hash.delete("Start-Order")
       
       components_will_change!
       if hash["Components"]
