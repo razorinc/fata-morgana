@@ -8,13 +8,14 @@ task :local_env do
     pwd = Dir.pwd
     puts "RUBYLIB='#{pwd}/lib/'; export RUBYLIB"
     puts "PATH='#{pwd}/bin/:#{ENV['PATH']}'; export PATH"
+    puts "OPENSHIFT_CONFIG_DIR='#{pwd}/conf'; export OPENSHIFT_CONFIG_DIR"
 end
 
 desc "clean"
 task :clean => [:remove_openshift_cartridges, :remove_local_repo,
                 :clean_old_repo, :remove_generated_spec_files] do
     sh "rm -f /var/tmp/*.db /var/tmp/node_id"
-    sh "gem uninstall openshift-sdk"
+    sh "gem uninstall openshift-sdk --executables || :"
     sh "rm -f openshift-sdk-*.gem"
 end
 
@@ -57,6 +58,12 @@ task :remove_local_repo do
     sh "rm -rf /var/tmp/rpms/"
 end
 
+desc "copy configuration files"
+task :copy_config_files do
+    sh "mkdir -p /opt/openshift/conf"
+    sh "cp conf/* /opt/openshift/conf/"
+end
+
 desc "build gem"
 task :build_gem do
     sh "gem build openshift-sdk.gemspec"
@@ -73,6 +80,7 @@ task :install do
     Rake::Task['create_local_repo'].execute
     Rake::Task['clean_old_repo'].execute
     Rake::Task['install_openshift_cartridges'].execute
+    Rake::Task['copy_config_files'].execute
     Rake::Task['build_gem'].execute
     Rake::Task['install_gem'].execute
 end

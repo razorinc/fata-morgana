@@ -32,7 +32,7 @@ set -e
 #
 # _main():  Install hook does nothing for the www-dynamic cartridge.
 #
-source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/common.sh
+source ${OPENSHIFT_CONFIG_DIR:-"/opt/openshift/conf"}/common.sh
 
 os_log_debug "completed cartridge installation"
 exit 0

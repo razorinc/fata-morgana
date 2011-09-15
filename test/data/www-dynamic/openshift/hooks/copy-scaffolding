@@ -65,7 +65,7 @@ function copy_templates() {
 #
 # _main()
 #
-source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/common.sh
+source ${OPENSHIFT_CONFIG_DIR:-"/opt/openshift/conf"}/common.sh
 [ $# -ge 1 ]  ||  os_print_hook_usage
 
 cfgdir=${OPENSHIFT_HOOK_CONTEXT:-"."}

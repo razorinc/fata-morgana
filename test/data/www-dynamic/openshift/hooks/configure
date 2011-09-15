@@ -47,7 +47,7 @@ function deconfigure_app() {
 #
 # _main()
 #
-source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/common.sh
+source ${OPENSHIFT_CONFIG_DIR:-"/opt/openshift/conf"}/common.sh
 [ $# -ge 1 ]  ||  os_print_hook_usage
 
 case "$hook_name" in 

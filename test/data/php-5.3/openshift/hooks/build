@@ -32,7 +32,7 @@ set -e
 #
 # _main():  Build hook does nothing right now for the php cartridge.
 #
-source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/common.sh
+source ${OPENSHIFT_CONFIG_DIR:-"/opt/openshift/conf"}/common.sh
 [ $# -ge 1 ]  ||  os_print_hook_usage
 
 os_log_debug "build application $application_name"

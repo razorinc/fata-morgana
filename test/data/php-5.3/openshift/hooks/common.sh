@@ -1,1 +1,0 @@
-../../../www-dynamic/openshift/hooks/common.sh

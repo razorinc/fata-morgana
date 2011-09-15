@@ -24,7 +24,7 @@
 #
 
 declare -A  os_vars_map
-os_cfgdir=${OPENSHIFT_CONFIG_DIR:-"/etc/openshift"}
+os_cfgdir=${OPENSHIFT_CONFIG_DIR:-"/opt/openshift/conf"}
 
 
 function os_print_message() {
