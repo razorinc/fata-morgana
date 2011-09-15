@@ -99,7 +99,7 @@ module Openshift::SDK::Model
     
     def from_descriptor_hash(hash,inherited_dependencies=nil)
       expected_keys = ["Reservations", "Profiles",    #from descriptor level
-                       "Provides", "Property Overrides", "Components", "Groups", "Connections", #from profile level
+                       "Provides", "Property Overrides", "Components", "Groups", "Connections", "Start-Order", #from profile level
                        "Dependencies", "Publishes", "Subscribes",  #from component level
                        "Scaling"]  #from groups
       unknown_keys = hash.keys.clone - expected_keys

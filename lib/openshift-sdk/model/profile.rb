@@ -80,6 +80,7 @@ module Openshift::SDK::Model
       @provides = []
       @reservations = []
       @components = {}
+      @start_order = nil
       @groups = {}
       @connections = {}
       @parent_descriptor = nil
@@ -96,13 +97,18 @@ module Openshift::SDK::Model
     end
     
     def from_descriptor_hash(hash,inherited_dependencies=nil)
-      expected_keys = ["Provides", "Property Overrides", "Components", "Groups", "Connections", #from profile level
+      expected_keys = ["Provides", "Property Overrides", "Components", "Groups", "Connections", "Start-Order", #from profile level
                        "Dependencies", "Publishes", "Subscribes",  #from component level
                        "Scaling", "Reservations"]  #from groups
       unknown_keys = hash.keys.clone - expected_keys
       if unknown_keys.size > 0      
         log.error "Error parsing descriptor profile. Unexpected keys: [#{unknown_keys.join(",")}]. Allowed keys are [#{expected_keys.join(",")}]"
         raise "Error parsing descriptor profile. Unexpected keys: [#{unknown_keys.join(",")}]. Allowed keys are [#{expected_keys.join(",")}]"
+      end
+
+      if hash["Start-Order"]
+        start_order = hash["Start-Order"]
+        hash.delete("Start-Order")
       end
       
       if hash["Provides"]
