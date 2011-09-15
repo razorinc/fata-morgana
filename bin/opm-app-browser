@@ -292,7 +292,7 @@ def command(current_object, object_stack)
   return current_object, object_stack
 end
 
-current_object = app.descriptor
+current_object = app
 object_stack = []
 
 while true

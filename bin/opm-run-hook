@@ -27,11 +27,11 @@ def usage
 
 opm run-hook: Runs a hook given the component and hook-name
                This program assumes it is run with the primary-user
-                privilges of the application.
+               privileges of the application and not root.
 
 == Usage
 
-opm run-hook component-name|app-name hook-name 
+opm run-hook component-name|app-name hook-name args
 
 Options:
 -h|--help:
@@ -61,7 +61,7 @@ $porcelin = args['--porcelin'] ? true : false
 
 component_name = ARGV.shift
 hook_name = ARGV.shift
-args = ARGV.shift
+zargs = ARGV.shift
 
 if args['--help'] || hook_name.nil?
   usage
@@ -69,4 +69,5 @@ if args['--help'] || hook_name.nil?
 end
 
 app = Openshift::SDK::Utils.get_application
-Openshift::SDK::Utils.run_hook(app, component_name, hook_name, args)
+Openshift::SDK::Utils.run_hook(app, component_name, hook_name, zargs)
+

@@ -230,10 +230,6 @@ module Openshift::SDK::Model
       cartridge
     end
     
-    def to_s
-      to_manifest_yaml
-    end
-
     def get_profile_from_feature(feature_name)
       d = self.descriptor
       raise "Cartridge #{self.name} is not installed" if d.nil?

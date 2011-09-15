@@ -42,6 +42,11 @@ module Openshift::SDK::Utils
   end
 
   def self.run_hook(app, component_path, hook_name, args)
+    # check if application has its descriptor resolved
+    if app.component_instance_map.length == 0
+      app.resolve_references
+    end
+
     # get application from current user name if user is not root
     ENV["OPENSHIFT_CONFIG_DIR"] = "/etc/openshift"  # default
     ENV["OPENSHIFT_PROFILE"] = "express" # `cat /etc/openshift/platform.conf` #  express|flex
@@ -87,6 +92,7 @@ module Openshift::SDK::Utils
         return hook_context, app
       end
     end
+    hook_context = hook_context.squeeze('/')
     base_path, current_component_path = hook_context.split("/openshift")
     if current_component_path.nil?
       current_component_path = "" 
@@ -94,15 +100,17 @@ module Openshift::SDK::Utils
     else
       full_path_s = current_component_path + "/" + component_path
     end
-    full_path_s = full_path_s.gsub('/', '.')
-    if not app.component_instance_map[full_path_s]
+    map_obj = get_inst_from_map(app, full_path_s)
+    if not map_obj
       raise
       # FIXME : if component instance_map is broken (does not collapse auto-delimiters such as profile names)
       #  search the path in the application's resolved descriptor
       #  This could also result in multiple cartridges
     end
     
-    map_obj = app.component_instance_map[full_path_s]
+    component_dir_path = component_path.gsub('.', '/')
+    hook_context = hook_context + "/" + component_dir_path
+    hook_context = hook_context.squeeze('/')
     cartridge = nil
     case map_obj
       when Openshift::SDK::Model::ComponentInstance
@@ -113,9 +121,49 @@ module Openshift::SDK::Utils
         cartridge = map_obj
     end
     
-    component_dir_path = component_path.gsub('.', '/')
-    hook_context = hook_context + "/" + component_dir_path
     return hook_context, cartridge
   end
 
+  def self.get_inst_from_map(app, path)
+    if not path
+      return app
+    end
+    cur_path = path
+    cur_path = cur_path.gsub('/', '.')
+    cur_path = cur_path.squeeze('.')
+    cur_path = cur_path.gsub(/^\.|\.$/, '')
+    cur_inst = app.component_instance_map[cur_path]
+    if not cur_inst
+      key = app.component_instance_map.keys.sort.find(cur_path).next
+      cur_inst = app.component_instance_map[key] if key
+    end
+    return cur_inst
+  end
+
+  def self.resolve_feature_path(app, component_path, cur_inst_or_path)
+    cur_inst = nil
+    case cur_inst_or_path
+      when NilClass
+        cur_inst = app
+      when String
+        base, cur_path = cur_inst_or_path.split("/openshift/")
+        cur_inst = get_inst_from_map(cur_path)
+      else
+        cur_inst = cur_inst_or_path
+    end
+
+    case cur_inst
+      when Openshift::SDK::Model::ComponentInstance
+        cur_inst = cur_inst_or_path
+      when Openshift::SDK::Model::CartridgeInstance
+        cur_inst = cur_inst_or_path
+      when Openshift::SDK::Model::Cartridge
+        cur_inst = cur_inst_or_path
+      when Openshift::SDK::Model::Application
+        cur_inst = cur_inst_or_path
+      else
+        raise "Cannot resolve component"
+    end
+
+  end
 end
