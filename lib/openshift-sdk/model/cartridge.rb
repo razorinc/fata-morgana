@@ -103,7 +103,7 @@ module Openshift::SDK::Model
         provides_feature.map!{ |f| f[18..-1] }
         requires_feature.map!{ |f| f[18..-1] }
 
-        cart_name = rpm.name.gsub(/-#{rpm.version}[0-9a-z\-\.]*/,"")
+        cart_name = rpm.name.gsub(/-#{rpm.version}[0-9a-z\-\.]*/,"").gsub("openshift-cartridge-","")
         cart = Cartridge.new(cart_name,package_path,provides_feature,requires_feature,requires,rpm.is_installed,rpm.hooks)
         cart.version = rpm.version
         cart.summary = rpm.summary
@@ -147,10 +147,18 @@ module Openshift::SDK::Model
           end
       end
       
+      expected_keys = ["Name", "Version", "Architecture", "Display-Name", "Description",
+         "Vendor", "License", "Provides", "Requires", "Conflicts", "Native-Requires", "Descriptor"]
+      unknown_keys = spec_objects.keys.clone - expected_keys
+      if unknown_keys.size > 0
+        log.error "Error parsing manifest.yml cartridge/application. Unexpected keys: [#{unknown_keys.join(",")}]. Allowed keys are [#{expected_keys.join(",")}]"
+        raise "Error parsing manifest.yml cartridge/application. Unexpected keys: [#{unknown_keys.join(",")}]. Allowed keys are [#{expected_keys.join(",")}]"
+      end
+      
       self.name = spec_objects["Name"]
       self.version = spec_objects["Version"] || "0.0"
       self.architecture = spec_objects["Architecture"] || "noarch"
-      self.display_name = spec_objects["Display Name"] || spec_objects["Name"]
+      self.display_name = spec_objects["Display-Name"] || spec_objects["Name"]
       self.summary = spec_objects["Description"] || spec_objects["Name"]
       self.vendor = spec_objects["Vendor"] || "unknown"
       self.license = spec_objects["License"] || "unknown"
@@ -185,11 +193,11 @@ module Openshift::SDK::Model
         self.conflicts_feature = []
       end
       
-      case spec_objects["Native Requires"]
+      case spec_objects["Native-Requires"]
       when Array
-        self.requires = spec_objects["Native Requires"]
+        self.requires = spec_objects["Native-Requires"]
       when String
-        self.requires = spec_objects["Native Requires"].split(",")
+        self.requires = spec_objects["Native-Requires"].split(",")
         self.requires.map!{ |e| e.strip }
       else
         self.requires = []
@@ -204,14 +212,14 @@ module Openshift::SDK::Model
       yaml_hash["Name"]             = self.name
       yaml_hash["Version"]          = self.version || "0.0"
       yaml_hash["Architecture"]     = self.architecture || "noarch"
-      yaml_hash["Display Name"]     = self.display_name || "#{self.name}-#{self.version}-#{self.architecture}"
+      yaml_hash["Display-Name"]     = self.display_name || "#{self.name}-#{self.version}-#{self.architecture}"
       yaml_hash["Description"]      = self.summary || "."
       yaml_hash["Vendor"]           = self.vendor
       yaml_hash["License"]          = self.license || "unknown"
       yaml_hash["Provides"]         = self.provides_feature || []
       yaml_hash["Requires"]         = self.requires_feature || []
       yaml_hash["Conflicts"]        = self.conflicts_feature || []
-      yaml_hash["Native Requires"]  = self.requires
+      yaml_hash["Native-Requires"]  = self.requires
 
       if @is_installed
         yaml_hash['Descriptor'] = self.descriptor.to_descriptor_hash

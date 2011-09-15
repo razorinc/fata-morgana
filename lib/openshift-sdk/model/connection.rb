@@ -79,6 +79,12 @@ module Openshift::SDK::Model
     end
 
     def from_descriptor_hash(hash)
+      expected_keys = ["Components"]
+      unknown_keys = hash.keys.clone - expected_keys
+      if unknown_keys.size > 0      
+        log.error "Error parsing descriptor profile connection. Unexpected keys: [#{unknown_keys.join(",")}]. Allowed keys are [#{expected_keys.join(",")}]"
+        raise "Error parsing descriptor profile connection. Unexpected keys: [#{unknown_keys.join(",")}]. Allowed keys are [#{expected_keys.join(",")}]"
+      end
       self.components = hash["Components"]
     end
     
