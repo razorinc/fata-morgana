@@ -21,9 +21,12 @@ Gem::Specification.new do |s|
   s.add_dependency("json_pure", "1.4.6")
   s.add_dependency("highline", "1.5.1")
   s.add_dependency("state_machine", "1.0.1")
-  s.add_dependency("activemodel", "3.0.5")
   s.add_dependency("parseconfig", "0.5.2")
   s.add_dependency("sqlite3", "1.3.3")
+  if RUBY_VERSION == "1.8.7"
+    s.add_dependency("activemodel", "3.0.5")
+    s.add_development_dependency('rcov', "0.9.10")
+  end
   s.add_development_dependency('mocha', "0.9.8")
   s.add_development_dependency('rake', "0.9.2")
 end

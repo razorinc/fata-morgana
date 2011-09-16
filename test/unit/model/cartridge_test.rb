@@ -119,4 +119,8 @@ EOF
       assert_raise(RuntimeError){Cartridge.new.from_manifest_yaml(manifest)}
     end
   end
+  
+  def teardown
+    Mocha::Mockery.instance.stubba.unstub_all
+  end
 end

@@ -4,8 +4,11 @@ module Openshift::SDK::Model
   class ComponentInstanceTest < Test::Unit::TestCase
     include ActiveModel::Lint::Tests
 
-    def model
+    def setup
       ComponentInstance.any_instance.stubs(:resolve_references).returns(nil)
+    end
+
+    def model
       ComponentInstance.new
     end
 
@@ -27,6 +30,10 @@ module Openshift::SDK::Model
       assert_not_nil c
       assert_equal "inst1", c.name
       assert_equal "comp1", c.component
+    end
+    
+    def teardown
+      Mocha::Mockery.instance.stubba.unstub_all
     end
   end
 end

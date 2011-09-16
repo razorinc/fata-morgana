@@ -55,5 +55,9 @@ module Openshift::SDK::Model
       assert_equal(1, c.subscribes.size)
       assert_equal(Connector,c.subscribes.values[0].class)
     end
+    
+    def teardown
+      Mocha::Mockery.instance.stubba.unstub_all
+    end
   end
 end

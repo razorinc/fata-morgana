@@ -39,5 +39,9 @@ module Openshift::SDK::Model
       assert_equal '/manifest.yml', rpm.manifest
       assert_equal ['/hooks/1', '/hooks/2'], rpm.hooks
     end
+    
+    def teardown
+      Mocha::Mockery.instance.stubba.unstub_all
+    end
   end
 end

@@ -62,5 +62,9 @@ module Openshift::SDK::Model
       assert_equal "conn_name",c.name
       assert_equal "FILESYSTEM:doc-root",c.type
     end
+    
+    def teardown
+      Mocha::Mockery.instance.stubba.unstub_all
+    end
   end
 end

@@ -29,5 +29,9 @@ module Openshift::SDK::Model
       assert_equal "+1",s.default_scale_by
       assert_equal "2-7-+1", s.generate_signature
     end
+    
+    def teardown
+      Mocha::Mockery.instance.stubba.unstub_all
+    end
   end
 end

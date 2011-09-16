@@ -153,5 +153,9 @@ module Openshift::SDK::Model
       assert_equal "prof1", p.name
       assert_equal 2, p.connections["conn1"].components.size
     end
+    
+    def teardown
+      Mocha::Mockery.instance.stubba.unstub_all
+    end
   end
 end

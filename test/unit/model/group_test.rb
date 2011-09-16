@@ -65,5 +65,9 @@ module Openshift::SDK::Model
       assert_equal 1,g.components.size
       assert_equal "MEM >= 500M", g.reservations
     end
+    
+    def teardown
+      Mocha::Mockery.instance.stubba.unstub_all
+    end
   end
 end

@@ -25,5 +25,9 @@ module Openshift::SDK
       ParseConfig.expects(:new).with(gem_conf)
       Config.instance 
     end
+    
+    def teardown
+      Mocha::Mockery.instance.stubba.unstub_all
+    end
   end
 end

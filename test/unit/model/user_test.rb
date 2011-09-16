@@ -83,7 +83,7 @@ module Openshift::SDK::Model
     end
 
     def test_delete_user_success
-      User.any_instance.expects(:shellCmd).returns(["","",0])
+      User.any_instance.expects(:shellCmd).at_least_once.returns(["","",0])
       assert_not_nil @user
       @user.remove!
     end
@@ -92,6 +92,10 @@ module Openshift::SDK::Model
       User.any_instance.expects(:shellCmd).returns(["","This is a simulated failure",1])
       assert_not_nil @user
       assert_raise(UserDeletionException){ @user.remove! }
+    end
+    
+    def teardown
+      Mocha::Mockery.instance.stubba.unstub_all
     end
   end
 end
