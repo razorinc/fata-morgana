@@ -28,7 +28,7 @@ require 'openshift-sdk/utils/logger'
 require 'openshift-sdk/utils/shell_exec'
 require "openshift-sdk/utils/sqlite_ds"
 
-ActiveSupport::JSON.backend = "JSONGem" 
+ActiveSupport::JSON.backend = "json_gem"
 module Openshift
   module SDK
     module Model
