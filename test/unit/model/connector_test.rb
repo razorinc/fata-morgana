@@ -7,6 +7,11 @@ module Openshift::SDK::Model
     def model
       Connector.new("conn_name")
     end
+    
+    def test_from_descriptor_hash
+      c = Connector.new("conn_name")
+      assert_raise(RuntimeError){c.from_descriptor_hash( {"Type" => "FILESYSTEM:doc-root", "Required" => "true", "Foobar" => 1} )}
+    end
 
     def test_from_descriptor_hash
       c = Connector.new("conn_name")

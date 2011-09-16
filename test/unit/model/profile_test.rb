@@ -8,6 +8,37 @@ module Openshift::SDK::Model
       Profile.new
     end
     
+    def test_descriptor
+      p = Profile.new("prof1")
+      p.from_descriptor_hash(
+        {
+          "Provides" => ["p1"],
+          "Property Overrides" => ["prop1=abcd"],
+           "Start-Order" => "abcd",
+           "Dependencies" => [],
+           "Publishes" => {},
+           "Subscribes" => {},
+           "Scaling" => {"Min" => 2},
+         "Reservations" => ["MEM >= 500M"]
+        })
+    end
+    
+    def test_descriptor
+      p = Profile.new("prof1")
+      hash = {
+        "Provides" => ["p1"],
+        "Property Overrides" => ["prop1=abcd"],
+         "Start-Order" => "abcd",
+         "Dependencies" => [],
+         "Publishes" => {},
+         "Subscribes" => {},
+         "Scaling" => {"Min" => 2},
+         "Reservations" => ["MEM >= 500M"],
+         "Foobar" => 1
+      }
+      assert_raise(RuntimeError){p.from_descriptor_hash(hash)}
+    end
+    
     def test_descriptor_minimal1
       p = Profile.new("prof1")
       p.from_descriptor_hash(

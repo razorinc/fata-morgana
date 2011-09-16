@@ -9,6 +9,11 @@ module Openshift::SDK::Model
     def model
       Group.new
     end
+    
+    def test_descriptor
+      g = Group.new("group1")
+      assert_raise(RuntimeError){g.from_descriptor_hash({"Components" => ["comp1"], "Reservations" => "MEM >= 500M", "Foobar" => 1})}
+    end
 
     def test_init_without_scaling
       g = Group.new("group1")

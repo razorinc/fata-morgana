@@ -148,7 +148,7 @@ module Openshift::SDK::Model
       end
       
       expected_keys = ["Name", "Version", "Architecture", "Display-Name", "Description", 
-         "Vendor", "License", "Provides", "Requires", "Conflicts", "Native-Requires", "Descriptor", "Build-Arch"]
+         "Vendor", "License", "Provides", "Requires", "Conflicts", "Native-Requires", "Descriptor"]
       unknown_keys = spec_objects.keys.clone - expected_keys
       if unknown_keys.size > 0
         log.error "Error parsing manifest.yml cartridge/application. Unexpected keys: [#{unknown_keys.join(",")}]. Allowed keys are [#{expected_keys.join(",")}]"

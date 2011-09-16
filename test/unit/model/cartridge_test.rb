@@ -75,7 +75,48 @@ module Openshift::SDK::Model
     end
     
     def test_from_manifest_yaml
-      #todo
+      #Test to see that manifest supports required keys
+      manifest = <<EOF
+Name: php
+Display-Name: php v1.0.0 (noarch)
+Description: Cartridge packaging PHP versions 5.3.2 upto 5.4.0
+Version: 1.0.0
+License: GPLv2
+Vendor: PHP
+Provides: 
+  - "php"
+Requires: 
+  - "www-dynamic"
+Conflicts:
+Native-Requires: 
+  - "php >= 5.3.2"
+Architecture: noarch
+Descriptor:
+EOF
+      Cartridge.new.from_manifest_yaml(manifest)
+    end
+    
+    def test_from_manifest_yaml_2
+      #Test to see that manifest errors on unrecognized keys
+      manifest = <<EOF
+Name: php
+Display-Name: php v1.0.0 (noarch)
+Description: Cartridge packaging PHP versions 5.3.2 upto 5.4.0
+Version: 1.0.0
+License: GPLv2
+Vendor: PHP
+Provides: 
+  - "php"
+Requires: 
+  - "www-dynamic"
+Conflicts:
+Native-Requires: 
+  - "php >= 5.3.2"
+Architecture: noarch
+Foobar:
+Descriptor:
+EOF
+      assert_raise(RuntimeError){Cartridge.new.from_manifest_yaml(manifest)}
     end
   end
 end
